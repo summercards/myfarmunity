@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f54d0d50e3345f40853eaa99b03211f, type: 3}
+  m_Name: Apple
+  m_EditorClassIdentifier: 
+  id: apple
+  displayName: "\u82F9\u679C"
+  icon: {fileID: 0}
+  category: 0
+  actionType: 0
+  maxStack: 99
+  buyPrice: 10
+  sellPrice: 5
+  plantable: 0
+  treePrefab: {fileID: 0}
+  growSeconds: 6
+  startScale: 0.4
+  targetScale: 1
+  interactRadius: 1
+  yieldCount: 1
