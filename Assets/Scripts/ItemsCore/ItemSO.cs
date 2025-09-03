@@ -12,6 +12,13 @@ public class ItemSO : ScriptableObject
     public ItemCategory category;
     public ItemActionType actionType = ItemActionType.None;
 
+    // 手持外观（可选）
+    [Header("Held (optional)")]
+    public GameObject heldPrefab;        // 手里显示的模型（小模型/网格）
+    public Vector3 heldLocalPosition;    // 在手骨上的局部偏移
+    public Vector3 heldLocalEulerAngles; // 局部旋转
+    public Vector3 heldLocalScale = Vector3.one;
+
     [Header("堆叠/价格")]
     public int maxStack = 99;
     public int buyPrice = 10;

@@ -17,6 +17,10 @@ MonoBehaviour:
   icon: {fileID: 0}
   category: 0
   actionType: 0
+  heldPrefab: {fileID: 9022228501059136267, guid: 2c980d7acff825f4d9552b7e47c95c5e, type: 3}
+  heldLocalPosition: {x: 0, y: 0, z: 0}
+  heldLocalEulerAngles: {x: 0, y: 0, z: 0}
+  heldLocalScale: {x: 1, y: 1, z: 1}
   maxStack: 99
   buyPrice: 10
   sellPrice: 5

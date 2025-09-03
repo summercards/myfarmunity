@@ -4,42 +4,50 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-/// <summary>
-/// - 每帧在半径内寻找最近的 ItemWorld
-/// - 显示提示（可选）
-/// - 按 E / Gamepad South（A/×）拾取，或开启自动拾取
-/// </summary>
 [RequireComponent(typeof(PlayerInventoryHolder))]
 public class PlayerPickupController : MonoBehaviour
 {
     [Header("Detect")]
     public float searchRadius = 2.0f;
-    public LayerMask pickupMask;           // 只勾选“Pickup”层
-    public bool autoPickup = false;        // 开启后贴近就捡
+    public LayerMask pickupMask;   // 只勾选“Pickup”层
+    public bool autoPickup = false;
 
     [Header("UI (Optional)")]
-    public PickupHUD hud;                  // 不挂也能用
+    public PickupHUD hud;
+
+    [Header("Held Visual (Optional)")]
+    public HeldItemDisplay heldDisplay;
+    public float heldShowSeconds = -1f;
 
     PlayerInventoryHolder _inv;
-    ItemWorld _candidate;                  // 最近的可拾取物
+    ItemWorld _candidate;
+
+    // NonAlloc 缓存
+    const int kDefaultMaxHits = 16;
+    [SerializeField] int maxHits = kDefaultMaxHits;
+    Collider[] _hitsCache;
 
     void Awake()
     {
         _inv = GetComponent<PlayerInventoryHolder>();
+        if (!_inv) Debug.LogError("[PlayerPickupController] 没有找到 PlayerInventoryHolder。");
+
+        if (!heldDisplay) heldDisplay = GetComponentInChildren<HeldItemDisplay>(true);
+
         if (pickupMask.value == 0)
         {
-            // 如果你忘了设置，尝试自动选择名为 Pickup 的层
             int lp = LayerMask.NameToLayer("Pickup");
             if (lp >= 0) pickupMask = (1 << lp);
         }
+
+        if (maxHits < 1) maxHits = kDefaultMaxHits;
+        _hitsCache = new Collider[maxHits];
     }
 
     void Update()
     {
-        // 1) 找最近的 ItemWorld
         _candidate = FindNearestItem();
 
-        // 2) UI 提示
         if (hud)
         {
             if (_candidate)
@@ -50,32 +58,56 @@ public class PlayerPickupController : MonoBehaviour
 
         if (!_candidate) return;
 
-        // 3) 自动拾取 or 按键拾取
         if (autoPickup || InteractPressedThisFrame())
         {
+            string pickedId = _candidate.itemId;
             int got = _candidate.TryPickUp(_inv);
-            if (got > 0 && hud)
-                hud.Show($"获得：{_candidate.itemId} x{got}");
+            if (got > 0)
+            {
+                if (hud) hud.Show($"获得：{pickedId} x{got}");
+
+                if (heldDisplay && _inv != null && _inv.itemDB != null)
+                {
+                    var def = _inv.itemDB.Get(pickedId);
+                    if (def != null)
+                    {
+                        heldDisplay.Show(def, heldShowSeconds);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[Pickup] itemDB 没有 id='{pickedId}' 的条目，无法显示手持。");
+                    }
+                }
+                else
+                {
+                    // 这些日志帮助你确认为什么没有显示
+                    if (!heldDisplay) Debug.Log("[Pickup] 没有 HeldItemDisplay 组件（可选）。");
+                    if (_inv == null) Debug.LogWarning("[Pickup] _inv 为空。");
+                    else if (_inv.itemDB == null) Debug.LogWarning("[Pickup] itemDB 未绑定（PlayerInventoryHolder.itemDB）。");
+                }
+            }
         }
     }
 
     ItemWorld FindNearestItem()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, searchRadius, pickupMask, QueryTriggerInteraction.Collide);
+        int count = Physics.OverlapSphereNonAlloc(transform.position, searchRadius, _hitsCache, pickupMask, QueryTriggerInteraction.Collide);
         float best = float.MaxValue;
         ItemWorld bestItem = null;
 
-        for (int i = 0; i < hits.Length; i++)
+        for (int i = 0; i < count; i++)
         {
-            var it = hits[i].GetComponentInParent<ItemWorld>();
-            if (!it) it = hits[i].GetComponent<ItemWorld>();
+            var c = _hitsCache[i];
+            if (!c) continue;
+
+            var it = c.GetComponentInParent<ItemWorld>();
+            if (!it) it = c.GetComponent<ItemWorld>();
             if (!it) continue;
 
             float d = (it.transform.position - transform.position).sqrMagnitude;
             if (d < best)
             {
-                best = d;
-                bestItem = it;
+                best = d; bestItem = it;
             }
         }
         return bestItem;
@@ -96,5 +128,18 @@ public class PlayerPickupController : MonoBehaviour
     {
         Gizmos.color = new Color(0.2f, 0.9f, 0.2f, 0.25f);
         Gizmos.DrawSphere(transform.position, searchRadius);
+    }
+
+    void OnValidate()
+    {
+        if (maxHits < 1) maxHits = kDefaultMaxHits;
+        if (_hitsCache == null || _hitsCache.Length != maxHits)
+            _hitsCache = new Collider[maxHits];
+
+        if (pickupMask.value == 0)
+        {
+            int lp = LayerMask.NameToLayer("Pickup");
+            if (lp >= 0) pickupMask = (1 << lp);
+        }
     }
 }
