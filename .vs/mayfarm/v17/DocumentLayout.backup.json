@@ -3,12 +3,28 @@
   "WorkspaceRootPath": "I:\\farmue\\myfarmu3d\\mayfarm\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSCharacter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Character\\TPSCharacter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Items\\PlayerPickupController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Items\\PlayerPickupController.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\UI\\PickupHUD.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\UI\\PickupHUD.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Items\\ItemWorld.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Items\\ItemWorld.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Inventory\\PlayerInventoryHolder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Inventory\\PlayerInventoryHolder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSOrbitCamera.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Character\\TPSOrbitCamera.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSCharacter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Character\\TPSCharacter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSStateMachine.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -30,33 +46,85 @@
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "PlayerInventoryHolder.cs",
+              "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Inventory\\PlayerInventoryHolder.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Inventory\\PlayerInventoryHolder.cs",
+              "ToolTip": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Inventory\\PlayerInventoryHolder.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Inventory\\PlayerInventoryHolder.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-03T00:36:53.041Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "PlayerPickupController.cs",
+              "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Items\\PlayerPickupController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Items\\PlayerPickupController.cs",
+              "ToolTip": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Items\\PlayerPickupController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Items\\PlayerPickupController.cs",
+              "ViewState": "AgIAADYAAAAAAAAAAAAcwGQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-03T00:36:26.484Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ItemWorld.cs",
+              "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Items\\ItemWorld.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Items\\ItemWorld.cs",
+              "ToolTip": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Items\\ItemWorld.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Items\\ItemWorld.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAC0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-03T00:36:15.569Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "PickupHUD.cs",
+              "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\UI\\PickupHUD.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\UI\\PickupHUD.cs",
+              "ToolTip": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\UI\\PickupHUD.cs",
+              "RelativeToolTip": "Assets\\Scripts\\UI\\PickupHUD.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-03T00:35:51.35Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
               "Title": "TPSOrbitCamera.cs",
               "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSOrbitCamera.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Character\\TPSOrbitCamera.cs",
               "ToolTip": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSOrbitCamera.cs",
               "RelativeToolTip": "Assets\\Scripts\\Character\\TPSOrbitCamera.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAIwEsAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAEIAAAAAAAAAAAAcwHAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-02T03:10:09.066Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 5,
               "Title": "TPSCharacter.cs",
               "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSCharacter.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Character\\TPSCharacter.cs",
               "ToolTip": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSCharacter.cs",
               "RelativeToolTip": "Assets\\Scripts\\Character\\TPSCharacter.cs",
-              "ViewState": "AgIAACoAAAAAAAAAAAAIwMcAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAI0AAAAAAAAAAAAIwNAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-09-02T03:09:55.138Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 6,
               "Title": "TPSStateMachine.cs",
               "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSStateMachine.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Character\\TPSStateMachine.cs",
@@ -64,12 +132,11 @@
               "RelativeToolTip": "Assets\\Scripts\\Character\\TPSStateMachine.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAACQAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-02T03:09:43.595Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-02T03:09:43.595Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 7,
               "Title": "TPSInput.cs",
               "DocumentMoniker": "I:\\farmue\\myfarmu3d\\mayfarm\\Assets\\Scripts\\Character\\TPSInput.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Character\\TPSInput.cs",
@@ -77,8 +144,7 @@
               "RelativeToolTip": "Assets\\Scripts\\Character\\TPSInput.cs",
               "ViewState": "AgIAAAUAAAAAAAAAAAAIwEgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-09-02T03:08:36.797Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-02T03:08:36.797Z"
             }
           ]
         }
