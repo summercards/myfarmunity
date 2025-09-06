@@ -96,6 +96,12 @@ public class PlayerPlanter : MonoBehaviour
         var crop = cropObj.GetComponent<CropPlant>(); if (!crop) crop = cropObj.AddComponent<CropPlant>();
         crop.Init(entry);
 
+        // ★★★ 这里插入这段 ★★★
+        var cp = cropObj.GetComponent<CropPersistence>();
+        if (!cp) cp = cropObj.AddComponent<CropPersistence>();
+        cp.entryId = id;
+        // ★★★★★★★★★★★★★★★★
+
         // 扣1个，尽量保持当前激活不变
         string keepId = id;
         _inv.RemoveItem(id, 1);
