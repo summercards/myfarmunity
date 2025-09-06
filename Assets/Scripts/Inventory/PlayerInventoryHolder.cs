@@ -10,21 +10,33 @@ public class PlayerInventoryHolder : MonoBehaviour
 
     public event Action OnInventoryChanged;
 
-    public Inventory Inventory { get; private set; }
+    public Inventory Inventory { get; set; }
 
     void Awake()
     {
-        if (!itemDB) Debug.LogWarning("[PlayerInventoryHolder] ItemDatabaseSO is not assigned.");
-        Inventory = new Inventory(capacity, itemDB);
+        if (Inventory == null) Inventory = new Inventory(Mathf.Max(1, capacity));
+        // 让背包知道每种物品的最大堆叠
+        Inventory.GetMaxStackForId = (id) =>
+        {
+            if (itemDB == null) return 99;
+            var def = itemDB.Get(id);
+            return def ? Mathf.Max(1, def.maxStack) : 99;
+        };
     }
 
-    /// <summary> 往背包加物品，返回真正加入的数量 </summary>
     public int AddItem(string id, int count = 1)
     {
         int added = Inventory.AddItem(id, count);
         if (added > 0) OnInventoryChanged?.Invoke();
         return added;
     }
+
+    // 允许其他组件在合法场合通知“背包变了”（例如读档后）
+    public void RaiseInventoryChanged()
+    {
+        OnInventoryChanged?.Invoke();
+    }
+
 
     public int RemoveItem(string id, int count = 1)
     {

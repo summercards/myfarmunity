@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d22409c26fc2b8446a3f3527359518bd, type: 3}
+  m_Name: SeedPlantDataSO
+  m_EditorClassIdentifier: 
+  entries:
+  - plantItemId: banana
+    cropPrefab: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
+    stages:
+    - duration: 3
+      visual: {fileID: 0}
+    defaultStageDuration: 3
+    produceId: banana
+    produceMin: 1
+    produceMax: 3
+    produceWorldPrefab: {fileID: 2162943329169117121, guid: 5801035ddbe8d9b45b9239e6df7edb04, type: 3}
+    plantCooldown: 0.2
+    spawnYOffset: 0.02
