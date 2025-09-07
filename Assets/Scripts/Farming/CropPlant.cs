@@ -5,18 +5,21 @@ public class CropPlant : MonoBehaviour
 {
     [Header("Runtime (ReadOnly)")] public bool isMature = false;
 
-    // 配置来源
+    // 配置
     SeedPlantDataSO.Entry _cfg;
 
     // 生长计时
     float _timer = 0f;              // 当前阶段累计
     int _stageIndex = 0;          // 当前阶段索引
-    float _elapsedTotal = 0f;       // 所有阶段累计（前面阶段之和 + 当前阶段累计）
+    float _elapsedTotal = 0f;       // 所有阶段累计
     float _totalGrowth = 0f;        // 总生长时长
     float[] _stageDur;              // 每阶段时长（已处理默认值）
 
-    // 阶段可视
+    // 阶段可视（用条目里的 stages[i].visual 生成）
     GameObject[] _stageVisuals;
+
+    // —— 初始化标记（用于防止 Update 抢跑导致空指针）——
+    bool _inited = false;
 
     [Header("无阶段模型时的缩放兜底")]
     public bool enableScaleTween = true;
@@ -29,7 +32,7 @@ public class CropPlant : MonoBehaviour
     public float interactRadius = 1.6f;
     PlayerInventoryHolder _player;
 
-    // ---------------- 极简 3D 进度条：两个 Quad ----------------
+    // —— 极简 3D 进度条（两个 Quad） ——
     [Header("3D Progress Bar (Quad)")]
     public bool showBar = true;
     public Vector3 barOffset = new Vector3(0, 1.1f, 0);
@@ -92,22 +95,43 @@ public class CropPlant : MonoBehaviour
         _barRoot.rotation = Quaternion.LookRotation(_barRoot.position - cam.transform.position);
     }
 
-    // ============ 生命周期 ============
+    // ===== 生命周期 =====
     public void Init(SeedPlantDataSO.Entry cfg)
     {
         _cfg = cfg;
-        BuildStageDurations();     // 把0时长替换为默认值
+        BuildStageDurations();
         SetupStageVisuals();
         BuildBar();
-        ApplyStage(0);
+        ApplyStage(0);            // 初始显示第0阶段
         _player = FindObjectOfType<PlayerInventoryHolder>();
         UpdateBar(0f);
+        _inited = true;
     }
 
     void Update()
     {
-        // 生长推进
-        if (!isMature && _stageDur.Length > 0)
+        // —— 防守：未初始化或阶段数据未就绪时直接返回，避免空指针 ——
+        if (!_inited)
+        {
+            // 尝试“懒初始化”一次（极端情况下 Init 还没被调用）
+            if (_cfg != null && (_stageDur == null || _stageDur.Length == 0))
+            {
+                BuildStageDurations();
+                SetupStageVisuals();
+                BuildBar();
+                ApplyStage(0);
+                UpdateBar(0f);
+                _inited = true;
+            }
+            else
+            {
+                return;
+            }
+        }
+        if (_stageDur == null || _stageDur.Length == 0) return;
+
+        // 在线生长推进
+        if (!isMature)
         {
             _timer += Time.deltaTime;
 
@@ -129,7 +153,7 @@ public class CropPlant : MonoBehaviour
 
         FaceCamera();
 
-        // 成熟后：距离交互
+        // 成熟后交互
         if (isMature && _player)
         {
             if (Vector3.Distance(_player.transform.position, transform.position) <= interactRadius
@@ -140,7 +164,7 @@ public class CropPlant : MonoBehaviour
         }
     }
 
-    // 阶段可视
+    // 阶段可视（把除当前阶段以外的模型全部隐藏）
     void ApplyStage(int index)
     {
         if (_stageVisuals == null) return;
@@ -186,7 +210,7 @@ public class CropPlant : MonoBehaviour
         UpdateBar(1f);
     }
 
-    // 收获（掉落或进背包，按你之前的配置）
+    // 收获
     public void HarvestTo(PlayerInventoryHolder holder)
     {
         if (!isMature || _cfg == null) return;
@@ -208,7 +232,6 @@ public class CropPlant : MonoBehaviour
                     var dir = new Vector3(Random.Range(-1f, 1f), 1f, Random.Range(-1f, 1f)).normalized;
                     rb.AddForce(dir * Random.Range(v.x, v.y), ForceMode.VelocityChange);
                 }
-                // go.GetComponent<ItemWorld>()?.Set(dropId, 1);
             }
         }
         else if (holder && !string.IsNullOrEmpty(dropId) && amount > 0)
@@ -218,7 +241,7 @@ public class CropPlant : MonoBehaviour
         Destroy(gameObject);
     }
 
-    // 阶段时长（把0替换为默认值），并计算总时长
+    // 计算阶段时长 & 总时长（把0替换为默认值）
     void BuildStageDurations()
     {
         int n = (_cfg?.stages != null) ? _cfg.stages.Length : 0;
@@ -249,16 +272,16 @@ public class CropPlant : MonoBehaviour
         if (_barRoot) Destroy(_barRoot.gameObject);
     }
 
-    // =========== ① 新增：可序列化的生长存档结构 ===========
+    // ======= 可序列化的“生长存档状态” =======
     [System.Serializable]
     public struct GrowthState
     {
-        public int stageIndex;     // 当前阶段
-        public float stageTimer;   // 当前阶段内已累计的秒数
+        public int stageIndex;     // 当前阶段（0~N-1）
+        public float stageTimer;   // 当前阶段中已累计秒数
         public bool mature;        // 是否已成熟
     }
 
-    // =========== ② 新增：导出当前生长状态 ===========
+    // 导出生长状态（保存）
     public GrowthState GetSaveState()
     {
         int si = Mathf.Clamp(_stageIndex, 0, Mathf.Max(0, _stageDur.Length - 1));
@@ -267,23 +290,19 @@ public class CropPlant : MonoBehaviour
         return new GrowthState { stageIndex = si, stageTimer = st, mature = isMature };
     }
 
-    // =========== ③ 新增：应用生长状态（加载时调用） ===========
+    // 应用生长状态（加载）
     public void ApplySaveState(GrowthState s)
     {
-        // 确保时长表已就绪
-        if (_stageDur == null || _stageDur.Length == 0)
-        {
-            BuildStageDurations();
-            if (_stageDur == null || _stageDur.Length == 0) return;
-        }
+        if (_stageDur == null || _stageDur.Length == 0) BuildStageDurations();
+        if (_stageVisuals == null || _stageVisuals.Length == 0) SetupStageVisuals();
 
-        if (s.mature || s.stageIndex >= _stageDur.Length)
+        if (s.mature || s.stageIndex >= (_stageDur?.Length ?? 0))
         {
-            // 直接成熟
             _elapsedTotal = _totalGrowth;
-            _stageIndex = Mathf.Max(0, _stageDur.Length - 1);
+            _stageIndex = Mathf.Max(0, (_stageDur?.Length ?? 1) - 1);
             _timer = 0f;
             BecomeMature();
+            _inited = true;
             return;
         }
 
@@ -292,14 +311,54 @@ public class CropPlant : MonoBehaviour
         _timer = Mathf.Clamp(s.stageTimer, 0f, curDur - 0.0001f);
         isMature = false;
 
-        // 重新计算累计
         _elapsedTotal = 0f;
         for (int i = 0; i < _stageIndex; i++) _elapsedTotal += _stageDur[i];
 
-        // 套用可视与进度
         ApplyStage(_stageIndex);
         float totalP = (_elapsedTotal + _timer) / Mathf.Max(0.0001f, _totalGrowth);
         ApplyScaleTween(totalP);
         UpdateBar(totalP);
+        _inited = true;
+    }
+
+    // ======= 离线推进（把N秒直接吃掉） =======
+    public void AdvanceBy(float seconds)
+    {
+        if (seconds <= 0f) return;
+        if (_stageDur == null || _stageDur.Length == 0) BuildStageDurations();
+        if (_stageDur == null || _stageDur.Length == 0) return;
+
+        while (seconds > 0f && !isMature)
+        {
+            float curDur = Mathf.Max(0.0001f, _stageDur[_stageIndex]);
+            float remain = curDur - _timer;
+
+            if (seconds < remain)
+            {
+                _timer += seconds;
+                _elapsedTotal += seconds;
+                seconds = 0f;
+            }
+            else
+            {
+                _elapsedTotal += remain;
+                seconds -= remain;
+                _timer = 0f;
+                _stageIndex++;
+                if (_stageIndex >= _stageDur.Length)
+                {
+                    BecomeMature();
+                    break;
+                }
+                else
+                {
+                    ApplyStage(_stageIndex);
+                }
+            }
+
+            float totalP = (_elapsedTotal + _timer) / Mathf.Max(0.0001f, _totalGrowth);
+            ApplyScaleTween(totalP);
+            UpdateBar(totalP);
+        }
     }
 }

@@ -16,12 +16,24 @@ MonoBehaviour:
   - plantItemId: banana
     cropPrefab: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
     stages:
-    - duration: 3
-      visual: {fileID: 0}
-    defaultStageDuration: 3
+    - duration: 15
+      visual: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
+    defaultStageDuration: 25
     produceId: banana
     produceMin: 1
     produceMax: 3
     produceWorldPrefab: {fileID: 2162943329169117121, guid: 5801035ddbe8d9b45b9239e6df7edb04, type: 3}
+    plantCooldown: 0.2
+    spawnYOffset: 0.02
+  - plantItemId: apple
+    cropPrefab: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
+    stages:
+    - duration: 5
+      visual: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
+    defaultStageDuration: 5
+    produceId: apple
+    produceMin: 1
+    produceMax: 4
+    produceWorldPrefab: {fileID: 861575827419981994, guid: 550293b95a9587d4987eeab9ca6159ac, type: 3}
     plantCooldown: 0.2
     spawnYOffset: 0.02
