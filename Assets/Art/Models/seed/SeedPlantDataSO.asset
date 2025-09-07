@@ -14,26 +14,40 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - plantItemId: banana
-    cropPrefab: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
-    stages:
-    - duration: 15
-      visual: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
+    cropPrefab: {fileID: 3878356726641800099, guid: a306b4e5c6fcb094d9298dc5b173ecde, type: 3}
     defaultStageDuration: 25
+    stages:
+    - duration: 5
+      visual: {fileID: 2354886333569873455, guid: 3bc3f3a3520942041ac3500e0c56dbf2, type: 3}
+    - duration: 5
+      visual: {fileID: 3835266532225146412, guid: a8ef5d0a3c89ce049ab17b190a64d8d6, type: 3}
     produceId: banana
     produceMin: 1
     produceMax: 3
     produceWorldPrefab: {fileID: 2162943329169117121, guid: 5801035ddbe8d9b45b9239e6df7edb04, type: 3}
     plantCooldown: 0.2
     spawnYOffset: 0.02
+    keepAfterHarvest: 1
+    periodicProduce: 1
+    produceInterval: 10
+    producePerTick: 1
+    maxOnGround: 3
+    dropRadius: 0.5
   - plantItemId: apple
-    cropPrefab: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
+    cropPrefab: {fileID: 2697712092535857849, guid: aca169806dad9eb42bd19f0c69b03955, type: 3}
+    defaultStageDuration: 5
     stages:
     - duration: 5
-      visual: {fileID: 2697712092535857849, guid: b50aed3c6506a1f40a148c9b0d4e2fc1, type: 3}
-    defaultStageDuration: 5
+      visual: {fileID: 2697712092535857849, guid: aca169806dad9eb42bd19f0c69b03955, type: 3}
     produceId: apple
     produceMin: 1
-    produceMax: 4
+    produceMax: 2
     produceWorldPrefab: {fileID: 861575827419981994, guid: 550293b95a9587d4987eeab9ca6159ac, type: 3}
     plantCooldown: 0.2
     spawnYOffset: 0.02
+    keepAfterHarvest: 0
+    periodicProduce: 0
+    produceInterval: 10
+    producePerTick: 1
+    maxOnGround: 3
+    dropRadius: 0.5

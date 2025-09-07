@@ -14,12 +14,14 @@ public class CropSaveManager : MonoBehaviour
         public int stageIndex;
         public float stageTimer;
         public bool mature;
+        public float produceTimer;
+        public int storedYield;
     }
 
     [Serializable]
     private class CropSaveFile
     {
-        public string savedUtc;                 // 本次保存的UTC时间（ISO 8601）
+        public string savedUtc;
         public List<CropSaveRecord> crops = new List<CropSaveRecord>();
     }
 
@@ -27,12 +29,8 @@ public class CropSaveManager : MonoBehaviour
 
     [Header("Data")]
     public SeedPlantDataSO plantDB;
-
-    [Tooltip("统一写到 SavePaths 的当前存档槽目录下")]
     public string fileName = "crops.json";
-
-    [Header("Options")]
-    public bool saveOnPauseOrFocusLoss = true; // 退到后台/失焦也保存一次
+    public bool saveOnPauseOrFocusLoss = true;
 
     private readonly List<CropPersistence> _tracked = new List<CropPersistence>();
 
@@ -53,10 +51,7 @@ public class CropSaveManager : MonoBehaviour
 
     public void Save()
     {
-        var file = new CropSaveFile
-        {
-            savedUtc = DateTime.UtcNow.ToString("o") // ISO 8601
-        };
+        var file = new CropSaveFile { savedUtc = DateTime.UtcNow.ToString("o") };
 
         foreach (var c in _tracked)
         {
@@ -71,13 +66,15 @@ public class CropSaveManager : MonoBehaviour
                 rotation = c.transform.rotation,
                 stageIndex = gs.stageIndex,
                 stageTimer = gs.stageTimer,
-                mature = gs.mature
+                mature = gs.mature,
+                produceTimer = gs.produceTimer,
+                storedYield = gs.storedYield
             });
         }
 
         File.WriteAllText(GetPath(), JsonUtility.ToJson(file, true));
 #if UNITY_EDITOR
-        Debug.Log($"[CropSave] Saved {file.crops.Count} crops at {file.savedUtc} to {GetPath()}");
+        Debug.Log($"[CropSave] Saved {file.crops.Count} crops at {file.savedUtc}");
 #endif
     }
 
@@ -86,22 +83,19 @@ public class CropSaveManager : MonoBehaviour
         var path = GetPath();
         if (!File.Exists(path)) return;
 
-        // 清场，避免重复
         foreach (var c in FindObjectsOfType<CropPersistence>())
             if (c) Destroy(c.gameObject);
 
         var file = JsonUtility.FromJson<CropSaveFile>(File.ReadAllText(path));
         if (file == null) return;
 
-        // 计算离线秒数（没有 savedUtc 就按 0）
         double offlineSeconds = 0;
-        if (!string.IsNullOrEmpty(file.savedUtc))
+        if (!string.IsNullOrEmpty(file.savedUtc)
+            && DateTime.TryParse(file.savedUtc, null,
+                System.Globalization.DateTimeStyles.AdjustToUniversal, out var saved))
         {
-            if (DateTime.TryParse(file.savedUtc, null, System.Globalization.DateTimeStyles.AdjustToUniversal, out var saved))
-            {
-                offlineSeconds = (DateTime.UtcNow - saved).TotalSeconds;
-                if (offlineSeconds < 0) offlineSeconds = 0;
-            }
+            offlineSeconds = (DateTime.UtcNow - saved).TotalSeconds;
+            if (offlineSeconds < 0) offlineSeconds = 0;
         }
 
         int ok = 0;
@@ -117,18 +111,17 @@ public class CropSaveManager : MonoBehaviour
                 var crop = go.GetComponent<CropPlant>(); if (!crop) crop = go.AddComponent<CropPlant>();
                 crop.Init(entry);
 
-                // 先恢复保存时状态
                 crop.ApplySaveState(new CropPlant.GrowthState
                 {
                     stageIndex = r.stageIndex,
                     stageTimer = r.stageTimer,
-                    mature = r.mature
+                    mature = r.mature,
+                    produceTimer = r.produceTimer,
+                    storedYield = r.storedYield
                 });
 
-                // 再推进离线生长
                 if (offlineSeconds > 0) crop.AdvanceBy((float)offlineSeconds);
 
-                // 身份，用于下次保存
                 var cp = go.GetComponent<CropPersistence>(); if (!cp) cp = go.AddComponent<CropPersistence>();
                 cp.entryId = r.entryId;
 
@@ -136,21 +129,13 @@ public class CropSaveManager : MonoBehaviour
             }
         }
 #if UNITY_EDITOR
-        Debug.Log($"[CropSave] Loaded {ok} crops. Offline advanced by {offlineSeconds:F1}s");
+        Debug.Log($"[CropSave] Loaded {ok} crops. Offline +{offlineSeconds:F1}s");
 #endif
     }
 
     void OnApplicationQuit() => Save();
-
-    void OnApplicationPause(bool pause)
-    {
-        if (saveOnPauseOrFocusLoss && pause) Save();
-    }
-
-    void OnApplicationFocus(bool hasFocus)
-    {
-        if (saveOnPauseOrFocusLoss && !hasFocus) Save();
-    }
+    void OnApplicationPause(bool pause) { if (saveOnPauseOrFocusLoss && pause) Save(); }
+    void OnApplicationFocus(bool hasFocus) { if (saveOnPauseOrFocusLoss && !hasFocus) Save(); }
 
 #if UNITY_EDITOR
     [ContextMenu("Save Now")] void EditorSaveNow() => Save();

@@ -1,54 +1,54 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Farming/Seed Plant Data", fileName = "SeedPlantDataSO")]
+[CreateAssetMenu(menuName = "Farm/SeedPlantData", fileName = "SeedPlantDataSO")]
 public class SeedPlantDataSO : ScriptableObject
 {
-    [Serializable]
-    public class GrowthStage
+    [System.Serializable]
+    public class Stage
     {
-        [Tooltip("该阶段持续时间（秒），<=0 则使用 Default Stage Duration")]
-        public float duration = 0f;
-        [Tooltip("该阶段的外观（可空）。为空则不切换外观")]
-        public GameObject visual;
+        public float duration = 0f;     // 该阶段时长（<=0 使用 defaultStageDuration）
+        public GameObject visual;       // 阶段展示模型（可空，空则用缩放补间）
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Entry
     {
         [Header("Plant from Item")]
-        public string plantItemId;              // 直接用原物品ID：apple / banana
-        public GameObject cropPrefab;           // 作物根预制（上面挂 CropPlant 即可）
+        public string plantItemId;          // 用这个物品能种
+        public GameObject cropPrefab;       // 生成的作物预制体
 
         [Header("Growth")]
-        public GrowthStage[] stages;
-        [Tooltip("当 stages[x].duration <= 0 时使用此默认时长（秒）")]
-        public float defaultStageDuration = 3f; // ★ 新增
+        public float defaultStageDuration = 4f;
+        public Stage[] stages;
 
-        [Header("Harvest (收获)")]
-        [Tooltip("成熟收获时给到玩家的物品ID；留空=plantItemId")]
-        public string produceId;
+        [Header("Harvest (一次性/树通用)")]
+        public string produceId;            // 不填就用 plantItemId
         public int produceMin = 1;
-        public int produceMax = 3;
-
-        [Tooltip("生成到地面的世界掉落物预制（例如 ItemWorld_banana）。留空则退回直接加进背包。")]
-        public GameObject produceWorldPrefab;   // ★ 新增
+        public int produceMax = 1;
+        public GameObject produceWorldPrefab; // 掉落到地面的预制体（建议你的 apple/banana world 预制体）
 
         [Header("Planting")]
         public float plantCooldown = 0.2f;
         public float spawnYOffset = 0.02f;
 
-        public string GetFinalProduceId() =>
-            string.IsNullOrEmpty(produceId) ? plantItemId : produceId;
+        [Header("Tree / Persistent")]
+        public bool keepAfterHarvest = false;     // 勾选=“树”→收成后不销毁
+
+        [Header("Periodic Produce (树可选)")]
+        public bool periodicProduce = false;      // 勾选=周期性产出
+        public float produceInterval = 10f;       // 产出间隔（秒）
+        public int producePerTick = 1;            // 每次产出几个
+        public int maxOnGround = 3;               // 脚下最多堆积（简单限流）
+        public float dropRadius = 0.5f;           // 掉落半径（树脚周围随机）
     }
 
-    public List<Entry> entries = new();
+    public Entry[] entries;
 
     public Entry GetByPlantItemId(string id)
     {
-        if (string.IsNullOrEmpty(id)) return null;
-        foreach (var e in entries) if (e != null && e.plantItemId == id) return e;
+        if (entries == null) return null;
+        for (int i = 0; i < entries.Length; i++)
+            if (entries[i] != null && entries[i].plantItemId == id) return entries[i];
         return null;
     }
 }
