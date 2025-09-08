@@ -35,6 +35,11 @@ public class CropPlant : MonoBehaviour
 
     // —— 3D 进度条（两个 Quad） ——
     [Header("3D Progress Bar (Quad)")]
+    [Tooltip("自动把进度条放到当前可见模型的最高点上")]
+    public bool barAutoFollowRendererTop = true;
+    [Tooltip("进度条再往上抬一点，避免贴脸穿模")]
+    public float barTopExtra = 0.08f;
+
     public bool showBar = true;
     public Vector3 barOffset = new Vector3(0, 1.1f, 0);
     public float barWidth = 0.8f;
@@ -59,6 +64,54 @@ public class CropPlant : MonoBehaviour
         m.renderQueue = 3000;
         return m;
     }
+
+
+
+    // 计算当前可见模型的世界包围盒（排除进度条自身）
+    bool TryGetVisualWorldBounds(out Bounds b)
+    {
+        b = default;
+        bool has = false;
+
+        // 你的进度条根节点变量名可能不同，这里假设是 _barRoot
+        Transform barRoot = _barRoot;
+
+        var rends = GetComponentsInChildren<Renderer>(true);
+        foreach (var r in rends)
+        {
+            if (!r) continue;
+            // 忽略进度条自身的 Renderer
+            if (barRoot && r.transform.IsChildOf(barRoot)) continue;
+
+            if (!has) { b = r.bounds; has = true; }
+            else b.Encapsulate(r.bounds);
+        }
+        return has;
+    }
+
+    // 统一在 Update/LateUpdate 或切换阶段后调用，更新条的位置与朝向
+    void UpdateBarTransform()
+    {
+        if (!_barRoot) return;
+
+        Vector3 pos;
+        if (barAutoFollowRendererTop && TryGetVisualWorldBounds(out var wb))
+        {
+            pos = new Vector3(wb.center.x, wb.max.y + barTopExtra, wb.center.z);
+        }
+        else
+        {
+            // 仍然保留你原来的 Bar Offset 行为
+            pos = transform.position + barOffset;
+        }
+
+        _barRoot.position = pos;
+
+        // 朝向相机（Billboard）
+        if (Camera.main)
+            _barRoot.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Vector3.up);
+    }
+
 
 
     // 强制打开/关闭某个阶段下所有渲染器，防止被误关导致“看不见”
@@ -201,6 +254,8 @@ public class CropPlant : MonoBehaviour
         {
             HarvestTo(_player);
         }
+
+        UpdateBarTransform();
     }
 
     bool CanHarvestNow()
