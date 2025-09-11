@@ -4,43 +4,43 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// ³¬¼òÉÌµê£¨Ö±¼Ó±³°ü + ¾àÀë×Ô¶¯¹Ø±Õ£©
-/// - ¹ºÂò/³öÊÛÒ»´Î 1 ¸ö£»±ØĞëÍ¨¹ı InventoryBridge Ö±½ÓĞ´Èë/ÒÆ³ı±³°ü£»
-/// - ´ò¿ªºóÓĞÒ»¶Î¡°±£»¤ÆÚ¡±£¨Ä¬ÈÏ 0.2s£©²»×ö¾àÀëÅĞ¶¨£¬±ÜÃâÒ»ÉÁ¶ø¹ı£»
-/// - Í¨¹ı SetContext(player,npc) ×¢ÈëÍæ¼ÒÓë NPC£¬ÓÃÓÚ×Ô¶¯¹Ø±Õ£»
-/// - Î´×¢Èë npc Ê±²»»á×ö¾àÀë¹Ø±Õ¡£
-/// ÒÀÀµ£ºShopCatalogSO + PlayerWallet + InventoryBridge
+/// Ìµê£¨Ö±Ó± + Ô¶Ø±Õ£
+/// - /Ò» 1 Í¨ InventoryBridge Ö±Ğ´/Æ³
+/// - ò¿ªºÒ»Î¡Ú¡Ä¬ 0.2sĞ¶Ò»
+/// - Í¨ SetContext(player,npc) ×¢ NPCÔ¶Ø±Õ£
+/// - Î´×¢ npc Ê±Ø±Õ¡
+/// ShopCatalogSO + PlayerWallet + InventoryBridge
 /// </summary>
 public class SimpleShopUI : MonoBehaviour
 {
     [Header("Refs")]
-    public GameObject root;                 // Õû¸öÃæ°å£¨¿ª¹Ø£©
-    public Transform listParent;            // ÌõÄ¿ÁĞ±í¸¸ÎïÌå
-    public Button templateButton;           // °´Å¥Ä£°å£¨·Å1¸ö£¬ÉèÎª²»¼¤»î£©
+    public GameObject root;                 // å£¨Ø£
+    public Transform listParent;            // Ä¿Ğ±
+    public Button templateButton;           // Å¥Ä£å£¨1Îªî£©
 
-    public Button toggleModeButton;         // ÇĞ»»Ä£Ê½°´Å¥£¨¹ºÂò<->³öÊÛ£©
+    public Button toggleModeButton;         // Ğ»Ä£Ê½Å¥<->Û£
     public TextMeshProUGUI toggleModeLabelTMP;
     public Text toggleModeLabelUGUI;
 
-    public Button closeButton;              // ¹Ø±Õ°´Å¥£¨¿ÉÑ¡£©
-    public TextMeshProUGUI walletTextTMP;   // ½ğ±ÒÎÄ±¾£¨TMP »ò UGUI ¶şÑ¡Ò»£©
+    public Button closeButton;              // Ø±Õ°Å¥Ñ¡
+    public TextMeshProUGUI walletTextTMP;   // Ä±TMP  UGUI Ñ¡Ò»
     public Text walletTextUGUI;
 
     [Header("Data")]
     public ShopCatalogSO catalog;
     public PlayerWallet wallet;
-    public InventoryBridge inventoryBridge; // ±ØĞë°ó¶¨£»·ñÔò²»¿É¹ºÂò/³öÊÛ
+    public InventoryBridge inventoryBridge; // ó¶¨£ò²»¿É¹/
 
     [Header("Auto Close By Distance")]
     public bool autoCloseWhenFar = true;
-    [Tooltip("³¬¹ı¸Ã¾àÀë×Ô¶¯¹Ø±ÕÉÌµê¡£½¨Òé 4~5¡£")]
+    [Tooltip("Ã¾Ô¶Ø±Ìµê¡£ 4~5")]
     public float closeDistance = 4.0f;
-    [Tooltip("´ò¿ªºóÔÚÕâ¶ÎÊ±¼äÄÚ²»×ö¾àÀëÅĞ¶Ï£¬±ÜÃâÒ»ÉÁ¶ø¹ı¡£")]
+    [Tooltip("ò¿ªºÊ±Ú²Ğ¶Ï£Ò»")]
     public float autoCloseGrace = 0.2f;
 
-    [Tooltip("Íæ¼Ò Transform£¨Áô¿Õ»áÔÚ Open() Ê±×Ô¶¯ÓÃ tag=Player Ñ°ÕÒ£©")]
+    [Tooltip(" TransformÕ» Open() Ê±Ô¶ tag=Player Ñ°Ò£")]
     public Transform player;
-    [Tooltip("µ±Ç°½»»¥µÄ NPC Transform£¨ÓÉ Opener ÔÚ Open() Ç°×¢Èë£¬Áô¿ÕÔò²»×ö¾àÀëÅĞ¶Ï£©")]
+    [Tooltip("Ç° NPC Transform Opener  Open() Ç°×¢ë£¬Ğ¶Ï£")]
     public Transform npc;
 
     public bool IsOpen { get; private set; }
@@ -73,7 +73,7 @@ public class SimpleShopUI : MonoBehaviour
         if (!IsOpen || !autoCloseWhenFar) return;
         if (!player || !npc) return;
 
-        // ±£»¤ÆÚ£º±ÜÃâÒ»´ò¿ª¾ÍÒòÎªÇáÎ¢¶¶¶¯»ò¾àÀëÅĞ¶¨¶ø¹Ø±Õ
+        // Ú£Ò»ò¿ª¾ÎªÎ¢Ğ¶Ø±
         if (Time.time - _openedAt < autoCloseGrace) return;
 
         float d = Vector3.Distance(player.position, npc.position);
@@ -107,6 +107,15 @@ public class SimpleShopUI : MonoBehaviour
         SetMode(Mode.Buy);
         RefreshList();
         UpdateWalletText();
+
+// â€”â€” å•†åº—å°è¯ï¼šåœ¨NPCå¤´é¡¶æ’­æ”¾ä¸€å¥ï¼ˆæ¡¥æ¥å™¨è´Ÿè´£æ˜¾ç¤ºåˆ°3Dæ°”æ³¡ï¼‰ â€”â€” 
+var bridge = Object.FindObjectOfType<NPCDialogWorldBridge>();
+if (bridge && npc)
+{
+    var anchor = npc.Find("BubbleAnchor");
+    bridge.ShowStandalone(anchor ? anchor : npc, "æ¬¢è¿å…‰ä¸´ï¼éœ€è¦ç‚¹ä»€ä¹ˆï¼Ÿ");
+}
+
     }
 
     public void Close()
@@ -114,6 +123,11 @@ public class SimpleShopUI : MonoBehaviour
         IsOpen = false;
         if (root) root.SetActive(false);
         ClearList();
+
+// â€”â€” ç»“æŸå•†åº—å°è¯ â€”â€” 
+var bridge2 = Object.FindObjectOfType<NPCDialogWorldBridge>();
+if (bridge2) bridge2.EndStandalone();
+
     }
 
     void ToggleMode()
@@ -125,15 +139,15 @@ public class SimpleShopUI : MonoBehaviour
     void SetMode(Mode m)
     {
         _mode = m;
-        SetLabel(toggleModeLabelTMP, toggleModeLabelUGUI, _mode == Mode.Buy ? "ÇĞµ½£º³öÊÛ" : "ÇĞµ½£º¹ºÂò");
+        SetLabel(toggleModeLabelTMP, toggleModeLabelUGUI, _mode == Mode.Buy ? "Ğµ" : "Ğµ");
     }
 
     void OnCoinsChanged(int _) => UpdateWalletText();
 
     void UpdateWalletText()
     {
-        if (!wallet) { SetLabel(walletTextTMP, walletTextUGUI, "½ğ±Ò£º¡ª"); return; }
-        SetLabel(walletTextTMP, walletTextUGUI, $"½ğ±Ò£º{wallet.coins}");
+        if (!wallet) { SetLabel(walletTextTMP, walletTextUGUI, "Ò£"); return; }
+        SetLabel(walletTextTMP, walletTextUGUI, $"Ò£{wallet.coins}");
     }
 
     void RefreshList()
@@ -154,7 +168,7 @@ public class SimpleShopUI : MonoBehaviour
                 if (have <= 0) continue;
 
                 var btn = SpawnButton();
-                string label = $"{e.displayName}  x{have}  µ¥¼Û:{e.sellPrice}  [Âô1]";
+                string label = $"{e.displayName}  x{have}  :{e.sellPrice}  [1]";
                 SetButtonLabel(btn, label);
 
                 btn.onClick.AddListener(() =>
@@ -166,36 +180,36 @@ public class SimpleShopUI : MonoBehaviour
                     }
                     else
                     {
-                        Debug.Log("[Shop] ³öÊÛÊ§°Ü£ºÒÆ³ı±³°üÎïÆ·Ê§°Ü");
+                        Debug.Log("[Shop] Ê§Ü£Æ³Æ·Ê§");
                     }
                 });
             }
             else // Buy
             {
                 var btn = SpawnButton();
-                string label = $"{e.displayName}  ¼Û¸ñ:{e.buyPrice}  [Âò1]";
+                string label = $"{e.displayName}  Û¸:{e.buyPrice}  [1]";
                 SetButtonLabel(btn, label);
 
                 btn.onClick.AddListener(() =>
                 {
                     if (wallet == null || !wallet.TrySpend(e.buyPrice))
                     {
-                        Debug.Log("[Shop] ½ğ±Ò²»×ã");
+                        Debug.Log("[Shop] Ò²");
                         return;
                     }
 
                     if (inventoryBridge == null)
                     {
-                        Debug.Log("[Shop] ¹ºÂòÊ§°Ü£ºÎ´°ó¶¨ InventoryBridge£¬ÎŞ·¨Ğ´Èë±³°ü¡£ÒÑÍË¿î¡£");
+                        Debug.Log("[Shop] Ê§Ü£Î´ InventoryBridgeŞ·Ğ´ë±³Ë¿î¡£");
                         wallet.Add(e.buyPrice);
                         return;
                     }
 
-                    bool added = inventoryBridge.TryAdd(e.itemId, 1, null, null); // Ö±¼Ó±³°ü£¬½ûÓÃ¶µµ×
+                    bool added = inventoryBridge.TryAdd(e.itemId, 1, null, null); // Ö±Ó±Ã¶
                     if (!added)
                     {
-                        wallet.Add(e.buyPrice); // »ØÍË
-                        Debug.Log("[Shop] ¹ºÂòÊ§°Ü£ºÎ´ÄÜĞ´Èë±³°ü£¬ÒÑÍË¿î");
+                        wallet.Add(e.buyPrice); // 
+                        Debug.Log("[Shop] Ê§Ü£Î´Ğ´ë±³Ë¿");
                         return;
                     }
 

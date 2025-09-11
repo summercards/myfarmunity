@@ -2,42 +2,53 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
-/// <summary>
-/// 立体对话气泡（世界空间 Canvas + TMP 文本）。
-/// - 将自身跟随 target，并自动面向主相机（绕 Y 轴看向）。
-/// - 仅负责渲染文本与跟随，不处理输入。
-/// - 可直接挂空物体上使用；也支持作为“预制体”被实例化。
-/// </summary>
 [DisallowMultipleComponent]
 public class SpeechBubble3D : MonoBehaviour
 {
     [Header("Follow")]
-    [Tooltip("跟随的目标（通常是 NPC 或其子物体 BubbleAnchor）。")]
     public Transform target;
-
-    [Tooltip("世界坐标偏移（相对 target 之上）。")]
     public Vector3 worldOffset = new Vector3(0f, 1.8f, 0f);
-
-    [Tooltip("用于朝向的相机。为空将自动使用 Camera.main。")]
     public Camera mainCamera;
 
     [Header("UI (Auto Build If Empty)")]
-    public Canvas canvas;                    // WorldSpace Canvas
-    public RectTransform panel;              // 背景面板
-    public Image background;                 // 背景图片
-    public TextMeshProUGUI text;             // 文本
+    public Canvas canvas;
+    public RectTransform panel;
+    public Image background;
+    public RectTransform tail;
+    public Graphic tailGraphic;
+    public TextMeshProUGUI text;
+    public CanvasGroup canvasGroup;
+
+    [Header("Sprites / Look (Optional)")]
+    public Sprite roundedSprite;
+    public Sprite tailSprite;
+    public Vector2 tailSize = new Vector2(28, 18);
+    public float tailYOffset = -6f;
+    public Color backgroundColor = new Color(0f, 0f, 0f, 0.66f);
+    public bool enableOutline = true;
 
     [Header("Layout")]
-    [Tooltip("最大宽度（像素），自动换行。")]
-    public float maxWidth = 380f;
-    [Tooltip("动态像素单位（越大越清晰，代价是同等尺寸看起来更小）。")]
-    public float dynamicPixelsPerUnit = 10f;
-    [Tooltip("文本内边距（左右、上下）。")]
+    public float maxWidth = 300f;
+    public float dynamicPixelsPerUnit = 12f;
     public Vector2 padding = new Vector2(16f, 12f);
+    public float worldScale = 0.0018f;
 
-    /// <summary>初始化（作为预制体实例化时可手动调用）。</summary>
-    public void Init(Transform t, Camera cam, float maxWidth = 380f, Vector3? offset = null)
+    [Header("Fade (CanvasGroup)")]
+    public bool enableFade = true;
+    public float fadeInDuration = 0.15f;
+    public float fadeOutDuration = 0.12f;
+
+    [Header("Typewriter")]
+    public bool enableTypewriter = true;
+    public float charsPerSecond = 28f;
+
+    private Coroutine _fadeCo;
+    private Coroutine _typeCo;
+    private string _fullText = "";
+
+    public void Init(Transform t, Camera cam, float maxWidth = 300f, Vector3? offset = null)
     {
         target = t;
         mainCamera = cam != null ? cam : Camera.main;
@@ -47,9 +58,10 @@ public class SpeechBubble3D : MonoBehaviour
         if (!canvas) BuildRuntimeUI();
         gameObject.SetActive(true);
         ForceUpdatePosition();
+        if (enableFade) Show();
+        else SetAlpha(1f);
     }
 
-    /// <summary>运行时自动构建最简 UI 层级，避免必须做美术预制体。</summary>
     public void BuildRuntimeUI()
     {
         if (!mainCamera) mainCamera = Camera.main;
@@ -60,16 +72,24 @@ public class SpeechBubble3D : MonoBehaviour
 
         var scaler = gameObject.AddComponent<CanvasScaler>();
         scaler.dynamicPixelsPerUnit = dynamicPixelsPerUnit;
-
         gameObject.AddComponent<GraphicRaycaster>();
+        canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        canvasGroup.alpha = 0f;
 
+        // Panel
         panel = new GameObject("Panel", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
         panel.SetParent(transform, false);
-        panel.pivot = new Vector2(0.5f, 0f); // 底边对齐，偏移往上长
+        panel.pivot = new Vector2(0.5f, 0f);
         background = panel.GetComponent<Image>();
         background.raycastTarget = false;
-        background.color = new Color(0f, 0f, 0f, 0.66f); // 半透明黑
+        background.color = backgroundColor;
+        if (roundedSprite)
+        {
+            background.sprite = roundedSprite;
+            background.type = Image.Type.Sliced;
+        }
 
+        // Text
         var content = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<RectTransform>();
         content.SetParent(panel, false);
         content.anchorMin = new Vector2(0f, 0f);
@@ -81,37 +101,80 @@ public class SpeechBubble3D : MonoBehaviour
         text.raycastTarget = false;
         text.enableWordWrapping = true;
         text.text = "";
-        text.fontSize = 24;
+        text.fontSize = 22;
         text.alignment = TextAlignmentOptions.Midline;
         text.color = Color.white;
 
-        // 初始面板尺寸
+        // Tail
+        tail = new GameObject("Tail", typeof(RectTransform)).GetComponent<RectTransform>();
+        tail.SetParent(panel, false);
+        tail.anchorMin = new Vector2(0.5f, 0f);
+        tail.anchorMax = new Vector2(0.5f, 0f);
+        tail.pivot = new Vector2(0.5f, 1f);
+        tail.sizeDelta = tailSize;
+        tail.anchoredPosition = new Vector2(0f, tailYOffset);
+
+        if (tailSprite)
+        {
+            var img = tail.gameObject.AddComponent<Image>();
+            img.sprite = tailSprite;
+            img.raycastTarget = false;
+            img.color = backgroundColor;
+            tailGraphic = img;
+        }
+        else
+        {
+            var tri = tail.gameObject.AddComponent<TriangleGraphic>();
+            tri.direction = TriangleGraphic.Dir.Down;
+            tri.color = backgroundColor;
+            tailGraphic = tri;
+        }
+
+        // 初始尺寸与缩放
         panel.sizeDelta = new Vector2(maxWidth, 50);
+        transform.localScale = Vector3.one * worldScale;
     }
 
-    /// <summary>设置对话内容，并按内容自适应大小（宽度不超过 maxWidth）。</summary>
     public void SetText(string s)
     {
-        if (!text) BuildRuntimeUI();
-        if (!canvas) BuildRuntimeUI();
+        if (!text || !canvas) BuildRuntimeUI();
+        _fullText = s ?? "";
 
-        text.text = s ?? "";
-
-        // 计算文本的合适尺寸（受 maxWidth 限制）。
-        var preferred = text.GetPreferredValues(text.text, maxWidth, 10000f);
+        var preferred = text.GetPreferredValues(_fullText, maxWidth, 10000f);
         float width = Mathf.Min(preferred.x + padding.x * 2f, maxWidth);
         float height = Mathf.Max(preferred.y + padding.y * 2f, 28f);
         panel.sizeDelta = new Vector2(width, height);
+
+        if (_typeCo != null) StopCoroutine(_typeCo);
+        if (enableTypewriter) _typeCo = StartCoroutine(CoTypewriter(_fullText));
+        else text.text = _fullText;
+    }
+
+    System.Collections.IEnumerator CoTypewriter(string content)
+    {
+        text.text = "";
+        int total = content.Length;
+        if (total == 0) yield break;
+        float t = 0f;
+        int last = 0;
+        while (last < total)
+        {
+            t += Time.deltaTime * Mathf.Max(1f, charsPerSecond);
+            int count = Mathf.Clamp(Mathf.FloorToInt(t), 0, total);
+            if (count != last)
+            {
+                text.text = content.Substring(0, count);
+                last = count;
+            }
+            yield return null;
+        }
+        _typeCo = null;
     }
 
     void LateUpdate()
     {
-        if (target)
-        {
-            ForceUpdatePosition();
-        }
+        if (target) ForceUpdatePosition();
 
-        // 朝向相机（只绕 Y 轴转，避免倾斜）。
         var cam = mainCamera ? mainCamera : Camera.main;
         if (cam)
         {
@@ -122,18 +185,53 @@ public class SpeechBubble3D : MonoBehaviour
         }
     }
 
-    /// <summary>强制更新跟随位置。</summary>
     public void ForceUpdatePosition()
     {
-        if (target)
-        {
-            transform.position = target.position + worldOffset;
-        }
+        if (target) transform.position = target.position + worldOffset;
     }
 
-    /// <summary>隐藏。</summary>
+    public void Show()
+    {
+        gameObject.SetActive(true);
+        if (!enableFade) { SetAlpha(1f); return; }
+        if (_fadeCo != null) StopCoroutine(_fadeCo);
+        _fadeCo = StartCoroutine(CoFade(0f, 1f, fadeInDuration));
+    }
+
     public void Hide()
     {
-        gameObject.SetActive(false);
+        if (!enableFade) { SetAlpha(0f); gameObject.SetActive(false); return; }
+        if (_fadeCo != null) StopCoroutine(_fadeCo);
+        _fadeCo = StartCoroutine(CoFade(1f, 0f, fadeOutDuration, true));
+    }
+
+    System.Collections.IEnumerator CoFade(float a, float b, float dur, bool deactivateOnEnd = false)
+    {
+        if (!canvasGroup) canvasGroup = GetComponent<CanvasGroup>();
+        dur = Mathf.Max(0.0001f, dur);
+        float t = 0f;
+        while (t < dur)
+        {
+            t += Time.deltaTime;
+            float k = t / dur;
+            SetAlpha(Mathf.Lerp(a, b, k));
+            yield return null;
+        }
+        SetAlpha(b);
+        if (deactivateOnEnd) gameObject.SetActive(false);
+        _fadeCo = null;
+    }
+
+    void SetAlpha(float v)
+    {
+        if (!canvasGroup) canvasGroup = GetComponent<CanvasGroup>();
+        canvasGroup.alpha = v;
+    }
+
+    public void CompleteTypewriter()
+    {
+        if (_typeCo != null) StopCoroutine(_typeCo);
+        _typeCo = null;
+        text.text = _fullText;
     }
 }
