@@ -22,6 +22,6 @@ MonoBehaviour:
   - itemId: banana
     displayName: banana
     icon: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
-    buyPrice: -1
+    buyPrice: 7
     sellPrice: 3
     pickupPrefab: {fileID: 861575827419981994, guid: 550293b95a9587d4987eeab9ca6159ac, type: 3}
