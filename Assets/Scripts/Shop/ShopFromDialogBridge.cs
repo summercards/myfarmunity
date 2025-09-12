@@ -3,29 +3,37 @@ using UnityEngine.UI;
 using System.Reflection;
 
 /// <summary>
-/// 把“NPC 对话面板里的【打开商店】按钮”与 SimpleShopUI 连接起来：
-/// - 从 NPCDialogUI 里取到 CurrentNPC（反射，不改你原文件）
-/// - 传给 SimpleShopUI.SetContext(player, npc)
-/// - 调用 SimpleShopUI.Open()（它内部会播“商店台词”，我们只保证 npc 传对）
+/// 从“对话面板按钮”打开商店，并在**点击瞬间**切换为“商店台词”：
+/// - 读取 NPCDialogUI 的 CurrentNPC（不改你原脚本，用反射获取）
+/// - 把 player & npc 传给 SimpleShopUI.SetContext(...)；
+/// - 调用 SimpleShopUI.Open()；
+/// - 在 Open 之前先对 NPCDialogWorldBridge 调 ShowStandalone(..., shopOpenLine)，
+///   确保即使随后对话面板被隐藏，头顶气泡也已切到商店文案。
 /// </summary>
 [DisallowMultipleComponent]
 public class ShopFromDialogBridge : MonoBehaviour
 {
     [Header("Refs")]
-    public NPCDialogUI npcDialogUI;       // 对话面板（Panel_NPCDialog 上的那个）
-    public SimpleShopUI shopUI;           // 你的商店 UI 根组件
-    public Transform player;              // 玩家（可空：为空时自动找 Player tag 或主相机）
+    public NPCDialogUI npcDialogUI;                 // Panel_NPCDialog 上的组件
+    public NPCDialogWorldBridge dialogWorldBridge;  // 同物体上的桥接器（建议直接拖引用）
+    public SimpleShopUI shopUI;                     // 商店 UI 组件
+    public Transform player;                        // 玩家（可空：自动找 Tag=Player 或主相机）
 
-    [Header("Button (可选)")]
-    public Button openShopButton;         // 如果你想直接在这里绑定按钮，也可以把按钮拖进来
+    [Header("Button（可选）")]
+    public Button openShopButton;                   // 若拖入，这里会自动绑定点击事件
 
-    // 反射缓存
+    [Header("Shop Line")]
+    [TextArea] public string shopOpenLine = "欢迎光临！需要点什么？";
+
+    // 反射缓存：读取 CurrentNPC
     PropertyInfo _propCurrentNPC;
     FieldInfo _fieldCurrentNPC;
 
     void Awake()
     {
         if (!npcDialogUI) npcDialogUI = GetComponent<NPCDialogUI>();
+        if (!dialogWorldBridge) dialogWorldBridge = GetComponent<NPCDialogWorldBridge>();
+
         var t = typeof(NPCDialogUI);
         _propCurrentNPC = t.GetProperty("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
         _fieldCurrentNPC = t.GetField("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
@@ -37,7 +45,6 @@ public class ShopFromDialogBridge : MonoBehaviour
             else if (Camera.main) player = Camera.main.transform;
         }
 
-        // 可选：如果把按钮拖进来了，这里顺便帮你绑好
         if (openShopButton)
         {
             openShopButton.onClick.RemoveAllListeners();
@@ -45,29 +52,34 @@ public class ShopFromDialogBridge : MonoBehaviour
         }
     }
 
-    /// <summary>在按钮的 OnClick() 里调用这个方法即可。</summary>
+    /// <summary>把这个函数绑到“打开商店”按钮的 OnClick()</summary>
     public void OpenShopForCurrentNPC()
     {
-        if (!shopUI || !npcDialogUI) return;
-
-        // 1) 取到当前 NPC 的 Transform
-        Transform npcTransform = ResolveCurrentNPCTransform();
-        if (!npcTransform)
+        if (!shopUI || !npcDialogUI)
         {
-            Debug.LogWarning("[ShopFromDialogBridge] 找不到当前 NPC 的 Transform，无法打开商店。");
+            Debug.LogWarning("[ShopFromDialogBridge] 缺少引用：shopUI 或 npcDialogUI。");
             return;
         }
 
-        // 2) 给商店传上下文（玩家 & NPC）
-        shopUI.SetContext(player, npcTransform);
+        // 1) 解析当前 NPC
+        Transform npcTr = ResolveCurrentNPCTransform();
+        if (!npcTr)
+        {
+            Debug.LogWarning("[ShopFromDialogBridge] 找不到当前 NPC Transform。");
+            return;
+        }
 
-        // 3) 打开商店（SimpleShopUI.Open 内部会自动播“商店台词”）
+        // 2) 先切到商店台词（在面板关闭前执行，确保桥接器存在）
+        var bridge = dialogWorldBridge ? dialogWorldBridge : Object.FindObjectOfType<NPCDialogWorldBridge>();
+        if (bridge)
+        {
+            var anchor = npcTr.Find("BubbleAnchor");
+            bridge.ShowStandalone(anchor ? anchor : npcTr, shopOpenLine);
+        }
+
+        // 3) 把玩家 & NPC 上下文传给商店，再打开商店
+        shopUI.SetContext(player, npcTr);
         shopUI.Open();
-
-        // 4) 可选：如果你希望打开商店时把对话面板也关掉：
-        // var rootField = typeof(NPCDialogUI).GetField("root", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        // var rootGO = rootField != null ? (GameObject)rootField.GetValue(npcDialogUI) : null;
-        // if (rootGO) rootGO.SetActive(false);
     }
 
     Transform ResolveCurrentNPCTransform()

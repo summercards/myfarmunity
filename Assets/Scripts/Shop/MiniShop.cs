@@ -25,7 +25,7 @@ public class MiniShop : MonoBehaviour
     public InventoryBridge inventoryBridge;
 
     [Header("Dialog (Optional)")]
-    public NPCDialogUI dialogUI;
+    public NPCDialogUI dialogUI; // 可不拖，运行时会自动兜底查找
 
     [Header("Auto Close By Distance")]
     public bool autoCloseWhenFar = true;
@@ -34,8 +34,12 @@ public class MiniShop : MonoBehaviour
     public LayerMask npcMask = ~0;
 
     [Header("List Options")]
-    [Tooltip("为真时，购买网格只展示 buyPrice>0 的条目。目录里即使配置了 sellPrice（用于回收），但 buyPrice<=0 也不会出现在购买列表。")]
+    [Tooltip("为真时，购买网格只展示 buyPrice>0 的条目。")]
     public bool showOnlyBuyable = true;
+
+    [Header("Shop Line")]
+    [Tooltip("打开商店时在 NPC 头顶显示的台词（可用 OpenFromDialogWithLine 覆盖）")]
+    public string shopOpenLine = "欢迎光临！需要点什么？";
 
     public bool IsOpen { get; private set; }
     public Transform player { get; private set; }
@@ -50,7 +54,17 @@ public class MiniShop : MonoBehaviour
         if (closeButton) closeButton.onClick.AddListener(Close);
     }
     void OnEnable() { if (wallet) wallet.onCoinsChanged.AddListener(OnCoinsChanged); }
-    void OnDisable() { if (wallet) wallet.onCoinsChanged.RemoveListener(OnCoinsChanged); }
+    void OnDisable()
+    {
+        if (wallet) wallet.onCoinsChanged.RemoveListener(OnCoinsChanged);
+        // 保险：面板被禁用也要结束气泡（例如切场景/父级隐藏）
+        EndShopBubble();
+    }
+    void OnDestroy()
+    {
+        // 保险：销毁时也结束气泡
+        EndShopBubble();
+    }
 
     void Update()
     {
@@ -60,22 +74,56 @@ public class MiniShop : MonoBehaviour
         if (Vector3.Distance(player.position, npc.position) > closeDistance) Close();
     }
 
+    /// <summary>（可选）外部手动指定 Player/NPC 上下文</summary>
+    public void SetContext(Transform playerT, Transform npcT)
+    {
+        player = playerT;
+        npc = npcT;
+    }
+
+    /// <summary>
+    /// 从“NPC 对话面板”上下文打开：自动解析当前 NPC 与 Player，
+    /// 在关闭面板之前就切换头顶“商店台词”，然后打开商店。
+    /// </summary>
     public void OpenFromDialog()
     {
-        Transform fromDialog = null;
-        if (dialogUI && dialogUI.IsOpen)
+        // 兜底：找对话 UI
+        if (!dialogUI) dialogUI = FindObjectOfType<NPCDialogUI>();
+
+        // 解析当前 NPC & 桥接器（此时面板仍激活）
+        Transform npcFromDialog = null;
+        NPCDialogWorldBridge bridge = null;
+        if (dialogUI)
         {
-            var curr = dialogUI.CurrentNPC;
-            if (curr) fromDialog = curr.transform;
-            dialogUI.Close();
+            if (dialogUI.CurrentNPC) npcFromDialog = dialogUI.CurrentNPC.transform;
+            bridge = dialogUI.GetComponent<NPCDialogWorldBridge>();
         }
+
+        // Player
         var holder = FindObjectOfType<PlayerInventoryHolder>();
         player = holder ? holder.transform :
                  (GameObject.FindGameObjectWithTag("Player") ?
                    GameObject.FindGameObjectWithTag("Player").transform :
                    (Camera.main ? Camera.main.transform : null));
-        npc = fromDialog ? fromDialog : FindClosestNpcWithInteractable(player, 6f);
+
+        // NPC：优先对话中的，没有就近找
+        npc = npcFromDialog ? npcFromDialog : FindClosestNpcWithInteractable(player, 6f);
+
+        // **先**切商店台词（在关闭面板前执行）
+        ShowShopBubble(shopOpenLine, npc, bridge);
+
+        // 再关对话面板（如需要）
+        if (dialogUI && dialogUI.IsOpen) dialogUI.Close();
+
+        // 打开商店
         Open();
+    }
+
+    /// <summary>同 OpenFromDialog，但可为该次打开覆盖一条自定义台词</summary>
+    public void OpenFromDialogWithLine(string line)
+    {
+        if (!string.IsNullOrEmpty(line)) shopOpenLine = line;
+        OpenFromDialog();
     }
 
     public void Open()
@@ -97,11 +145,17 @@ public class MiniShop : MonoBehaviour
         if (root) root.SetActive(false);
         ClearGrid();
 
+        // 结束头顶气泡（无论何种关闭路径）
+        EndShopBubble();
+
         if (Active == this) Active = null;
         OnActiveChanged?.Invoke(false);
+
+        // 可选：清理上下文，避免下一次误判距离
+        // player = null; npc = null;
     }
 
-    // ===== 购买、网格与辅助 =====
+    // ===== 购买、网格与辅助（原逻辑保持） =====
     void TryBuy(string itemId, int unitPrice, int qty, Action<string> tip)
     {
         if (!wallet) { tip?.Invoke("无钱包"); return; }
@@ -114,7 +168,6 @@ public class MiniShop : MonoBehaviour
         UpdateWalletText(); tip?.Invoke("购买成功");
     }
 
-    // ==== 关键：出售报价来自目录，即使不买也要有 sellPrice ====
     public bool QuoteSell(string itemId, int qty, out int total)
     {
         total = 0;
@@ -139,7 +192,7 @@ public class MiniShop : MonoBehaviour
 
         foreach (var e in catalog.entries)
         {
-            if (showOnlyBuyable && e.buyPrice <= 0) continue;   // 只展示可购买
+            if (showOnlyBuyable && e.buyPrice <= 0) continue;
             var go = Instantiate(cellTemplate, gridParent);
             go.SetActive(true); _spawned.Add(go);
 
@@ -160,6 +213,7 @@ public class MiniShop : MonoBehaviour
 
             Func<int> GetQty = () => { if (!qtyIF) return 1; return int.TryParse(qtyIF.text, out int n) ? Mathf.Max(1, n) : 1; };
             Action<string> Tip = (s) => { if (!tTip) return; tTip.text = s; CancelInvoke(nameof(ClearAllTips)); Invoke(nameof(ClearAllTips), 1.2f); };
+
             if (btnMinus) btnMinus.onClick.AddListener(() => { int q = Mathf.Max(1, GetQty() - 1); if (qtyIF) qtyIF.text = q.ToString(); });
             if (btnPlus) btnPlus.onClick.AddListener(() => { int q = GetQty() + 1; if (qtyIF) qtyIF.text = q.ToString(); });
             if (btnBuy) btnBuy.onClick.AddListener(() => { TryBuy(e.itemId, e.buyPrice, GetQty(), Tip); });
@@ -170,7 +224,11 @@ public class MiniShop : MonoBehaviour
     void ClearAllTips() { foreach (var go in _spawned) { var tip = Find<TextMeshProUGUI>(go, "Tip"); if (tip) tip.text = ""; } }
     void OnCoinsChanged(int _) => UpdateWalletText();
     void UpdateWalletText()
-    { string s = wallet ? $"金币：{wallet.coins}" : "金币：—"; if (walletTextTMP) walletTextTMP.text = s; else if (walletTextUGUI) walletTextUGUI.text = s; }
+    {
+        string s = wallet ? $"金币：{wallet.coins}" : "金币：—";
+        if (walletTextTMP) walletTextTMP.text = s;
+        else if (walletTextUGUI) walletTextUGUI.text = s;
+    }
 
     T Find<T>(GameObject rootGo, string childName) where T : Component
     { var t = rootGo.transform.Find(childName); return t ? t.GetComponent<T>() : null; }
@@ -187,5 +245,22 @@ public class MiniShop : MonoBehaviour
             if (d < bestD) { bestD = d; best = inter.transform; }
         }
         return best;
+    }
+
+    // ====== 气泡台词控制 ======
+    void ShowShopBubble(string line, Transform targetNpc, NPCDialogWorldBridge preferredBridge = null)
+    {
+        var bridge = preferredBridge ? preferredBridge : FindObjectOfType<NPCDialogWorldBridge>();
+        if (!bridge || !targetNpc) return;
+
+        var anchor = targetNpc.Find("BubbleAnchor");
+        bridge.ShowStandalone(anchor ? anchor : targetNpc,
+            string.IsNullOrEmpty(line) ? shopOpenLine : line);
+    }
+
+    void EndShopBubble()
+    {
+        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
+        if (bridge) bridge.EndStandalone();
     }
 }
