@@ -5,6 +5,7 @@ using UnityEngine;
 /// 角色核心：运动参数、地面检测、跳跃、重力、状态机
 /// 需要 CharacterController 组件
 /// 可选 Animator（Speed/Grounded/Jump 触发）
+/// 仅修复：站在摆放物（Buildable 层）上无法判地的问题；其余移动/转向逻辑保持不变。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class TPSCharacter : MonoBehaviour
@@ -49,6 +50,11 @@ public class TPSCharacter : MonoBehaviour
     {
         cc = GetComponent<CharacterController>();
         if (!input) input = GetComponent<TPSInput>();
+
+        // ★ 自动把 Buildable 图层并入地面检测（若工程里建了该层）
+        int buildable = LayerMask.NameToLayer("Buildable");
+        if (buildable >= 0)
+            groundMask |= (1 << buildable);
     }
 
     void Start()
@@ -68,8 +74,20 @@ public class TPSCharacter : MonoBehaviour
         if (input && input.JumpPressed)
             lastJumpPressedTime = Time.time;
 
-        // 地面检测（比 cc.isGrounded 更稳）
-        grounded = Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundMask, QueryTriggerInteraction.Ignore);
+        // ★ 地面检测（更稳）：cc.isGrounded || SphereCast（忽略 Trigger）
+        bool ccGround = cc.isGrounded;
+
+        // 起点取角色胶囊体底部稍上方，避免嵌入
+        Vector3 origin = GetGroundCheckOrigin();   // 见下方方法
+        float radius = Mathf.Max(0.01f, groundCheckRadius);
+        bool sphereHit = Physics.SphereCast(
+            origin, radius, Vector3.down, out _,     // 命中信息此处不使用
+            0.2f,                                    // 短距离探测
+            groundMask,
+            QueryTriggerInteraction.Ignore);
+
+        grounded = ccGround || sphereHit;
+
         if (grounded) lastGroundedTime = Time.time;
 
         fsm.Tick(dt);
@@ -111,7 +129,7 @@ public class TPSCharacter : MonoBehaviour
     }
 
     /// <summary>
-    /// 核心改动：移动方向参考使用 Main Camera（若不存在再回退到 cameraRoot / 自身）
+    /// 移动与转向逻辑完全沿用你当前版本，未改动
     /// </summary>
     public void MovePlanar(float dt, Vector2 inputMove, bool sprint)
     {
@@ -204,5 +222,13 @@ public class TPSCharacter : MonoBehaviour
             if (owner.IsGrounded())
                 owner.fsm.Change(owner.stGrounded);
         }
+    }
+
+    // === 工具：以 CharacterController 底部为基准的检测起点 ===
+    Vector3 GetGroundCheckOrigin()
+    {
+        // 以胶囊底部为基准，再加少许向上偏移，避免球心贴在表面内侧
+        Vector3 bottom = transform.position + cc.center + Vector3.down * (cc.height * 0.5f - cc.radius);
+        return bottom + Vector3.up * 0.05f + groundCheckOffset;
     }
 }

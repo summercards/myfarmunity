@@ -246,6 +246,12 @@ public class PlayerPlanter : MonoBehaviour
         if (!crop) crop = cropObj.AddComponent<CropPlant>();
         crop.Init(entry);
 
+
+        // ★★ 新增：确保有 CropPersistence，并把 entryId 写进去（用你种下去的那个种子/作物 id）
+        var cp = cropObj.GetComponent<CropPersistence>();
+        if (cp == null) cp = cropObj.AddComponent<CropPersistence>();
+        cp.entryId = id;   // 这里的 id 就是你当前种下的商店/背包里的“作物 ItemId”
+
         string keepId = id;
         _inv.RemoveItem(id, 1);
         var ui = FindObjectOfType<InventoryUI>();

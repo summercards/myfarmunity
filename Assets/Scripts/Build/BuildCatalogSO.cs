@@ -1,8 +1,7 @@
-// Assets/Scripts/Build/BuildCatalogSO.cs
 using UnityEngine;
 
-public enum BuildCategory { Furniture, Outdoor, Wall, Surface }   // 简化的摆放分类
-public enum BuildSnapMode { Ground, Wall, Surface }               // 对应射线命中对齐方式
+public enum BuildCategory { Furniture, Outdoor, Wall, Surface }
+public enum BuildSnapMode { Ground, Wall, Surface }
 
 [CreateAssetMenu(menuName = "Farm/Build Catalog", fileName = "BuildCatalogSO")]
 public class BuildCatalogSO : ScriptableObject
@@ -11,10 +10,10 @@ public class BuildCatalogSO : ScriptableObject
     public class Entry
     {
         [Header("Key")]
-        public string itemId;                // 对应 ItemSO.id（手持物品ID）
+        public string itemId;                 // 匹配 ItemSO.id
 
         [Header("Prefab")]
-        public GameObject prefab;            // 实际摆放的预制体（运行时实例化）
+        public GameObject prefab;
 
         [Header("Rules")]
         public BuildCategory category = BuildCategory.Furniture;
@@ -29,12 +28,21 @@ public class BuildCatalogSO : ScriptableObject
         [Tooltip("与命中点的高度（世界Up方向）偏移")]
         public float yOffset = 0.0f;
 
-        [Tooltip("Y轴旋转离散步长（度），例如 90 表示只能 0/90/180/270 度")]
+        [Tooltip("Y轴旋转离散步长（度），如 90 表示只能 0/90/180/270")]
         public float yawStep = 90f;
 
         [Header("Overlap 检测")]
-        public Vector3 checkBoxSize = new Vector3(0.5f, 0.5f, 0.5f);    // 半尺寸
-        public LayerMask blockerLayers = ~0;                             // 碰撞阻挡层（检测失败即不可放置）
+        [Tooltip("半尺寸；如果为 (0,0,0) 或启用自动测量，将自动用 Prefab 的包围盒尺寸")]
+        public Vector3 checkBoxSize = Vector3.zero;
+
+        [Tooltip("是否自动从 Prefab 的 Collider/Renderer 计算包围盒半尺寸")]
+        public bool autoBoundsFromPrefab = true;
+
+        [Tooltip("自动包围盒的放大系数（避免贴边时误判）")]
+        public float boundsInflation = 0.02f;
+
+        [Tooltip("阻挡层；命中任意这些层的碰撞体即判定为不可摆放（会自动忽略自身预览与玩家）")]
+        public LayerMask blockerLayers = ~0;
 
         [Header("可选：落地时自动对齐到地面（比如家具脚部落地）")]
         public bool alignToGroundAfterPlace = true;

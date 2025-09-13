@@ -16,17 +16,19 @@ MonoBehaviour:
   - itemId: stone
     prefab: {fileID: 638139776553289976, guid: 5e87748077723524da2c3b8e6657a1a4, type: 3}
     category: 0
-    snapMode: 0
+    snapMode: 2
     surfaceLayers:
       serializedVersion: 2
-      m_Bits: 64
+      m_Bits: 2112
     grid: 0
-    yOffset: 0
-    yawStep: 0
+    yOffset: 0.01
+    yawStep: 1
     checkBoxSize: {x: 0, y: 0, z: 0}
+    autoBoundsFromPrefab: 1
+    boundsInflation: 0.02
     blockerLayers:
       serializedVersion: 2
-      m_Bits: 0
-    alignToGroundAfterPlace: 0
-    groundProbeDistance: 0
+      m_Bits: 2112
+    alignToGroundAfterPlace: 1
+    groundProbeDistance: 2
     optionalParentAtRuntime: {fileID: 0}

@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 7
   m_Component:
   - component: {fileID: 7691038253657144279}
-  m_Layer: 0
+  m_Layer: 11
   m_HasEditorInfo: 1
   m_Name: stone
   m_TagString: Untagged
@@ -45,7 +45,7 @@ GameObject:
   - component: {fileID: 7197876402474981830}
   - component: {fileID: 9064056251637411117}
   - component: {fileID: 6047734897842950986}
-  m_Layer: 0
+  m_Layer: 11
   m_HasEditorInfo: 1
   m_Name: Cube
   m_TagString: Untagged

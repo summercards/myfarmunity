@@ -33,6 +33,13 @@ public class CropPlant : MonoBehaviour
     public float interactRadius = 1.6f;
     PlayerInventoryHolder _player;
 
+    // 提供保存用的 plantItemId（当 CropPersistence.entryId 为空时兜底）
+    public string GetPlantItemIdForSave()
+    {
+        return _cfg != null ? _cfg.plantItemId : string.Empty;
+    }
+
+
     // —— 3D 进度条（两个 Quad） ——
     [Header("3D Progress Bar (Quad)")]
     [Tooltip("自动把进度条放到当前可见模型的最高点上")]
@@ -359,25 +366,51 @@ public class CropPlant : MonoBehaviour
 
         string dropId = string.IsNullOrEmpty(_cfg.produceId) ? _cfg.plantItemId : _cfg.produceId;
 
+        // 确保持久化身份（用于存档）
+        var cp = GetComponent<CropPersistence>();
+        if (cp == null) cp = gameObject.AddComponent<CropPersistence>();
+        if (string.IsNullOrEmpty(cp.entryId)) cp.entryId = _cfg.plantItemId;
+
+        var mgr = CropSaveManager.Instance;
+
         if (_cfg.keepAfterHarvest)
         {
-            // 树：只有当 _storedYield > 0 才会进来
+            // —— 可再生作物：只收库存，树体保留，直接进入下一轮“果实成熟” ——
             int amount = Mathf.Max(0, _storedYield);
             if (amount <= 0) return;
 
-            if (_cfg.produceWorldPrefab)
+            // 掉落/入包
+            if (_cfg.produceWorldPrefab && amount > 0)
                 SpawnProduceToGround(amount, gentle: true);
-            else if (holder && !string.IsNullOrEmpty(dropId))
+            else if (holder && !string.IsNullOrEmpty(dropId) && amount > 0)
                 holder.AddItem(dropId, amount);
 
-            // 清空库存并重置倒计时，进度条从 0 重新启动
+            // 只重置“果实循环”，不回到树体生长期
             _storedYield = 0;
             _produceTimer = 0f;
+
+            // 保持成熟状态与最终阶段可视
+            isMature = true;
+            if (_stageDur != null && _stageDur.Length > 0)
+            {
+                _stageIndex = Mathf.Max(0, _stageDur.Length - 1);
+                _elapsedTotal = _totalGrowth;
+                ApplyStage(_stageIndex);
+            }
+
+            // 进度条从 0 开始走“下一轮成熟”
             UpdateBar(0f);
+
+            // 存档：登记并在下一帧落盘
+            if (mgr != null)
+            {
+                mgr.Register(cp);
+                mgr.Invoke(nameof(CropSaveManager.Save), 0f);
+            }
         }
         else
         {
-            // 一次性作物：成熟后直接结算随机数量并销毁
+            // —— 一次性作物：成熟后直接结算并销毁 ——
             int amount = Mathf.Clamp(Random.Range(_cfg.produceMin, _cfg.produceMax + 1), 0, 999);
 
             if (_cfg.produceWorldPrefab && amount > 0)
@@ -386,8 +419,13 @@ public class CropPlant : MonoBehaviour
                 holder.AddItem(dropId, amount);
 
             Destroy(gameObject);
+
+            // 下一帧保存（确保已从登记表移除）
+            if (mgr != null)
+                mgr.Invoke(nameof(CropSaveManager.Save), 0f);
         }
     }
+
 
     // —— 在树周围环形掉落 ——
     // 说明：_cfg.dropRadius 作为外半径，内半径按 0.6R 兜底；会尝试多次避免与其它碰撞重叠。

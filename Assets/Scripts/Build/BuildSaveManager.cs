@@ -16,7 +16,7 @@ public class BuildSaveManager : MonoBehaviour
     }
 
     [Serializable]
-    private class SaveFile
+    private class FileData
     {
         public string savedUtc;
         public List<Record> objects = new List<Record>();
@@ -24,48 +24,37 @@ public class BuildSaveManager : MonoBehaviour
 
     public static BuildSaveManager Instance { get; private set; }
 
-    [Header("Catalog")]
+    [Header("Data")]
     public BuildCatalogSO catalog;
-
-    [Header("Options")]
     public string fileName = "builds.json";
+
+    [Header("Behaviour")]
     public bool autoLoadOnStart = true;
     public bool saveOnQuitOrPause = true;
+    public bool clearBeforeLoad = true;
 
-    private readonly HashSet<PlacedObject> _live = new HashSet<PlacedObject>();
+    readonly List<PlacedObject> _live = new List<PlacedObject>();
 
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
-        // 对齐你项目的保存工具
         SavePaths.EnsureDir();
     }
 
-    void Start()
-    {
-        if (autoLoadOnStart) Load();
-    }
+    void Start() { if (autoLoadOnStart) Load(); }
 
-    public void Register(PlacedObject po)
-    {
-        if (po) _live.Add(po);
-    }
+    public void Register(PlacedObject po) { if (po && !_live.Contains(po)) _live.Add(po); }
+    public void Unregister(PlacedObject po) { if (po) _live.Remove(po); }
 
-    public void Unregister(PlacedObject po)
-    {
-        if (po) _live.Remove(po);
-    }
-
-    string GetPath() => SavePaths.FileInSlot(fileName);
+    string PathForWrite() => SavePaths.FileInSlot(fileName);
+    string PathForRead() => SavePaths.FindExistingOrCurrent(fileName);
 
     [ContextMenu("Save Now")]
     public void Save()
     {
-        var data = new SaveFile { savedUtc = DateTime.UtcNow.ToString("o") };
-
+        var data = new FileData { savedUtc = DateTime.UtcNow.ToString("o") };
         foreach (var po in _live)
         {
             if (!po) continue;
@@ -78,57 +67,45 @@ public class BuildSaveManager : MonoBehaviour
             });
         }
 
-        var json = JsonUtility.ToJson(data, true);
-        var path = GetPath();
-        Directory.CreateDirectory(Path.GetDirectoryName(path));
-        File.WriteAllText(path, json);
-
+        var path = PathForWrite();
+        File.WriteAllText(path, JsonUtility.ToJson(data, true));
 #if UNITY_EDITOR
-        Debug.Log($"[BuildSave] Saved {_live.Count} objects -> {path}");
+        Debug.Log($"[BuildSave] Saved {data.objects.Count} objects -> {path}");
 #endif
     }
 
     [ContextMenu("Load Now")]
     public void Load()
     {
-        // 清理旧对象
-        foreach (var po in new List<PlacedObject>(_live))
-        {
-            if (po) Destroy(po.gameObject);
-        }
-        _live.Clear();
-
-        var path = GetPath();
+        var path = PathForRead();
         if (!File.Exists(path))
         {
 #if UNITY_EDITOR
-            Debug.Log($"[BuildSave] No save at {path}");
+            Debug.Log("[BuildSave] No save file yet.");
 #endif
             return;
         }
 
-        var json = File.ReadAllText(path);
-        var data = JsonUtility.FromJson<SaveFile>(json);
+        if (clearBeforeLoad)
+        {
+            for (int i = _live.Count - 1; i >= 0; i--)
+                if (_live[i]) Destroy(_live[i].gameObject);
+            _live.Clear();
+        }
+
+        var data = JsonUtility.FromJson<FileData>(File.ReadAllText(path));
         if (data == null || data.objects == null) return;
 
         int loaded = 0;
         foreach (var r in data.objects)
         {
             var entry = catalog ? catalog.Get(r.itemId) : null;
-            if (entry == null || entry.prefab == null)
-            {
-#if UNITY_EDITOR
-                Debug.LogWarning($"[BuildSave] Missing catalog entry for {r.itemId}, skip");
-#endif
-                continue;
-            }
+            if (entry == null || entry.prefab == null) continue;
 
-            var parent = entry.optionalParentAtRuntime ? entry.optionalParentAtRuntime : null;
-            var go = Instantiate(entry.prefab, r.position, r.rotation, parent);
-            go.transform.localScale = r.scale;
+            var go = Instantiate(entry.prefab, r.position, r.rotation);
+            go.transform.localScale = (r.scale.sqrMagnitude > 0.0001f) ? r.scale : entry.prefab.transform.localScale;
 
-            var po = go.GetComponent<PlacedObject>();
-            if (!po) po = go.AddComponent<PlacedObject>();
+            var po = go.GetComponent<PlacedObject>() ?? go.AddComponent<PlacedObject>();
             po.itemId = r.itemId;
 
             loaded++;
