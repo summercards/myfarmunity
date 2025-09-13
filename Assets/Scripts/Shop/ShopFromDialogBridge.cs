@@ -14,6 +14,9 @@ using System.Reflection;
 public class ShopFromDialogBridge : MonoBehaviour
 {
     [Header("Refs")]
+    [Header("Behavior")]
+    [Tooltip("从对话里点“功能/商店”时，是否先关闭对话面板以避免双重生命周期冲突")]
+    public bool closeDialogWhenOpenShop = true;
     public NPCDialogUI npcDialogUI;                 // Panel_NPCDialog 上的组件
     public NPCDialogWorldBridge dialogWorldBridge;  // 同物体上的桥接器（建议直接拖引用）
     public SimpleShopUI shopUI;                     // 商店 UI 组件
@@ -67,6 +70,12 @@ public class ShopFromDialogBridge : MonoBehaviour
         {
             Debug.LogWarning("[ShopFromDialogBridge] 找不到当前 NPC Transform。");
             return;
+        }
+
+        // 关键：从对话切到商店时，先关闭对话 UI，避免两套逻辑并存
+        if (closeDialogWhenOpenShop && npcDialogUI != null && npcDialogUI.IsOpen)
+        {
+            npcDialogUI.Close(); // 会连带把任何残留气泡清掉
         }
 
         // 2) 先切到商店台词（在面板关闭前执行，确保桥接器存在）

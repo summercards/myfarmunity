@@ -1,68 +1,69 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
 /// <summary>
-/// ³¢ÊÔ¡°×Ô¶¯ÊÊÅä¡±ÄãÏîÄ¿ÀïµÄ±³°ü£º
-/// - ÔÚ³¡¾°ÖĞ²éÕÒÃûÎª PlayerInventoryHolder µÄ×é¼ş£¨»òÊÖ¶¯ÍÏµ½ holderOverride£©
-/// - Í¨¹ı·´ÉäÑ°ÕÒ inventory ×Ö¶Î/ÊôĞÔÓë Add/Remove/GetCount µÈ·½·¨£¨³£¼ûÃüÃû¶¼³¢ÊÔ£©
-/// - ÈôÎŞ·¨Ö±½Óµ÷ÓÃ±³°üAPI£¬ÔòÔÚ¹ºÂòÊ±ÓÃ pickupPrefab ¶µµ×Éú³Éµ½Íæ¼Ò½Å±ß£¨Íæ¼Ò×ÔĞĞÊ°È¡£©
+/// å°è¯•â€œè‡ªåŠ¨é€‚é…â€ä½ é¡¹ç›®é‡Œçš„èƒŒåŒ…ï¼š
+/// - åœ¨åœºæ™¯ä¸­æŸ¥æ‰¾åä¸º PlayerInventoryHolder çš„ç»„ä»¶ï¼ˆæˆ–æ‰‹åŠ¨æ‹–åˆ° holderOverrideï¼‰
+/// - é€šè¿‡åå°„å¯»æ‰¾ inventory å­—æ®µ/å±æ€§ä¸ Add/Remove/GetCount ç­‰æ–¹æ³•ï¼ˆå¸¸è§å‘½åéƒ½å°è¯•ï¼‰
+/// - è‹¥æ— æ³•ç›´æ¥è°ƒç”¨èƒŒåŒ…APIï¼Œåˆ™åœ¨è´­ä¹°æ—¶ç”¨ pickupPrefab å…œåº•ç”Ÿæˆåˆ°ç©å®¶è„šè¾¹ï¼ˆç©å®¶è‡ªè¡Œæ‹¾å–ï¼‰
 /// </summary>
 public class InventoryBridge : MonoBehaviour
 {
-    [Header("¶¨Î»±³°ü¶ÔÏó")]
-    [Tooltip("ÓÅÏÈÊ¹ÓÃÕâÀïÖ¸¶¨µÄ±³°ü³ÖÓĞÕß£»Îª¿ÕÔò×Ô¶¯ FindObjectOfType(\"PlayerInventoryHolder\").")]
+    [Header("å®šä½èƒŒåŒ…å¯¹è±¡")]
+    [Tooltip("ä¼˜å…ˆä½¿ç”¨è¿™é‡ŒæŒ‡å®šçš„èƒŒåŒ…æŒæœ‰è€…ï¼›ä¸ºç©ºåˆ™è‡ªåŠ¨ FindObjectOfType(\"PlayerInventoryHolder\").")]
     public MonoBehaviour holderOverride;
 
-    [Tooltip("ÓÅÏÈ³¢ÊÔ´Ó³ÖÓĞÕßÉÏÃûÎª inventory / Inventory µÄ×Ö¶Î»òÊôĞÔÈ¡±³°ü¶ÔÏó¡£Îª¿Õ»á×Ô¶¯³¢ÊÔ³£¼ûÃû³Æ¡£")]
-    public string inventoryMemberName = ""; // Îª¿Õ×ß×Ô¶¯
+    [Tooltip("ä¼˜å…ˆå°è¯•ä»æŒæœ‰è€…ä¸Šåä¸º inventory / Inventory çš„å­—æ®µæˆ–å±æ€§å–èƒŒåŒ…å¯¹è±¡ã€‚ä¸ºç©ºä¼šè‡ªåŠ¨å°è¯•å¸¸è§åç§°ã€‚")]
+    public string inventoryMemberName = ""; // ä¸ºç©ºèµ°è‡ªåŠ¨
 
-    [Header("ÎïÆ·ID ¡ú ±³°üAPIËùĞè¶ÔÏó£¨¿ÉÑ¡£©")]
-    [Tooltip("ÓĞĞ©±³°üAPIĞèÒª´« ScriptableObject »ò Item ¶ÔÏó£¬ÕâÀï¿ÉÊÖ¶¯ÅäÖÃÓ³Éä¡£")]
+    [Header("ç‰©å“ID â†’ èƒŒåŒ…APIæ‰€éœ€å¯¹è±¡ï¼ˆå¯é€‰ï¼‰")]
+    [Tooltip("æœ‰äº›èƒŒåŒ…APIéœ€è¦ä¼  ScriptableObject æˆ– Item å¯¹è±¡ï¼Œè¿™é‡Œå¯æ‰‹åŠ¨é…ç½®æ˜ å°„ã€‚")]
     public List<ItemMapping> manualMapping = new();
 
     [Serializable]
     public class ItemMapping
     {
         public string itemId;
-        public UnityEngine.Object itemObject; // ¿ÉÊÇÄãµÄ ItemSO / Item / ÈÎÒâ±³°üËùĞè¶ÔÏó
+        public UnityEngine.Object itemObject; // å¯æ˜¯ä½ çš„ ItemSO / Item / ä»»æ„èƒŒåŒ…æ‰€éœ€å¯¹è±¡
     }
 
-    object _holder;      // PlayerInventoryHolder ÊµÀı
-    object _inventory;   // ÕæÊµ±³°ü¶ÔÏó£¨¿ÉÄÜÔÚ holder ÄÚ£©
+    object _holder;      // PlayerInventoryHolder å®ä¾‹
+    object _inventory;   // çœŸå®èƒŒåŒ…å¯¹è±¡ï¼ˆå¯èƒ½åœ¨ holder å†…ï¼‰
     MethodInfo _miAdd, _miRemove, _miCount;
 
     void Awake()
     {
-        // 1) ÕÒ holder
+        // 1) æ‰¾ holder
         if (holderOverride) _holder = holderOverride;
         if (_holder == null)
         {
-            // ³¢ÊÔ°´ÀàĞÍÃû²éÕÒ
+            // å°è¯•æŒ‰ç±»å‹åæŸ¥æ‰¾
             var t = FindTypeByName("PlayerInventoryHolder");
             if (t != null)
             {
-                var comp = FindObjectOfType(t) as Component;
+                // âœ… æ”¹ååçš„ç²¾ç¡®ç±»å‹æŸ¥æ‰¾ï¼Œé¿å…ä¸ UnityEngine.Object.FindObjectOfType é‡å
+                var comp = FindComponentExactType(t) as Component;
                 if (comp) _holder = comp;
             }
         }
         if (_holder == null)
         {
-            Debug.LogWarning("[InventoryBridge] Î´ÕÒµ½ PlayerInventoryHolder£¨¿ÉÔÚ holderOverride ÊÖ¶¯Ö¸¶¨£©¡£½«Ê¹ÓÃÊ°È¡ÎïÌåÉú³É×÷Îª¶µµ×¡£");
+            Debug.LogWarning("[InventoryBridge] æœªæ‰¾åˆ° PlayerInventoryHolderï¼ˆå¯åœ¨ holderOverride æ‰‹åŠ¨æŒ‡å®šï¼‰ã€‚å°†ä½¿ç”¨æ‹¾å–ç‰©ä½“ç”Ÿæˆä½œä¸ºå…œåº•ã€‚");
             return;
         }
 
-        // 2) ÕÒ inventory ¶ÔÏó£¨×Ö¶Î»òÊôĞÔ£©
+        // 2) æ‰¾ inventory å¯¹è±¡ï¼ˆå­—æ®µæˆ–å±æ€§ï¼‰
         _inventory = ResolveInventoryObject(_holder);
         if (_inventory == null)
         {
-            Debug.LogWarning("[InventoryBridge] Î´ÄÜ½âÎö holder ÄÚµÄ±³°ü¶ÔÏó£¨inventory£©¡£");
+            Debug.LogWarning("[InventoryBridge] æœªèƒ½è§£æ holder å†…çš„èƒŒåŒ…å¯¹è±¡ï¼ˆinventoryï¼‰ã€‚");
             return;
         }
 
-        // 3) °ó¶¨·½·¨
+        // 3) ç»‘å®šæ–¹æ³•
         BindMethods();
     }
 
@@ -80,7 +81,7 @@ public class InventoryBridge : MonoBehaviour
         return 0;
     }
 
-    /// <summary> ³¢ÊÔÌí¼Ó£»Ê§°ÜÊ±Èô¸øÁË pickupPrefab£¬ÔòÔÚÍæ¼Ò½Å±ßÉú³É¶ÔÓ¦ÊıÁ¿µÄÊ°È¡Ô¤ÖÆÌå£¨²¢·µ»Ø true±íÊ¾ÒÑ¹º³É¹¦£©¡£ </summary>
+    /// <summary> å°è¯•æ·»åŠ ï¼›å¤±è´¥æ—¶è‹¥ç»™äº† pickupPrefabï¼Œåˆ™åœ¨ç©å®¶è„šè¾¹ç”Ÿæˆå¯¹åº”æ•°é‡çš„æ‹¾å–é¢„åˆ¶ä½“ï¼ˆå¹¶è¿”å› trueè¡¨ç¤ºå·²è´­æˆåŠŸï¼‰ã€‚ </summary>
     public bool TryAdd(string itemId, int amount, Transform player, GameObject pickupPrefab)
     {
         if (amount <= 0) return true;
@@ -90,7 +91,7 @@ public class InventoryBridge : MonoBehaviour
             var (arg, expectsString) = ResolveItemArg(itemId, _miAdd);
             try
             {
-                // ³£¼ûÇ©Ãû£º(object,int) / (string,int) / (object) / (string)
+                // å¸¸è§ç­¾åï¼š(object,int) / (string,int) / (object) / (string)
                 var pars = _miAdd.GetParameters();
                 if (pars.Length == 2)
                 {
@@ -107,7 +108,7 @@ public class InventoryBridge : MonoBehaviour
             catch { }
         }
 
-        // ¶µµ×£ºÉú³ÉÊ°È¡Ô¤ÖÆÌå
+        // å…œåº•ï¼šç”Ÿæˆæ‹¾å–é¢„åˆ¶ä½“
         if (pickupPrefab && player)
         {
             for (int i = 0; i < amount; i++)
@@ -115,15 +116,15 @@ public class InventoryBridge : MonoBehaviour
                 var pos = player.position + player.forward * 0.6f + Vector3.up * 0.5f + UnityEngine.Random.insideUnitSphere * 0.2f;
                 GameObject.Instantiate(pickupPrefab, pos, Quaternion.identity);
             }
-            Debug.Log("[InventoryBridge] ÎŞ·¨Ö±¼Óµ½±³°ü£¬ÒÑÉú³ÉÊ°È¡ÎïÌå×÷Îª¶µµ×¡£");
+            Debug.Log("[InventoryBridge] æ— æ³•ç›´åŠ åˆ°èƒŒåŒ…ï¼Œå·²ç”Ÿæˆæ‹¾å–ç‰©ä½“ä½œä¸ºå…œåº•ã€‚");
             return true;
         }
 
-        Debug.LogWarning("[InventoryBridge] TryAdd Ê§°Ü£¬ÇÒÃ»ÓĞ¿ÉÓÃ¶µµ×¡£");
+        Debug.LogWarning("[InventoryBridge] TryAdd å¤±è´¥ï¼Œä¸”æ²¡æœ‰å¯ç”¨å…œåº•ã€‚");
         return false;
     }
 
-    /// <summary> ³¢ÊÔÒÆ³ı£»ÒÆ³ıÊ§°ÜÔò·µ»Ø false£¨²»×ö¶µµ×£©¡£ </summary>
+    /// <summary> å°è¯•ç§»é™¤ï¼›ç§»é™¤å¤±è´¥åˆ™è¿”å› falseï¼ˆä¸åšå…œåº•ï¼‰ã€‚ </summary>
     public bool TryRemove(string itemId, int amount)
     {
         if (amount <= 0) return true;
@@ -149,18 +150,18 @@ public class InventoryBridge : MonoBehaviour
             catch { }
         }
 
-        Debug.LogWarning("[InventoryBridge] TryRemove Ê§°Ü£¬Î´ÕÒµ½¼æÈİµÄÒÆ³ıAPI¡£");
+        Debug.LogWarning("[InventoryBridge] TryRemove å¤±è´¥ï¼Œæœªæ‰¾åˆ°å…¼å®¹çš„ç§»é™¤APIã€‚");
         return false;
     }
 
-    // --------- ·´Éä¸¨Öú ---------
+    // --------- åå°„è¾…åŠ© ---------
     (object arg, bool expectsString) ResolveItemArg(string itemId, MethodInfo mi)
     {
         var ps = mi.GetParameters();
         var argType = ps[0].ParameterType;
         // string
         if (argType == typeof(string)) return (itemId, true);
-        // ÆäËüÀàĞÍ£º³¢ÊÔÓÃÊÖ¶¯Ó³Éä
+        // å…¶å®ƒç±»å‹ï¼šå°è¯•ç”¨æ‰‹åŠ¨æ˜ å°„
         var map = manualMapping.FirstOrDefault(m => m.itemId == itemId);
         if (map != null && map.itemObject != null) return (map.itemObject, false);
         return (null, false);
@@ -170,16 +171,14 @@ public class InventoryBridge : MonoBehaviour
     {
         var invType = _inventory.GetType();
 
-        // ËÑ³£¼û·½·¨Ãû
+        // æœå¸¸è§æ–¹æ³•å
         _miAdd = FindMethod(invType, new[] { "AddItem", "TryAddItem", "Add", "AddById" });
         _miRemove = FindMethod(invType, new[] { "RemoveItem", "TryRemoveItem", "Remove", "RemoveById" });
         _miCount = FindMethod(invType, new[] { "GetItemCount", "GetCount", "CountOf" });
 
-        // ÒªÇóµÚÒ»¸ö²ÎÊıÊÇ ÎïÆ·/ID£¬µÚ¶ş¸ö¿ÉÄÜÊÇÊıÁ¿
-        // ÈôÕÒ²»µ½²»ÓÃÇ¿Çó£¬×ß¶µµ×
-        if (_miAdd == null) Debug.Log("[InventoryBridge] Î´ÕÒµ½ Add ·½·¨£¨½«¿ÉÄÜ×ß¶µµ×Éú³É£©¡£");
-        if (_miRemove == null) Debug.Log("[InventoryBridge] Î´ÕÒµ½ Remove ·½·¨¡£");
-        if (_miCount == null) Debug.Log("[InventoryBridge] Î´ÕÒµ½ GetCount ·½·¨¡£");
+        if (_miAdd == null) Debug.Log("[InventoryBridge] æœªæ‰¾åˆ° Add æ–¹æ³•ï¼ˆå°†å¯èƒ½èµ°å…œåº•ç”Ÿæˆï¼‰ã€‚");
+        if (_miRemove == null) Debug.Log("[InventoryBridge] æœªæ‰¾åˆ° Remove æ–¹æ³•ã€‚");
+        if (_miCount == null) Debug.Log("[InventoryBridge] æœªæ‰¾åˆ° GetCount æ–¹æ³•ã€‚");
     }
 
     MethodInfo FindMethod(Type t, string[] names)
@@ -202,11 +201,11 @@ public class InventoryBridge : MonoBehaviour
         if (holderObj == null) return null;
         var ht = holderObj.GetType();
 
-        // 1) Èç¹û±¾Éí¾ÍÓĞ³£¼û·½·¨£¬Ò²¿ÉÖ±½Óµ± inventory ÓÃ
+        // 1) å¦‚æœæœ¬èº«å°±æœ‰å¸¸è§æ–¹æ³•ï¼Œä¹Ÿå¯ç›´æ¥å½“ inventory ç”¨
         if (FindMethod(ht, new[] { "AddItem", "Add", "TryAddItem" }) != null)
             return holderObj;
 
-        // 2) ×Ö¶Î/ÊôĞÔ
+        // 2) å­—æ®µ/å±æ€§
         string[] names = string.IsNullOrEmpty(inventoryMemberName)
             ? new[] { "inventory", "Inventory", "playerInventory", "PlayerInventory" }
             : new[] { inventoryMemberName };
@@ -223,7 +222,10 @@ public class InventoryBridge : MonoBehaviour
         return null;
     }
 
-    Component FindObjectOfType(Type type)
+    /// <summary>
+    /// ç²¾ç¡®ç±»å‹æŸ¥æ‰¾ï¼šåªè¿”å› **ç±»å‹å®Œå…¨åŒ¹é…** çš„ç»„ä»¶ï¼Œé¿å…ä¸ Unity çš„åŒå API æ··æ·†ã€‚
+    /// </summary>
+    private Component FindComponentExactType(Type type)
     {
         var arr = UnityEngine.Object.FindObjectsOfType<Component>();
         foreach (var c in arr) if (c && c.GetType() == type) return c;

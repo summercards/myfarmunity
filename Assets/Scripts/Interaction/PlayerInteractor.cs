@@ -48,6 +48,11 @@ public class PlayerInteractor : MonoBehaviour
                 {
                     sharedDialogUI.Close();
                     // 不 return；继续走后续逻辑允许重新搜索交互体
+
+                    // 关键：走远自动关闭时，也把世界气泡（包括独立模式/商店气泡）一并关掉
+                    var bridge = FindObjectOfType<NPCDialogWorldBridge>();
+                    if (bridge != null) bridge.EndStandalone();
+
                 }
             }
         }

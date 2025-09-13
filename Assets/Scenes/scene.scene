@@ -631,7 +631,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 81, y: -62}
+  m_AnchoredPosition: {x: 34.8, y: -69.5}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &288871596
@@ -681,8 +681,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 28
+  m_fontSizeBase: 28
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1002,14 +1002,29 @@ MonoBehaviour:
   wallet: {fileID: 609844091}
   inventoryBridge: {fileID: 54186015}
   dialogUI: {fileID: 1921163924}
-  autoCloseWhenFar: 1
-  closeDistance: 5
+  autoCloseWhenFar: 0
+  closeDistance: 4
   autoCloseGrace: 0.5
   npcMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 0
   showOnlyBuyable: 1
   shopOpenLine: "\u6B22\u8FCE\u5149\u4E34\uFF01\u9700\u8981\u70B9\u4EC0\u4E48\uFF1F"
+  manualDistanceClose: 1
+  manualPlayer: {fileID: 609844081}
+  manualNpc: {fileID: 2013431234}
+  manualCloseDistance: 4
+  useGridLayout: 1
+  columns: 2
+  rows: 0
+  cellSize: {x: 180, y: 220}
+  spacing: {x: 2, y: 2}
+  paddingLeft: 2
+  paddingTop: 2
+  paddingRight: 2
+  paddingBottom: 2
+  listBackground: {fileID: 0}
+  bgExtraPadding: {x: 16, y: 16}
 --- !u!224 &411100166
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2437,7 +2452,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 26, y: -62.4}
+  m_AnchoredPosition: {x: 154.9, y: -26.7}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &822563075
@@ -4394,7 +4409,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   plantDB: {fileID: 11400000, guid: 77d1d38881c81934d90d838d5fb86314, type: 2}
   fileName: crops.json
+  autoLoadOnStart: 1
   saveOnPauseOrFocusLoss: 1
+  autoSaveEnabled: 1
+  autoSaveInterval: 10
 --- !u!4 &1529574232
 Transform:
   m_ObjectHideFlags: 0
@@ -5035,7 +5053,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 411100165}
         m_TargetAssemblyTypeName: MiniShop, Assembly-CSharp
-        m_MethodName: OpenFromDialog
+        m_MethodName: Open
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -5457,6 +5475,7 @@ MonoBehaviour:
   fileName: builds.json
   autoLoadOnStart: 1
   saveOnQuitOrPause: 1
+  clearBeforeLoad: 1
 --- !u!1 &2119383090
 GameObject:
   m_ObjectHideFlags: 0

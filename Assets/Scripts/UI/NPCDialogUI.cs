@@ -103,7 +103,19 @@ public class NPCDialogUI : MonoBehaviour
     {
         IsOpen = false;
         if (root) root.SetActive(false);
+
+        // 清空状态，避免被当作仍在对话
+        _index = 0;
+
+        // _curr 是私有字段，Close 时要清空，防止外部还拿到“旧 NPC”
+        // （在本文件顶部可看到：private NPCInteractable _curr;）
+        _curr = null;
+
+        // 统一把任何可能残留的头顶气泡关掉（包括“商店台词”的独立气泡）
+        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
+        if (bridge != null) bridge.EndStandalone();
     }
+
 
     private void HideImmediate()
     {
