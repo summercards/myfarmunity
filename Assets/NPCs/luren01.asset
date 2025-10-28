@@ -17,9 +17,33 @@ MonoBehaviour:
   dialogLines:
   - "\u4F60\u597D\uFF0C\u6B22\u8FCE\u6765\u5230\u6211\u4EEC\u7684\u519C\u573A\u3002"
   - "\u9700\u8981\u6211\u505A\u70B9\u4EC0\u4E48\u5417\uFF1F"
-  function: 0
+  function: 1
   defaultShopCatalog: {fileID: 0}
   functionButtonText: 
+  modelPrefab: {fileID: 0}
+  animatorController: {fileID: 0}
+  modelLocalPosition: {x: 0, y: 0, z: 0}
+  modelLocalEuler: {x: 0, y: 0, z: 0}
+  modelLocalScale: {x: 1, y: 1, z: 1}
+  dailyAnimations:
+  - startHour: 0
+    endHour: 6
+    stateName: Sleep
+    speed: 1
+    conditionTag: 
+  - startHour: 6
+    endHour: 22
+    stateName: Idle
+    speed: 1
+    conditionTag: 
+  - startHour: 22
+    endHour: 24
+    stateName: Sleep
+    speed: 1
+    conditionTag: 
+  talkStateName: Talk
+  talkSpeed: 1
+  talkCrossFade: 0.2
   defaultColliderCenter: {x: 0, y: 1, z: 0}
   defaultColliderSize: {x: 1, y: 2, z: 1}
   addCapsuleColliderInstead: 0
