@@ -3,7 +3,8 @@ using UnityEngine;
 namespace FarmGame.NPCSystem
 {
     /// <summary>
-    /// 负责：实例化模型、套 Animator、按时间段播放对应状态。
+    /// 负责：实例化模型、套 Animator、按时间段播放状态；
+    ///       对话期间临时覆盖为“说话”状态，结束后恢复。
     /// </summary>
     [DisallowMultipleComponent]
     public class NPCVisualController : MonoBehaviour
@@ -11,37 +12,79 @@ namespace FarmGame.NPCSystem
         public NPCDefinition definition;
 
         [Header("运行时")]
-        public Transform modelRoot;       // 实例化的模型根（名：_Model）
-        public Animator animator;         // 模型上的 Animator
+        public Transform modelRoot;
+        public Animator animator;
 
         [Header("时钟")]
-        public bool useSystemClock = true;     // 用系统时间（小时 0-24）
-        [Range(0, 24)] public float manualHour = 10f; // 手动调时间，useSystemClock=false 时生效
-        public float tickInterval = 2f;        // 多久检测一次
+        public bool useSystemClock = true;
+        [Range(0, 24)] public float manualHour = 10f;
+        public float tickInterval = 2f;
 
         private float _tick;
         private string _currentState;
         private float _speedApplied = 1f;
+
+        // 对话覆盖
+        private bool _isTalking = false;
+        private string _stateBeforeTalk = null;
+        private float _speedBeforeTalk = 1f;
 
         private const string MODEL_NODE_NAME = "_Model";
 
         private void Awake()
         {
             SetupModelAndAnimator();
-            ForceEvaluateAnimation(true);
-        }
-
-        private void OnEnable()
-        {
-            _tick = 0f;
+            EvaluateAndPlay(true);
         }
 
         private void Update()
         {
+            if (_isTalking) return; // 对话时不跑日常刷新
+
             _tick += Time.deltaTime;
             if (_tick < tickInterval) return;
             _tick = 0f;
-            ForceEvaluateAnimation(false);
+            EvaluateAndPlay(false);
+        }
+
+        public void BeginTalk()
+        {
+            if (definition == null || animator == null) return;
+            if (_isTalking) return;
+
+            _isTalking = true;
+            _stateBeforeTalk = _currentState;
+            _speedBeforeTalk = _speedApplied;
+
+            var state = string.IsNullOrEmpty(definition.talkStateName) ? "Talk" : definition.talkStateName;
+            animator.speed = Mathf.Max(0.1f, definition.talkSpeed);
+            animator.CrossFade(state, definition.talkCrossFade, 0, 0f);
+
+            _currentState = state;
+            _speedApplied = animator.speed;
+        }
+
+        public void EndTalk()
+        {
+            if (definition == null || animator == null) return;
+            if (!_isTalking) return;
+
+            _isTalking = false;
+
+            // 回到对话前的日常状态；若空则按时间段重新计算
+            if (!string.IsNullOrEmpty(_stateBeforeTalk))
+            {
+                animator.speed = _speedBeforeTalk;
+                animator.CrossFade(_stateBeforeTalk, 0.2f, 0, 0f);
+                _currentState = _stateBeforeTalk;
+                _speedApplied = _speedBeforeTalk;
+            }
+            else
+            {
+                EvaluateAndPlay(true);
+            }
+
+            _stateBeforeTalk = null;
         }
 
         private void SetupModelAndAnimator()
@@ -56,16 +99,12 @@ namespace FarmGame.NPCSystem
             }
             modelRoot = t;
 
-            // 如果有 Prefab，且当前没有子模型，就实例化
+            // 如果有 Prefab，实例化（清理旧子物体）
             if (definition != null && definition.modelPrefab != null)
             {
-                if (modelRoot.childCount == 0 ||
-                    (modelRoot.childCount == 1 && modelRoot.GetChild(0).name.StartsWith("Placeholder")))
-                {
-                    foreach (Transform c in modelRoot) DestroyImmediate(c.gameObject);
-                    var inst = Instantiate(definition.modelPrefab, modelRoot);
-                    inst.name = definition.modelPrefab.name;
-                }
+                foreach (Transform c in modelRoot) DestroyImmediate(c.gameObject);
+                var inst = Instantiate(definition.modelPrefab, modelRoot);
+                inst.name = definition.modelPrefab.name;
             }
 
             // 位置/旋转/缩放
@@ -78,37 +117,28 @@ namespace FarmGame.NPCSystem
 
             // Animator
             animator = modelRoot.GetComponentInChildren<Animator>(true);
-            if (animator == null)
-            {
-                // 尝试在根挂一个 Animator
-                animator = modelRoot.gameObject.AddComponent<Animator>();
-            }
+            if (animator == null) animator = modelRoot.gameObject.AddComponent<Animator>();
             if (definition != null && definition.animatorController != null)
-            {
                 animator.runtimeAnimatorController = definition.animatorController;
-            }
+
             animator.applyRootMotion = false;
         }
 
-        private float GetHour01_24()
+        private float GetHour()
         {
             if (useSystemClock)
             {
                 var now = System.DateTime.Now;
                 return now.Hour + now.Minute / 60f + now.Second / 3600f;
             }
-            else
-            {
-                return Mathf.Repeat(manualHour, 24f);
-            }
+            return Mathf.Repeat(manualHour, 24f);
         }
 
-        private void ForceEvaluateAnimation(bool forcePlay)
+        private void EvaluateAndPlay(bool force)
         {
             if (definition == null || animator == null) return;
 
-            float hour = GetHour01_24();
-            // 选中第一个匹配的动画
+            float hour = GetHour();
             string targetState = null;
             float targetSpeed = 1f;
 
@@ -132,13 +162,11 @@ namespace FarmGame.NPCSystem
                 targetSpeed = 1f;
             }
 
-            if (forcePlay || _currentState != targetState || Mathf.Abs(_speedApplied - targetSpeed) > 0.001f)
+            if (force || _currentState != targetState || Mathf.Abs(_speedApplied - targetSpeed) > 0.001f)
             {
                 _currentState = targetState;
                 _speedApplied = targetSpeed;
                 animator.speed = _speedApplied;
-
-                // 0.2s 过渡
                 animator.CrossFade(_currentState, 0.2f, 0, 0f);
             }
         }
