@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8eb389cd721e44642baf0c160c141bb8, type: 3}
+  m_Name: luren01
+  m_EditorClassIdentifier: 
+  npcId: npc_001
+  npcName: "\u65B0\u6751\u6C11"
+  dialogLines:
+  - "\u4F60\u597D\uFF0C\u6B22\u8FCE\u6765\u5230\u6211\u4EEC\u7684\u519C\u573A\u3002"
+  - "\u9700\u8981\u6211\u505A\u70B9\u4EC0\u4E48\u5417\uFF1F"
+  function: 0
+  defaultShopCatalog: {fileID: 0}
+  functionButtonText: 
+  defaultColliderCenter: {x: 0, y: 1, z: 0}
+  defaultColliderSize: {x: 1, y: 2, z: 1}
+  addCapsuleColliderInstead: 0
+  gizmoColor: {r: 0.2, g: 0.8, b: 1, a: 0.35}
