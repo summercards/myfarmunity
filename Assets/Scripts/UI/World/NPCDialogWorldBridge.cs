@@ -194,6 +194,30 @@ public class NPCDialogWorldBridge : MonoBehaviour
         _bubble.SetText(_standaloneLine);
         MakeUILineTransparent();
     }
+
+    // 新增：统一对外的绑定接口（名字随你，下面 Player 会调用它）
+    // 新增：统一对外的绑定接口（Player 在打开对话前会调用它）
+    public void Bind(Transform newTarget)
+    {
+        if (!newTarget) return;
+
+        // 退出独立台词模式，防止锚点被独立模式覆盖
+        _standaloneMode = false;
+        _standaloneNPC = null;
+
+        // 解析并设置新的世界锚点
+        _anchor = ResolveAnchor(newTarget);
+
+        // 如果气泡已经存在，立刻把气泡重绑到新的锚点，避免一帧延迟显示在旧 NPC 上
+        if (_bubble != null)
+        {
+            _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+        }
+
+        // 让 Update() 下一帧按新锚点刷新文本
+        _lastLineText = "";
+    }
+
     public void SetStandaloneLine(string line)
     {
         _standaloneLine = line ?? "";
