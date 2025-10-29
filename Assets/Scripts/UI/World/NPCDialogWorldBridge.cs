@@ -195,28 +195,44 @@ public class NPCDialogWorldBridge : MonoBehaviour
         MakeUILineTransparent();
     }
 
-    // 新增：统一对外的绑定接口（名字随你，下面 Player 会调用它）
-    // 新增：统一对外的绑定接口（Player 在打开对话前会调用它）
-    public void Bind(Transform newTarget)
+    // 统一对外：绑定到一个具体的世界点
+    public void Bind(Transform newAnchor)
     {
-        if (!newTarget) return;
+        if (!newAnchor) return;
 
-        // 退出独立台词模式，防止锚点被独立模式覆盖
+        // 退出独立模式，避免被覆盖
         _standaloneMode = false;
         _standaloneNPC = null;
 
-        // 解析并设置新的世界锚点
-        _anchor = ResolveAnchor(newTarget);
+        _anchor = ResolveAnchor(newAnchor);
 
-        // 如果气泡已经存在，立刻把气泡重绑到新的锚点，避免一帧延迟显示在旧 NPC 上
+        // 气泡已经在场景里时，立刻重绑，避免一帧落在旧 NPC 上
         if (_bubble != null)
         {
             _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
         }
 
-        // 让 Update() 下一帧按新锚点刷新文本
-        _lastLineText = "";
+        _lastLineText = ""; // 强制下一帧刷新
     }
+
+    // 语义更明确：直接绑定到 NPC（优先其 BubbleAnchor）
+    public void BindToNPC(MonoBehaviour npcMono)
+    {
+        if (npcMono == null) return;
+        var t = npcMono.transform;
+
+        // 优先找锚点（字段或属性名：BubbleAnchor/WorldAnchor/bubbleAnchor）
+        var tp = npcMono.GetType();
+        Transform anchor = null;
+        var f = tp.GetField("BubbleAnchor") ?? tp.GetField("WorldAnchor") ?? tp.GetField("bubbleAnchor");
+        if (f != null) anchor = f.GetValue(npcMono) as Transform;
+        var p = tp.GetProperty("BubbleAnchor") ?? tp.GetProperty("WorldAnchor");
+        if (p != null && anchor == null) anchor = p.GetValue(npcMono) as Transform;
+        if (anchor == null) anchor = t;
+
+        Bind(anchor);
+    }
+
 
     public void SetStandaloneLine(string line)
     {

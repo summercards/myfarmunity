@@ -204,14 +204,17 @@ public class PlayerInteractor : MonoBehaviour
             // 调用你 Bridge 暴露的方法（如果你已有 SetTarget/SetAnchor/BindTo，请把 Bind 换成你的方法名）
             bridge.Bind(anchor);
         }
-
         // 最后再真正打开对话
         _current.Interact(gameObject);
 
+        // ★ 兜底：再次绑定到当前 NPC，确保世界气泡跟随正确对象
+        var bridge2 = FindObjectOfType<NPCDialogWorldBridge>();
+        if (bridge2 != null && asNpc != null) bridge2.BindToNPC(asNpc);
 
         // 5) 清理状态
         _pendingSwitch = null;
         _switchCo = null;
+
     }
 
     private bool PressedInteractKey()

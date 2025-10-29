@@ -95,8 +95,13 @@ public class NPCDialogUI : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
         }
 
+        // ★ 新增：通知世界气泡 Bridge 绑定到当前 NPC
+        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
+        if (bridge != null) bridge.BindToNPC(npc);
+
         RefreshLine();
     }
+
 
     /// <summary> 关闭对话面板 </summary>
     public void Close()
