@@ -1,0 +1,438 @@
+// Assets/Scripts/Time/GameTimeSystem.cs
+using UnityEngine;
+using System;
+using UnityEngine.Events;
+
+/// <summary>
+/// 游戏时间系统
+/// 管理游戏内的时间、日期、季节和天气
+/// </summary>
+[CreateAssetMenu(fileName = "GameTimeSystem", menuName = "Game/Time System")]
+public class GameTimeSystem : ScriptableObject
+{
+    [Header("时间配置")]
+    [Tooltip("1个现实秒 = 多少游戏分钟")]
+    [Range(0.1f, 60f)]
+    public float realSecondsPerGameMinute = 1f;
+
+    [Tooltip("游戏开始时间（小时，0-24）")]
+    [Range(0f, 24f)]
+    public float startHour = 6f;
+
+    [Tooltip("游戏开始天数")]
+    public int startDay = 1;
+
+    [Tooltip("游戏开始月份")]
+    [Range(1, 12)]
+    public int startMonth = 1;
+
+    [Tooltip("游戏开始年份")]
+    public int startYear = 2024;
+
+    [Header("季节配置")]
+    public Season startSeason = Season.Spring;
+    [Tooltip("每季持续天数")]
+    public int daysPerSeason = 28;
+
+    [Header("天气配置")]
+    public WeatherType currentWeather = WeatherType.Sunny;
+    [Tooltip("天气变化间隔（游戏小时）")]
+    public float weatherChangeInterval = 6f;
+    private float lastWeatherChangeTime;
+
+    [Header("事件")]
+    public UnityEvent onHourChanged;
+    public UnityEvent onDayChanged;
+    public UnityEvent onMonthChanged;
+    public UnityEvent onSeasonChanged;
+    public UnityEvent onYearChanged;
+    public UnityEvent onWeatherChanged;
+    public UnityEvent onTimeOfDayChanged;
+
+    // === 运行时数据 ===
+
+    // 时间
+    private float currentGameTime = 0f; // 游戏时间（分钟为单位）
+    private int currentHour = 6;
+    private int currentMinute = 0;
+
+    // 日期
+    private int currentDay = 1;
+    private int currentMonth = 1;
+    private int currentYear = 2024;
+    private Season currentSeason = Season.Spring;
+
+    // 时间段
+    private TimeOfDay currentTimeOfDay = TimeOfDay.Morning;
+    private TimeOfDay lastTimeOfDay = TimeOfDay.Morning;
+
+    // 天气
+    private float weatherTimer = 0f;
+
+    // 暂停状态
+    private bool isPaused = false;
+
+    // === 公共属性访问器 ===
+
+    public int Hour => currentHour;
+    public int Minute => currentMinute;
+    public int Day => currentDay;
+    public int Month => currentMonth;
+    public int Year => currentYear;
+    public Season Season => currentSeason;
+    public TimeOfDay CurrentTimeOfDay => currentTimeOfDay;
+    public WeatherType CurrentWeather => currentWeather;
+    public bool IsPaused => isPaused;
+
+    /// <summary>
+    /// 获取当前游戏时间（0-24小时制）
+    /// </summary>
+    public float CurrentTime => currentHour + currentMinute / 60f;
+
+    /// <summary>
+    /// 获取格式化的时间字符串 (HH:MM)
+    /// </summary>
+    public string TimeString => TimeHelpers.FormatTime(currentHour, currentMinute);
+
+    /// <summary>
+    /// 获取格式化的日期字符串
+    /// </summary>
+    public string DateString => TimeHelpers.FormatDate(currentYear, currentMonth, currentDay, currentSeason);
+
+    /// <summary>
+    /// 是否为白天 (6:00 - 18:00)
+    /// </summary>
+    public bool IsDayTime => currentHour >= 6 && currentHour < 18;
+
+    /// <summary>
+    /// 是否为夜晚 (18:00 - 6:00)
+    /// </summary>
+    public bool IsNightTime => !IsDayTime;
+
+    /// <summary>
+    /// 初始化时间系统
+    /// </summary>
+    public void Initialize()
+    {
+        currentGameTime = startHour * 60f;
+        currentDay = startDay;
+        currentMonth = startMonth;
+        currentYear = startYear;
+        currentSeason = startSeason;
+        currentWeather = WeatherType.Sunny;
+
+        UpdateTimeFromGameTime();
+        currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
+        lastTimeOfDay = currentTimeOfDay;
+    }
+
+    /// <summary>
+    /// 更新时间系统
+    /// </summary>
+    public void Tick(float deltaTime)
+    {
+        if (isPaused) return;
+
+        // 计算游戏时间增量（分钟）
+        float gameMinutesPassed = deltaTime * (60f / realSecondsPerGameMinute);
+        currentGameTime += gameMinutesPassed;
+
+        // 更新天气计时器
+        weatherTimer += gameMinutesPassed / 60f; // 转换为小时
+        if (weatherTimer >= weatherChangeInterval)
+        {
+            ChangeWeather();
+            weatherTimer = 0f;
+        }
+
+        // 更新时间
+        UpdateTimeFromGameTime();
+
+        // 检查时间段变化
+        CheckTimeOfDayChange();
+    }
+
+    /// <summary>
+    /// 从游戏时间更新小时和分钟
+    /// </summary>
+    private void UpdateTimeFromGameTime()
+    {
+        // 计算总小时数（带小数）
+        float totalHours = currentGameTime / 60f;
+
+        // 计算经过的天数
+        int daysPassed = Mathf.FloorToInt(totalHours / 24f);
+
+        // 计算当前小时（0-24）
+        float hourInDay = totalHours % 24f;
+
+        // 更新小时和分钟
+        currentHour = Mathf.FloorToInt(hourInDay);
+        currentMinute = Mathf.FloorToInt((hourInDay - currentHour) * 60f);
+
+        // 处理天数变化
+        if (daysPassed > 0)
+        {
+            AdvanceDays(daysPassed);
+        }
+
+        // 触发小时变化事件
+        if (currentMinute == 0)
+        {
+            onHourChanged?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// 前进指定天数
+    /// </summary>
+    private void AdvanceDays(int days)
+    {
+        int oldDay = currentDay;
+        currentDay += days;
+
+        // 计算月份变化
+        int daysInMonth = TimeHelpers.GetDaysInMonth(currentYear, currentMonth);
+        if (currentDay > daysInMonth)
+        {
+            currentDay -= daysInMonth;
+            AdvanceMonths(1);
+        }
+
+        // 触发日期变化事件
+        onDayChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 前进指定月数
+    /// </summary>
+    private void AdvanceMonths(int months)
+    {
+        currentMonth += months;
+
+        // 计算年份变化
+        if (currentMonth > 12)
+        {
+            currentMonth -= 12;
+            AdvanceYears(1);
+        }
+
+        // 检查季节变化
+        Season newSeason = TimeHelpers.GetSeason(currentMonth);
+        if (newSeason != currentSeason)
+        {
+            currentSeason = newSeason;
+            onSeasonChanged?.Invoke();
+        }
+
+        onMonthChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 前进指定年数
+    /// </summary>
+    private void AdvanceYears(int years)
+    {
+        currentYear += years;
+        onYearChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 检查时间段变化
+    /// </summary>
+    private void CheckTimeOfDayChange()
+    {
+        TimeOfDay newTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
+
+        if (newTimeOfDay != currentTimeOfDay)
+        {
+            lastTimeOfDay = currentTimeOfDay;
+            currentTimeOfDay = newTimeOfDay;
+            onTimeOfDayChanged?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// 改变天气
+    /// </summary>
+    private void ChangeWeather()
+    {
+        WeatherType newWeather = (WeatherType)UnityEngine.Random.Range(0, System.Enum.GetValues(typeof(WeatherType)).Length);
+
+        // 季节影响天气
+        if (currentSeason == Season.Winter)
+        {
+            // 冬天更容易下雪
+            if (UnityEngine.Random.value < 0.4f)
+                newWeather = WeatherType.Snowy;
+        }
+        else if (currentSeason == Season.Summer)
+        {
+            // 夏天更容易晴天或多云
+            newWeather = (WeatherType)(UnityEngine.Random.value < 0.7f ? UnityEngine.Random.Range(0, 2) : UnityEngine.Random.Range(2, 6));
+        }
+
+        if (newWeather != currentWeather)
+        {
+            currentWeather = newWeather;
+            onWeatherChanged?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// 暂停时间
+    /// </summary>
+    public void Pause()
+    {
+        isPaused = true;
+    }
+
+    /// <summary>
+    /// 恢复时间
+    /// </summary>
+    public void Resume()
+    {
+        isPaused = false;
+    }
+
+    /// <summary>
+    /// 设置指定时间
+    /// </summary>
+    public void SetTime(int hour, int minute)
+    {
+        currentHour = Mathf.Clamp(hour, 0, 23);
+        currentMinute = Mathf.Clamp(minute, 0, 59);
+        currentGameTime = (currentHour * 60f) + currentMinute;
+
+        CheckTimeOfDayChange();
+    }
+
+    /// <summary>
+    /// 设置指定日期
+    /// </summary>
+    public void SetDate(int year, int month, int day)
+    {
+        currentYear = Mathf.Max(1, year);
+        currentMonth = Mathf.Clamp(month, 1, 12);
+        currentDay = Mathf.Clamp(day, 1, TimeHelpers.GetDaysInMonth(currentYear, currentMonth));
+        currentSeason = TimeHelpers.GetSeason(currentMonth);
+    }
+
+    /// <summary>
+    /// 设置天气
+    /// </summary>
+    public void SetWeather(WeatherType weather)
+    {
+        currentWeather = weather;
+        onWeatherChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 设置时间流逝速度
+    /// </summary>
+    public void SetTimeScale(float scale)
+    {
+        realSecondsPerGameMinute = Mathf.Clamp(scale, 0.1f, 60f);
+    }
+
+    /// <summary>
+    /// 快速前进指定小时
+    /// </summary>
+    public void FastForward(int hours)
+    {
+        currentGameTime += hours * 60f;
+        UpdateTimeFromGameTime();
+        CheckTimeOfDayChange();
+    }
+
+    /// <summary>
+    /// 跳转到第二天早上
+    /// </summary>
+    public void SleepToNextDay()
+    {
+        int hoursUntilMorning = (24 - currentHour) + 6;
+        FastForward(hoursUntilMorning);
+    }
+
+    /// <summary>
+    /// 获取时间信息摘要
+    /// </summary>
+    public string GetTimeSummary()
+    {
+        return $"游戏时间: {TimeString}\n" +
+               $"日期: {DateString}\n" +
+               $"季节: {TimeHelpers.GetSeasonName(currentSeason)}\n" +
+               $"时段: {TimeHelpers.GetTimeOfDayName(currentTimeOfDay)}\n" +
+               $"天气: {GetWeatherName(currentWeather)}\n" +
+               $"速度: {realSecondsPerGameMinute:F1}秒/分钟";
+    }
+
+    /// <summary>
+    /// 获取天气名称
+    /// </summary>
+    public string GetWeatherName(WeatherType weather)
+    {
+        switch (weather)
+        {
+            case WeatherType.Sunny: return "晴天";
+            case WeatherType.Cloudy: return "多云";
+            case WeatherType.Rainy: return "雨天";
+            case WeatherType.Stormy: return "暴雨";
+            case WeatherType.Snowy: return "下雪";
+            case WeatherType.Foggy: return "雾天";
+            default: return "未知";
+        }
+    }
+
+    /// <summary>
+    /// 保存时间数据
+    /// </summary>
+    public TimeSaveData GetSaveData()
+    {
+        return new TimeSaveData
+        {
+            currentGameTime = currentGameTime,
+            currentDay = currentDay,
+            currentMonth = currentMonth,
+            currentYear = currentYear,
+            currentSeason = (int)currentSeason,
+            currentWeather = (int)currentWeather,
+            isPaused = isPaused,
+            realSecondsPerGameMinute = realSecondsPerGameMinute
+        };
+    }
+
+    /// <summary>
+    /// 加载时间数据
+    /// </summary>
+    public void LoadSaveData(TimeSaveData data)
+    {
+        currentGameTime = data.currentGameTime;
+        currentDay = data.currentDay;
+        currentMonth = data.currentMonth;
+        currentYear = data.currentYear;
+        currentSeason = (Season)data.currentSeason;
+        currentWeather = (WeatherType)data.currentWeather;
+        isPaused = data.isPaused;
+        realSecondsPerGameMinute = data.realSecondsPerGameMinute;
+
+        UpdateTimeFromGameTime();
+        currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
+    }
+}
+
+/// <summary>
+/// 时间存档数据
+/// </summary>
+[Serializable]
+public class TimeSaveData
+{
+    public float currentGameTime;
+    public int currentDay;
+    public int currentMonth;
+    public int currentYear;
+    public int currentSeason;
+    public int currentWeather;
+    public bool isPaused;
+    public float realSecondsPerGameMinute;
+}
