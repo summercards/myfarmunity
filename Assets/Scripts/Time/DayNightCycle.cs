@@ -30,15 +30,15 @@ public class DayNightCycle : MonoBehaviour
     [Tooltip("夜晚的旋转角度（月亮）")]
     public Vector3 nightRotation = new Vector3(270f, 0f, 0f);
 
-    [Tooltip("日出时间（小时）")]
+    [Tooltip("日出时间（小时）- 与黎明时段(5:00-7:00)起始一致")]
     [Range(0f, 24f)]
-    public float sunriseHour = 6f;
+    public float sunriseHour = 5f;
 
     [Tooltip("正午时间（小时）")]
     [Range(0f, 24f)]
     public float noonHour = 12f;
 
-    [Tooltip("日落时间（小时）")]
+    [Tooltip("日落时间（小时）- 与黄昏时段(18:00-20:00)起始一致")]
     [Range(0f, 24f)]
     public float sunsetHour = 18f;
 

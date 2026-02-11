@@ -134,7 +134,8 @@ public class GameTimeSystem : ScriptableObject
         if (isPaused) return;
 
         // 计算游戏时间增量（分钟）
-        float gameMinutesPassed = deltaTime * (60f / realSecondsPerGameMinute);
+        // realSecondsPerGameMinute = 1 表示 1秒现实时间 = 1分钟游戏时间
+        float gameMinutesPassed = deltaTime / realSecondsPerGameMinute;
         currentGameTime += gameMinutesPassed;
 
         // 更新天气计时器
@@ -359,12 +360,13 @@ public class GameTimeSystem : ScriptableObject
     /// </summary>
     public string GetTimeSummary()
     {
-        return $"游戏时间: {TimeString}\n" +
-               $"日期: {DateString}\n" +
-               $"季节: {TimeHelpers.GetSeasonName(currentSeason)}\n" +
-               $"时段: {TimeHelpers.GetTimeOfDayName(currentTimeOfDay)}\n" +
-               $"天气: {GetWeatherName(currentWeather)}\n" +
-               $"速度: {realSecondsPerGameMinute:F1}秒/分钟";
+        return string.Format("游戏时间: {0}\n日期: {1}\n季节: {2}\n时段: {3}\n天气: {4}\n速度: {5:F1}秒/分钟",
+            TimeString,
+            DateString,
+            TimeHelpers.GetSeasonName(currentSeason),
+            TimeHelpers.GetTimeOfDayName(currentTimeOfDay),
+            GetWeatherName(currentWeather),
+            realSecondsPerGameMinute);
     }
 
     /// <summary>
