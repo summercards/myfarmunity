@@ -39,29 +39,23 @@ public class PlayerSetupTool : EditorWindow
             rb.mass = 60f;
         }
 
-        // 3. 查找并添加脚本
-        string[] scriptGuids = AssetDatabase.FindAssets("Player t:MonoScript");
+        // 3. 查找并添加脚本（只添加具体的 Player 相关脚本）
         List<string> addedScripts = new List<string>();
 
-        foreach (string guid in scriptGuids)
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
-            
-            // 排除编辑器脚本和一些不需要的脚本
-            if (script != null && 
-                !path.Contains("/Editor/") && 
-                !script.GetClass().IsSubclassOf(typeof(EditorWindow)) &&
-                !script.GetClass().IsAbstract)
-            {
-                // 尝试添加组件
-                if (playerObj.GetComponent(script.GetClass()) == null)
-                {
-                    playerObj.AddComponent(script.GetClass());
-                    addedScripts.Add(script.name);
-                }
-            }
-        }
+        // 添加具体的已知脚本（只添加 Component 的子类）
+        AddComponentIfMissing<TPSCharacter>(playerObj, addedScripts);
+        AddComponentIfMissing<TPSInput>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerStats>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerInteractor>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerPickupController>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerThrower>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerInventoryHolder>(playerObj, addedScripts);
+        AddComponentIfMissing<ActiveItemController>(playerObj, addedScripts);
+        AddComponentIfMissing<HotbarSelector>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerPlanter>(playerObj, addedScripts);
+        AddComponentIfMissing<PlayerBuilder>(playerObj, addedScripts);
+        AddComponentIfMissing<InventoryPersistence>(playerObj, addedScripts);
+        AddComponentIfMissing<SaveManager>(playerObj, addedScripts);
 
         // 4. 添加摄像机
         GameObject cameraObj = new GameObject("PlayerCamera");
@@ -82,11 +76,20 @@ public class PlayerSetupTool : EditorWindow
         Debug.Log($"[PlayerSetup] 已添加脚本: {string.Join(", ", addedScripts)}");
 
         // 删除场景中的临时对象
-        DestroyImmediate(playerObj);
+        Object.DestroyImmediate(playerObj);
 
         // 选中新创建的 Prefab
         Selection.activeObject = prefab;
         EditorGUIUtility.PingObject(prefab);
+    }
+
+    private static void AddComponentIfMissing<T>(GameObject obj, List<string> addedScripts) where T : Component
+    {
+        if (obj.GetComponent<T>() == null)
+        {
+            obj.AddComponent<T>();
+            addedScripts.Add(typeof(T).Name);
+        }
     }
 }
 #endif

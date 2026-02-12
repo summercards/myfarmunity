@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;   // Input System 1.x
 public class TPSOrbitCamera : MonoBehaviour
 {
     public Transform target;
-    public TPSInput input; // ±£Áô£¬²»ÔÙÓÃËüµÄ Look Öµ£»ÊÖ±ú/Êó±êÔÚ±¾½Å±¾ÄÚ·Ö±ğ¶ÁÈ¡
+    public TPSInput input;
 
     [Header("Orbit")]
     public float distance = 3.5f;
@@ -17,13 +17,15 @@ public class TPSOrbitCamera : MonoBehaviour
     public float pitchSpeed = 120f;
     public float zoomSpeed = 2.0f;
 
-    [Header("Collision")]
-    public LayerMask collisionMask = ~0;
+    [Header("ç¢°æ’")]
+    public LayerMask collisionMask = ~0; // é»˜è®¤æ£€æµ‹æ‰€æœ‰å±‚
     public float collisionRadius = 0.2f;
+    [Tooltip("å¦‚æœå‹¾é€‰ï¼Œåˆ™åªæ£€æµ‹ collisionMask æŒ‡å®šçš„å±‚ï¼Œå¦åˆ™æ£€æµ‹æ‰€æœ‰å±‚")]
+    public bool useSpecificLayers = false;
 
     [Header("Mouse Look Gate")]
-    public bool requireRightMouseHold = true;   // ½ö°´×¡ÓÒ¼üÊ±²Å×ª¾µÍ·
-    public bool lockCursorWhileHolding = false; // °´×¡ÓÒ¼üÊ±Ëø¶¨Êó±ê
+    public bool requireRightMouseHold = true;
+    public bool lockCursorWhileHolding = false;
 
     float yaw, pitch;
 
@@ -31,9 +33,15 @@ public class TPSOrbitCamera : MonoBehaviour
     {
         if (target)
         {
-            Vector3 dir = (transform.position - target.position).normalized;
-            yaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
-            pitch = Mathf.Asin(dir.y) * Mathf.Rad2Deg;
+            // è®¾ç½®åˆå§‹è§’åº¦ï¼šä¿¯è§† 25 åº¦
+            pitch = 25f;
+            yaw = 0f;
+            
+            // è®¾ç½®æ‘„åƒæœºåˆå§‹ä½ç½®
+            Quaternion rot = Quaternion.Euler(pitch, yaw, 0);
+            Vector3 desiredPos = target.position - rot * Vector3.forward * distance;
+            
+            transform.SetPositionAndRotation(desiredPos, rot);
         }
     }
 
@@ -41,15 +49,15 @@ public class TPSOrbitCamera : MonoBehaviour
     {
         if (!target) return;
 
-        // ===== 1) ²É¼¯ Look ÊäÈë =====
+        // ===== 1) è·å– Look è¾“å…¥ =====
         Vector2 look = Vector2.zero;
 
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
-        // ÊÖ±úÓÒÒ¡¸Ë£ºÊ¼ÖÕÔÊĞí
+        // æ‰‹æŸ„ï¼šæ‘‡æ†å¼€å§‹æ£€æµ‹
         if (Gamepad.current != null)
             look += Gamepad.current.rightStick.ReadValue();
 
-        // Êó±ê£º½öÓÒ¼ü°´×¡Ê±²Å¶ÁÈ¡
+        // é”®ç›˜ï¼šé¼ æ ‡å³é”®æŒ‰ä½æ—¶æ‰å¤„ç†
         bool rmbHeld = (Mouse.current != null && Mouse.current.rightButton.isPressed);
         if (!requireRightMouseHold || rmbHeld)
         {
@@ -57,14 +65,14 @@ public class TPSOrbitCamera : MonoBehaviour
                 look += Mouse.current.delta.ReadValue();
         }
 
-        // ¿ÉÑ¡£º°´×¡ÓÒ¼üËø¶¨Êó±ê
+        // é¼ æ ‡ï¼šæŒ‰ä½å³é”®æ—¶é”å®šå…‰æ ‡
         if (lockCursorWhileHolding)
         {
             if (rmbHeld) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
             else         { Cursor.lockState = CursorLockMode.None;   Cursor.visible = true;  }
         }
 #else
-        // ¾ÉÊäÈë£ºÊÖ±úÂÔ¹ı£¬Ö»´¦ÀíÊó±ê
+        // æ—§è¾“å…¥ï¼šæ‰‹æŸ„åªæœ‰å·¦å³ï¼Œæ²¡æœ‰é¼ æ ‡
         bool rmbHeld = Input.GetMouseButton(1);
         if (!requireRightMouseHold || rmbHeld)
             look += new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
@@ -76,7 +84,7 @@ public class TPSOrbitCamera : MonoBehaviour
         }
 #endif
 
-        // ===== 2) Ó¦ÓÃĞı×ª =====
+        // ===== 2) åº”ç”¨æ—‹è½¬ =====
         yaw += look.x * yawSpeed * Time.deltaTime;
         pitch -= look.y * pitchSpeed * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, pitchLimits.x, pitchLimits.y);
@@ -84,7 +92,7 @@ public class TPSOrbitCamera : MonoBehaviour
         Quaternion rot = Quaternion.Euler(pitch, yaw, 0);
         Vector3 desiredPos = target.position - rot * Vector3.forward * distance;
 
-        // ===== 3) ¹öÂÖËõ·Å£¨²»ÊÜÓÒ¼üÏŞÖÆ£©=====
+        // ===== 3) æ£€æµ‹æ»šè½®ï¼ˆé¼ æ ‡æ»šè½®æ§åˆ¶ï¼‰=====
         float scroll = 0f;
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
         if (Mouse.current != null)
@@ -98,13 +106,24 @@ public class TPSOrbitCamera : MonoBehaviour
             desiredPos = target.position - rot * Vector3.forward * distance;
         }
 
-        // ===== 4) Åö×²»ØËõ =====
-        Vector3 dir = (desiredPos - target.position);
-        if (Physics.SphereCast(target.position, collisionRadius, dir.normalized,
-            out var hit, distance, collisionMask, QueryTriggerInteraction.Ignore))
+        // ===== 4) ç¢°æ’æ£€æµ‹ï¼ˆåªåœ¨æŒ‡å®šå±‚ä¸Šæ£€æµ‹ï¼Œé¿å…ä¸ Player è‡ªèº«ç¢°æ’ï¼‰=====
+        Vector3 dir = (target.position - desiredPos).normalized; // ä»æ‘„åƒæœºæŒ‡å‘ç›®æ ‡
+        float actualDistance = distance;
+        
+        // åªåœ¨ useSpecificLayers ä¸º true ä¸” collisionMask ä¸ä¸º 0 æ—¶æ‰è¿›è¡Œç¢°æ’æ£€æµ‹
+        if (useSpecificLayers && (int)collisionMask != 0)
         {
-            float hitDist = Mathf.Max(hit.distance - 0.05f, minDistance);
-            desiredPos = target.position - rot * Vector3.forward * hitDist;
+            // ä»æ‘„åƒæœºæœŸæœ›ä½ç½®å‘ target æ–¹å‘æŠ•å°„ï¼Œé¿å…ä¸ target è‡ªèº«ç¢°æ’
+            if (Physics.SphereCast(desiredPos + dir * 0.1f, collisionRadius, dir,
+                out var hit, distance, collisionMask, QueryTriggerInteraction.Ignore))
+            {
+                // åªæ£€æµ‹åˆ°ä¸æ˜¯ target çš„ç‰©ä½“æ‰ç§»åŠ¨æ‘„åƒæœº
+                if (hit.transform != target)
+                {
+                    actualDistance = Mathf.Max(hit.distance - 0.05f, minDistance);
+                    desiredPos = desiredPos + dir * (distance - actualDistance);
+                }
+            }
         }
 
         transform.SetPositionAndRotation(desiredPos, rot);
