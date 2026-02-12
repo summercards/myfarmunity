@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 165b1324700400842891c1860e425e7b, type: 3}
   m_Name: DefaultTimeSystem
   m_EditorClassIdentifier: 
-  realSecondsPerGameMinute: 0.1
+  realSecondsPerGameMinute: 1
   startHour: 6
   startDay: 1
   startMonth: 1
@@ -40,5 +40,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onTimeOfDayChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  onLoadComplete:
     m_PersistentCalls:
       m_Calls: []

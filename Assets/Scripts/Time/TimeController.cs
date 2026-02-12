@@ -1,4 +1,4 @@
-// Assets/Scripts/Time/TimeController.cs
+// Assets/Scripts/TimeController.cs
 using UnityEngine;
 
 /// <summary>
@@ -44,17 +44,33 @@ public class TimeController : MonoBehaviour
 
     void Awake()
     {
-        // 如果没有指定时间系统，尝试在场景中查找
+        // 1. 优先使用手动指定的引用
         if (timeSystem == null)
         {
-            timeSystem = FindObjectOfType<GameTimeSystem>();
+            // 2. 尝试从 Resources 加载
+            timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
+            if (timeSystem != null && showDebugInfo)
+            {
+                Debug.Log("[TimeController] 从 Resources 加载了 DefaultTimeSystem");
+            }
         }
 
-        // 如果场景中没有，尝试加载资源
+        // 3. 尝试在场景中查找 ScriptableObject 实例
         if (timeSystem == null)
         {
-            // 这里可以扩展为从Resources加载
-            Debug.LogWarning("[TimeController] 未找到 GameTimeSystem，请手动指定。");
+            GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
+            if (instances.Length > 0)
+            {
+                timeSystem = instances[0];
+                if (showDebugInfo)
+                    Debug.Log("[TimeController] 找到了 GameTimeSystem 实例");
+            }
+        }
+
+        // 4. 仍然没找到，记录警告（但不阻止运行，因为后面可能通过配置脚本设置）
+        if (timeSystem == null && showDebugInfo)
+        {
+            Debug.LogWarning("[TimeController] 未找到 GameTimeSystem，等待配置脚本设置...");
         }
     }
 
@@ -227,16 +243,6 @@ public class TimeController : MonoBehaviour
         if (timeSystem == null) return;
         timeSystem.SetTime(18, 0);
         Debug.Log("[TimeController] 跳到晚上 18:00");
-    }
-
-    /// <summary>
-    /// 睡觉到第二天
-    /// </summary>
-    public void SleepToNextDay()
-    {
-        if (timeSystem == null) return;
-        timeSystem.SleepToNextDay();
-        Debug.Log("[TimeController] 睡到第二天早晨");
     }
 
     /// <summary>

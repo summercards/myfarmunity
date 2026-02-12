@@ -6,6 +6,7 @@ using TMPro;
 /// <summary>
 /// 时间UI显示组件
 /// 显示游戏时间、日期、季节、天气等信息
+/// 修复：秒数显示使用游戏时间而非Time.time
 /// </summary>
 public class TimeUI : MonoBehaviour
 {
@@ -60,6 +61,8 @@ public class TimeUI : MonoBehaviour
     [Header("日期格式")]
     public string dateFormat = "yyyy年MM月dd日";
 
+    private bool isInitialized = false;
+
     void Start()
     {
         // 如果没有指定时间系统，尝试查找
@@ -68,11 +71,34 @@ public class TimeUI : MonoBehaviour
             timeSystem = FindObjectOfType<GameTimeSystem>();
         }
 
+        // 订阅加载完成事件
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.AddListener(OnTimeLoaded);
+        }
+
         // 初始化UI显示
         InitializeUI();
 
         // 立即更新一次
         UpdateAllUI();
+    }
+
+    void OnDestroy()
+    {
+        // 只有时间系统存在时才取消订阅
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.RemoveListener(OnTimeLoaded);
+        }
+    }
+
+    /// <summary>
+    /// 时间加载完成后立即更新UI
+    /// </summary>
+    private void OnTimeLoaded()
+    {
+        ForceUpdate();
     }
 
     void Update()
@@ -100,6 +126,8 @@ public class TimeUI : MonoBehaviour
         if (weatherText) weatherText.gameObject.SetActive(showWeather);
         if (weatherIcon) weatherIcon.gameObject.SetActive(showWeather && showIcons);
         if (timeOfDayIcon) timeOfDayIcon.gameObject.SetActive(showTimeOfDay && showIcons);
+
+        isInitialized = true;
     }
 
     /// <summary>
@@ -107,6 +135,8 @@ public class TimeUI : MonoBehaviour
     /// </summary>
     private void UpdateAllUI()
     {
+        if (!isInitialized) return;
+
         if (showTime) UpdateTime();
         if (showDate) UpdateDate();
         if (showSeason) UpdateSeason();
@@ -116,26 +146,43 @@ public class TimeUI : MonoBehaviour
 
     /// <summary>
     /// 更新时间显示
+    /// 修复：使用游戏时间计算秒数，而不是Time.time
     /// </summary>
     private void UpdateTime()
     {
         if (timeText == null || timeSystem == null) return;
 
         string timeString;
+
         if (use24HourFormat)
         {
-            timeString = showSeconds
-                ? $"{timeSystem.Hour:D2}:{timeSystem.Minute:D2}:{(int)(Time.time % 60):D2}"
-                : $"{timeSystem.Hour:D2}:{timeSystem.Minute:D2}";
+            if (showSeconds)
+            {
+                // 修复：计算游戏时间的秒数部分
+                int gameSeconds = Mathf.FloorToInt((timeSystem.CurrentTime % 1f) * 60f);
+                timeString = $"{timeSystem.Hour:D2}:{timeSystem.Minute:D2}:{gameSeconds:D2}";
+            }
+            else
+            {
+                timeString = $"{timeSystem.Hour:D2}:{timeSystem.Minute:D2}";
+            }
         }
         else
         {
             int displayHour = timeSystem.Hour % 12;
             if (displayHour == 0) displayHour = 12;
             string ampm = timeSystem.Hour >= 12 ? "PM" : "AM";
-            timeString = showSeconds
-                ? $"{displayHour}:{timeSystem.Minute:D2}:{(int)(Time.time % 60):D2} {ampm}"
-                : $"{displayHour}:{timeSystem.Minute:D2} {ampm}";
+
+            if (showSeconds)
+            {
+                // 修复：计算游戏时间的秒数部分
+                int gameSeconds = Mathf.FloorToInt((timeSystem.CurrentTime % 1f) * 60f);
+                timeString = $"{displayHour}:{timeSystem.Minute:D2}:{gameSeconds:D2} {ampm}";
+            }
+            else
+            {
+                timeString = $"{displayHour}:{timeSystem.Minute:D2} {ampm}";
+            }
         }
 
         timeText.text = timeString;
@@ -235,6 +282,10 @@ public class TimeUI : MonoBehaviour
     public void SetTimeSystem(GameTimeSystem system)
     {
         timeSystem = system;
+        if (system != null)
+        {
+            system.onLoadComplete.AddListener(OnTimeLoaded);
+        }
         UpdateAllUI();
     }
 

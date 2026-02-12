@@ -38,7 +38,6 @@ public class GameTimeSystem : ScriptableObject
     public WeatherType currentWeather = WeatherType.Sunny;
     [Tooltip("天气变化间隔（游戏小时）")]
     public float weatherChangeInterval = 6f;
-    private float lastWeatherChangeTime;
 
     [Header("事件")]
     public UnityEvent onHourChanged;
@@ -48,6 +47,7 @@ public class GameTimeSystem : ScriptableObject
     public UnityEvent onYearChanged;
     public UnityEvent onWeatherChanged;
     public UnityEvent onTimeOfDayChanged;
+    public UnityEvent onLoadComplete; // 新增：存档加载完成事件
 
     // === 运行时数据 ===
 
@@ -100,17 +100,19 @@ public class GameTimeSystem : ScriptableObject
     public string DateString => TimeHelpers.FormatDate(currentYear, currentMonth, currentDay, currentSeason);
 
     /// <summary>
-    /// 是否为白天 (6:00 - 18:00)
+    /// 是否为白天 (5:00 - 20:00)
+    /// 修复：与时间段定义保持一致
     /// </summary>
-    public bool IsDayTime => currentHour >= 6 && currentHour < 18;
+    public bool IsDayTime => currentHour >= 5 && currentHour < 20;
 
     /// <summary>
-    /// 是否为夜晚 (18:00 - 6:00)
+    /// 是否为夜晚 (20:00 - 5:00)
     /// </summary>
     public bool IsNightTime => !IsDayTime;
 
     /// <summary>
     /// 初始化时间系统
+    /// 修复：使用SetWeather方法触发事件，并重置所有运行时状态
     /// </summary>
     public void Initialize()
     {
@@ -119,11 +121,14 @@ public class GameTimeSystem : ScriptableObject
         currentMonth = startMonth;
         currentYear = startYear;
         currentSeason = startSeason;
-        currentWeather = WeatherType.Sunny;
+        weatherTimer = 0f; // 重置天气计时器
 
         UpdateTimeFromGameTime();
         currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
         lastTimeOfDay = currentTimeOfDay;
+
+        // 修复：使用SetWeather方法，确保触发onWeatherChanged事件
+        SetWeather(WeatherType.Sunny);
     }
 
     /// <summary>
@@ -158,6 +163,9 @@ public class GameTimeSystem : ScriptableObject
     /// </summary>
     private void UpdateTimeFromGameTime()
     {
+        // 记录旧的小时数
+        int previousHour = currentHour;
+
         // 计算总小时数（带小数）
         float totalHours = currentGameTime / 60f;
 
@@ -177,8 +185,8 @@ public class GameTimeSystem : ScriptableObject
             AdvanceDays(daysPassed);
         }
 
-        // 触发小时变化事件
-        if (currentMinute == 0)
+        // 触发小时变化事件（修复：只在小时改变时触发一次）
+        if (currentHour != previousHour)
         {
             onHourChanged?.Invoke();
         }
@@ -273,10 +281,10 @@ public class GameTimeSystem : ScriptableObject
             newWeather = (WeatherType)(UnityEngine.Random.value < 0.7f ? UnityEngine.Random.Range(0, 2) : UnityEngine.Random.Range(2, 6));
         }
 
+        // 只有天气真正改变时才触发事件
         if (newWeather != currentWeather)
         {
-            currentWeather = newWeather;
-            onWeatherChanged?.Invoke();
+            SetWeather(newWeather);
         }
     }
 
@@ -324,6 +332,8 @@ public class GameTimeSystem : ScriptableObject
     /// </summary>
     public void SetWeather(WeatherType weather)
     {
+        if (weather == currentWeather) return;
+
         currentWeather = weather;
         onWeatherChanged?.Invoke();
     }
@@ -400,12 +410,16 @@ public class GameTimeSystem : ScriptableObject
             currentSeason = (int)currentSeason,
             currentWeather = (int)currentWeather,
             isPaused = isPaused,
-            realSecondsPerGameMinute = realSecondsPerGameMinute
+            realSecondsPerGameMinute = realSecondsPerGameMinute,
+            weatherTimer = weatherTimer,     // 保存天气计时器
+            currentHour = currentHour,       // 保存当前小时
+            currentMinute = currentMinute    // 保存当前分钟
         };
     }
 
     /// <summary>
     /// 加载时间数据
+    /// 修复：加载完成后触发onLoadComplete事件，通知所有子系统
     /// </summary>
     public void LoadSaveData(TimeSaveData data)
     {
@@ -414,17 +428,21 @@ public class GameTimeSystem : ScriptableObject
         currentMonth = data.currentMonth;
         currentYear = data.currentYear;
         currentSeason = (Season)data.currentSeason;
-        currentWeather = (WeatherType)data.currentWeather;
         isPaused = data.isPaused;
         realSecondsPerGameMinute = data.realSecondsPerGameMinute;
+        weatherTimer = data.weatherTimer; // 恢复天气计时器
 
         UpdateTimeFromGameTime();
         currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
+
+        // 触发加载完成事件，通知所有子系统更新状态
+        onLoadComplete?.Invoke();
     }
 }
 
 /// <summary>
 /// 时间存档数据
+/// 修复：添加weatherTimer、currentHour、currentMinute字段
 /// </summary>
 [Serializable]
 public class TimeSaveData
@@ -437,4 +455,7 @@ public class TimeSaveData
     public int currentWeather;
     public bool isPaused;
     public float realSecondsPerGameMinute;
+    public float weatherTimer; // 天气计时器
+    public int currentHour;     // 当前小时
+    public int currentMinute;   // 当前分钟
 }

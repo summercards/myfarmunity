@@ -11,8 +11,8 @@ public enum TimeOfDay
     Noon,       // 中午 (11:00 - 14:00)
     Afternoon,  // 下午 (14:00 - 18:00)
     Dusk,       // 黄昏 (18:00 - 20:00)
-    Night,      // 夜晚 (20:00 - 5:00)
-    Midnight    // 深夜 (0:00 - 3:00)
+    Night,      // 夜晚 (20:00 - 24:00)
+    Midnight    // 深夜 (0:00 - 5:00)
 }
 
 /// <summary>
@@ -46,16 +46,20 @@ public static class TimeHelpers
 {
     /// <summary>
     /// 将小时(0-24)转换为TimeOfDay
+    /// 修复：确保0-24所有小时都有正确的时间段对应
     /// </summary>
     public static TimeOfDay GetTimeOfDay(int hour)
     {
-        if (hour >= 5 && hour < 7) return TimeOfDay.Dawn;
-        if (hour >= 7 && hour < 11) return TimeOfDay.Morning;
-        if (hour >= 11 && hour < 14) return TimeOfDay.Noon;
-        if (hour >= 14 && hour < 18) return TimeOfDay.Afternoon;
-        if (hour >= 18 && hour < 20) return TimeOfDay.Dusk;
-        if (hour >= 20 || hour < 0) return TimeOfDay.Night;
-        return TimeOfDay.Midnight;
+        // 确保hour在0-23范围内
+        hour = hour % 24;
+
+        if (hour >= 5 && hour < 7) return TimeOfDay.Dawn;       // 黎明: 5:00 - 7:00
+        if (hour >= 7 && hour < 11) return TimeOfDay.Morning;    // 早晨: 7:00 - 11:00
+        if (hour >= 11 && hour < 14) return TimeOfDay.Noon;      // 中午: 11:00 - 14:00
+        if (hour >= 14 && hour < 18) return TimeOfDay.Afternoon; // 下午: 14:00 - 18:00
+        if (hour >= 18 && hour < 20) return TimeOfDay.Dusk;       // 黄昏: 18:00 - 20:00
+        if (hour >= 20) return TimeOfDay.Night;                  // 夜晚: 20:00 - 24:00
+        return TimeOfDay.Midnight;                               // 深夜: 0:00 - 5:00
     }
 
     /// <summary>
@@ -168,5 +172,18 @@ public static class TimeHelpers
             default:
                 return 30;
         }
+    }
+
+    /// <summary>
+    /// 计算一年中的第几天（1-365或366）
+    /// </summary>
+    public static int GetDayOfYear(int day, int month, int year)
+    {
+        int dayOfYear = day;
+        for (int m = 1; m < month; m++)
+        {
+            dayOfYear += GetDaysInMonth(year, m);
+        }
+        return dayOfYear;
     }
 }

@@ -4,6 +4,7 @@ using UnityEngine;
 /// <summary>
 /// 昼夜循环系统
 /// 根据游戏时间控制光照、天空、环境光等
+/// 修复：昼夜定义与时间段保持一致（白天5:00-20:00，夜晚20:00-5:00）
 /// </summary>
 public class DayNightCycle : MonoBehaviour
 {
@@ -38,9 +39,9 @@ public class DayNightCycle : MonoBehaviour
     [Range(0f, 24f)]
     public float noonHour = 12f;
 
-    [Tooltip("日落时间（小时）- 与黄昏时段(18:00-20:00)起始一致")]
+    [Tooltip("日落时间（小时）- 与黄昏时段(18:00-20:00)结束一致")]
     [Range(0f, 24f)]
-    public float sunsetHour = 18f;
+    public float sunsetHour = 20f;
 
     [Header("光照强度配置")]
     [Tooltip("正午光照强度")]
@@ -97,6 +98,8 @@ public class DayNightCycle : MonoBehaviour
     private Color currentFogColor;
     private Vector3 currentRotation;
 
+    private bool isInitialized = false;
+
     void Start()
     {
         // 如果没有指定时间系统，尝试查找
@@ -111,16 +114,42 @@ public class DayNightCycle : MonoBehaviour
             directionalLight = FindObjectOfType<Light>();
         }
 
-        // 设置初始值
+        // 订阅加载完成事件
         if (timeSystem != null)
         {
-            UpdateDayNightCycle();
+            timeSystem.onLoadComplete.AddListener(OnTimeLoaded);
         }
+
+        // 设置初始值（等待时间系统初始化后再更新）
+    }
+
+    void OnDestroy()
+    {
+        // 只有时间系统存在时才取消订阅
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.RemoveListener(OnTimeLoaded);
+        }
+    }
+
+    /// <summary>
+    /// 时间加载完成后立即更新
+    /// </summary>
+    private void OnTimeLoaded()
+    {
+        UpdateDayNightCycle();
+        isInitialized = true;
     }
 
     void Update()
     {
         if (timeSystem == null) return;
+
+        // 确保时间系统已初始化
+        if (!isInitialized && timeSystem.Hour > 0)
+        {
+            OnTimeLoaded();
+        }
 
         UpdateDayNightCycle();
     }
@@ -179,10 +208,11 @@ public class DayNightCycle : MonoBehaviour
 
     /// <summary>
     /// 计算光照强度
+    /// 修复：与昼夜判断保持一致（白天5:00-20:00）
     /// </summary>
     private float CalculateLightIntensity(float hour)
     {
-        // 白天时段
+        // 白天时段 (5:00 - 20:00)
         if (hour >= sunriseHour && hour < sunsetHour)
         {
             // 日出到正午
@@ -198,10 +228,10 @@ public class DayNightCycle : MonoBehaviour
                 return Mathf.Lerp(maxLightIntensity, minLightIntensity, progress);
             }
         }
-        // 夜晚时段
+        // 夜晚时段 (20:00 - 5:00)
         else
         {
-            return minLightIntensity;
+            return minLightIntensity * moonIntensity; // 夜晚使用月光强度
         }
     }
 
@@ -215,7 +245,7 @@ public class DayNightCycle : MonoBehaviour
         {
             return sunriseColor;
         }
-        // 正午
+        // 正午时段
         else if (hour >= sunriseHour + 2f && hour < sunsetHour - 2f)
         {
             return noonColor;
@@ -265,16 +295,19 @@ public class DayNightCycle : MonoBehaviour
 
     /// <summary>
     /// 更新环境光
+    /// 修复：与昼夜判断保持一致
     /// </summary>
     private void UpdateAmbientLight(float dayProgress)
     {
         float currentHour = dayProgress * 24f;
 
         Color targetAmbientColor;
+        // 白天 (5:00 - 20:00)
         if (currentHour >= sunriseHour && currentHour < sunsetHour)
         {
             targetAmbientColor = dayAmbientColor;
         }
+        // 夜晚 (20:00 - 5:00)
         else
         {
             targetAmbientColor = nightAmbientColor;
@@ -286,6 +319,7 @@ public class DayNightCycle : MonoBehaviour
 
     /// <summary>
     /// 更新雾效
+    /// 修复：与昼夜判断保持一致
     /// </summary>
     private void UpdateFog(float dayProgress)
     {
@@ -294,10 +328,12 @@ public class DayNightCycle : MonoBehaviour
         float currentHour = dayProgress * 24f;
 
         Color targetFogColor;
+        // 白天 (5:00 - 20:00)
         if (currentHour >= sunriseHour && currentHour < sunsetHour)
         {
             targetFogColor = dayFogColor;
         }
+        // 夜晚 (20:00 - 5:00)
         else
         {
             targetFogColor = nightFogColor;
@@ -314,6 +350,10 @@ public class DayNightCycle : MonoBehaviour
     public void SetTimeSystem(GameTimeSystem system)
     {
         timeSystem = system;
+        if (system != null)
+        {
+            system.onLoadComplete.AddListener(OnTimeLoaded);
+        }
     }
 
     /// <summary>
