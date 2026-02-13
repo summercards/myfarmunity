@@ -217,6 +217,11 @@ public class SaveManager : MonoBehaviour
         }
 
         isSaving = true;
+
+        // 关键：暂停时间系统，避免保存期间时间继续流逝
+        bool wasPaused = timeSystem.IsPaused;
+        timeSystem.Pause();
+
         GameSaveData saveData = null;
         string json = null;
         Exception saveException = null;
@@ -281,7 +286,6 @@ public class SaveManager : MonoBehaviour
 
                     case 11: // 完成
                         Debug.Log($"[SaveManager] 异步保存完成: {saveName}");
-                        OnGameSaved?.Invoke(saveName);
                         break;
                 }
             }
@@ -300,11 +304,16 @@ public class SaveManager : MonoBehaviour
             }
         }
 
-        // 清理
-        if (saveException == null && step == 12)
+        // 只在成功时触发保存完成事件
+        if (saveException == null)
         {
-            Debug.Log($"[SaveManager] 异步保存完成: {saveName}");
             OnGameSaved?.Invoke(saveName);
+        }
+
+        // 恢复时间系统状态
+        if (!wasPaused)
+        {
+            timeSystem.Resume();
         }
 
         isSaving = false;

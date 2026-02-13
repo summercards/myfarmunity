@@ -72,6 +72,9 @@ public class GameTimeSystem : ScriptableObject
     // 暂停状态
     private bool isPaused = false;
 
+    // 上次处理过的总天数（用于计算增量）
+    private int lastProcessedTotalDays = 0;
+
     // === 公共属性访问器 ===
 
     public int Hour => currentHour;
@@ -123,6 +126,11 @@ public class GameTimeSystem : ScriptableObject
         currentSeason = startSeason;
         weatherTimer = 0f; // 重置天气计时器
 
+        // 计算初始总天数（从开始日期算起）
+        int totalDaysFromStartDate = (startYear - 1) * 365 + (startMonth - 1) * 30 + startDay;
+        // 这里我们简化处理，直接用当前的总小时数计算
+        lastProcessedTotalDays = Mathf.FloorToInt(currentGameTime / 60f / 24f);
+
         UpdateTimeFromGameTime();
         currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
         lastTimeOfDay = currentTimeOfDay;
@@ -169,20 +177,22 @@ public class GameTimeSystem : ScriptableObject
         // 计算总小时数（带小数）
         float totalHours = currentGameTime / 60f;
 
-        // 计算经过的天数
-        int daysPassed = Mathf.FloorToInt(totalHours / 24f);
+        // 计算当前总天数（从游戏开始）
+        int currentTotalDays = Mathf.FloorToInt(totalHours / 24f);
 
-        // 计算当前小时（0-24）
-        float hourInDay = totalHours % 24f;
+        // 计算这一帧新增的天数（关键修复：只计算增量）
+        int newDaysPassed = currentTotalDays - lastProcessedTotalDays;
 
         // 更新小时和分钟
+        float hourInDay = totalHours % 24f;
         currentHour = Mathf.FloorToInt(hourInDay);
         currentMinute = Mathf.FloorToInt((hourInDay - currentHour) * 60f);
 
-        // 处理天数变化
-        if (daysPassed > 0)
+        // 处理天数变化（只增加这一帧的天数差值）
+        if (newDaysPassed > 0)
         {
-            AdvanceDays(daysPassed);
+            AdvanceDays(newDaysPassed);
+            lastProcessedTotalDays = currentTotalDays; // 更新已处理的天数
         }
 
         // 触发小时变化事件（修复：只在小时改变时触发一次）
@@ -200,12 +210,13 @@ public class GameTimeSystem : ScriptableObject
         int oldDay = currentDay;
         currentDay += days;
 
-        // 计算月份变化
+        // 循环处理月份变化（修复：支持跨越多个月份）
         int daysInMonth = TimeHelpers.GetDaysInMonth(currentYear, currentMonth);
-        if (currentDay > daysInMonth)
+        while (currentDay > daysInMonth)
         {
             currentDay -= daysInMonth;
-            AdvanceMonths(1);
+            AdvanceMonths(1); // 这会更新 currentMonth 和 currentYear
+            daysInMonth = TimeHelpers.GetDaysInMonth(currentYear, currentMonth); // 更新月份天数
         }
 
         // 触发日期变化事件
@@ -219,11 +230,11 @@ public class GameTimeSystem : ScriptableObject
     {
         currentMonth += months;
 
-        // 计算年份变化
-        if (currentMonth > 12)
+        // 循环处理年份变化（修复：支持跨越多年）
+        while (currentMonth > 12)
         {
             currentMonth -= 12;
-            AdvanceYears(1);
+            AdvanceYears(1); // 这会更新 currentYear
         }
 
         // 检查季节变化
@@ -431,6 +442,9 @@ public class GameTimeSystem : ScriptableObject
         isPaused = data.isPaused;
         realSecondsPerGameMinute = data.realSecondsPerGameMinute;
         weatherTimer = data.weatherTimer; // 恢复天气计时器
+
+        // 修复：正确设置已处理的总天数，避免加载后日期跳跃
+        lastProcessedTotalDays = Mathf.FloorToInt(currentGameTime / 60f / 24f);
 
         UpdateTimeFromGameTime();
         currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
