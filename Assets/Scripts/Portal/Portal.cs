@@ -1,291 +1,178 @@
-// Assets/Scripts/Portal/Portal.cs
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-/// <summary>
-/// 传送门系统
-/// 用于场景之间的传送
-/// </summary>
-[RequireComponent(typeof(Collider))]
 public class Portal : MonoBehaviour
 {
     [Header("传送配置")]
-    [Tooltip("目标场景名称（留空则不传送）")]
-    public string targetSceneName;
+    [Tooltip("要加载的场景名（必须在Build Settings里）")]
+    public string targetScene;
 
-    [Tooltip("传送后的位置（留空则使用默认位置）")]
-    public Transform spawnPoint;
+    [Tooltip("目标门的 SpawnID")]
+    public string targetSpawnID;
 
-    [Tooltip("传送门的显示名称（用于调试或UI）")]
-    public string portalName = "传送门";
+    [Header("触发方式")]
+    [Tooltip("是否需要按键才能传送（勾选则自动传送）")]
+    public bool requireKeyPress = true;
 
-    [Header("传送触发")]
-    [Tooltip("需要按键才能传送（留空则自动传送）")]
-    public KeyCode interactKey = KeyCode.None;
+    [Tooltip("传送快捷键")]
+    public KeyCode teleportKey = KeyCode.E;
 
     [Tooltip("自动传送的延迟时间（秒）")]
     public float autoTeleportDelay = 0.5f;
 
-    [Header("视觉效果")]
-    [Tooltip("传送时的淡入淡出时间")]
-    public float fadeDuration = 0.5f;
+    [Header("提示信息")]
+    [Tooltip("显示传送提示文字")]
+    public bool showPrompt = true;
 
-    [Tooltip("传送门颜色")]
-    public Color portalColor = new Color(0f, 0.8f, 1f, 0.5f);
+    [Tooltip("提示文字")]
+    public string promptText = "按 E 传送";
 
-    [Header("调试选项")]
-    [Tooltip("显示调试信息")]
-    public bool showDebugInfo = true;
-
-    private Collider portalCollider;
     private bool isPlayerNearby = false;
     private bool isTeleporting = false;
     private float teleportTimer = 0f;
 
     private void Awake()
     {
-        portalCollider = GetComponent<Collider>();
-        if (portalCollider != null)
+        // 自动添加碰撞体（如果还没有）
+        Collider collider = GetComponent<Collider>();
+        if (collider == null)
         {
-            portalCollider.isTrigger = true;
+            collider = gameObject.AddComponent<SphereCollider>();
         }
+        collider.isTrigger = true;
+    }
 
-        if (showDebugInfo)
+    private void Reset()
+    {
+        // 在编辑器中添加组件时自动设置
+        Collider collider = GetComponent<Collider>();
+        if (collider == null)
         {
-            Debug.Log($"[Portal] 传送门 '{portalName}' 已初始化 -> 目标场景: {targetSceneName}");
+            collider = gameObject.AddComponent<SphereCollider>();
         }
+        collider.isTrigger = true;
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (isTeleporting) return;
+        if (!other.CompareTag("Player")) return;
 
-        if (other.CompareTag("Player"))
+        isPlayerNearby = true;
+        teleportTimer = 0f;
+
+        if (showPrompt)
         {
-            isPlayerNearby = true;
+            ShowPrompt(true);
+        }
 
-            if (showDebugInfo)
-            {
-                Debug.Log($"[Portal] 玩家接近传送门 '{portalName}'");
-            }
-
-            // 如果设置了按键，显示提示
-            if (interactKey != KeyCode.None)
-            {
-                Debug.Log($"[Portal] 按 {interactKey} 键传送");
-            }
-            else
-            {
-                // 自动传送
-                teleportTimer = 0f;
-            }
+        if (!requireKeyPress)
+        {
+            // 自动传送模式，等待延迟时间
+            Debug.Log($"[Portal] 靠近传送门，{autoTeleportDelay}秒后自动传送...");
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
         if (isTeleporting || !isPlayerNearby) return;
+        if (!other.CompareTag("Player")) return;
 
-        if (other.CompareTag("Player"))
+        if (requireKeyPress)
         {
-            if (interactKey != KeyCode.None)
+            // 需要按键传送
+            if (Input.GetKeyDown(teleportKey))
             {
-                // 需要按键传送
-                if (Input.GetKeyDown(interactKey))
-                {
-                    StartTeleport();
-                }
+                Debug.Log($"[Portal] 玩家按下 {teleportKey} 键，开始传送");
+                StartTeleport();
             }
-            else
+        }
+        else
+        {
+            // 自动传送，等待延迟时间
+            teleportTimer += Time.deltaTime;
+            if (teleportTimer >= autoTeleportDelay)
             {
-                // 自动传送，等待延迟时间
-                teleportTimer += Time.deltaTime;
-                if (teleportTimer >= autoTeleportDelay)
-                {
-                    StartTeleport();
-                }
+                Debug.Log($"[Portal] 自动传送（延迟{autoTeleportDelay}秒）");
+                StartTeleport();
             }
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player"))
-        {
-            isPlayerNearby = false;
-            teleportTimer = 0f;
+        if (!other.CompareTag("Player")) return;
 
-            if (showDebugInfo)
-            {
-                Debug.Log($"[Portal] 玩家离开传送门 '{portalName}'");
-            }
+        isPlayerNearby = false;
+        teleportTimer = 0f;
+
+        if (showPrompt)
+        {
+            ShowPrompt(false);
         }
     }
 
-    /// <summary>
-    /// 开始传送
-    /// </summary>
-    public void StartTeleport()
+    private void StartTeleport()
     {
         if (isTeleporting) return;
-        if (string.IsNullOrEmpty(targetSceneName))
+
+        if (PortalManager.Instance == null)
         {
-            Debug.LogWarning($"[Portal] 传送门 '{portalName}' 没有设置目标场景！");
+            Debug.LogError("场景中没有 PortalManager！");
             return;
         }
 
         isTeleporting = true;
+        ShowPrompt(false);
 
-        if (showDebugInfo)
-        {
-            Debug.Log($"[Portal] 开始传送 '{portalName}' -> '{targetSceneName}'");
-        }
+        Debug.Log($"[Portal] 传送到场景: {targetScene}, SpawnID: {targetSpawnID}");
 
-        // 使用协程处理传送
-        StartCoroutine(TeleportCoroutine());
+        PortalManager.Instance.Teleport(targetScene, targetSpawnID);
+
+        // 传送后重置状态（如果场景未加载成功）
+        Invoke(nameof(ResetTeleportState), 5f);
     }
 
-    /// <summary>
-    /// 传送协程
-    /// </summary>
-    private System.Collections.IEnumerator TeleportCoroutine()
+    private void ResetTeleportState()
     {
-        // 1. 禁用玩家控制
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-        {
-            // 禁用玩家输入
-            var input = player.GetComponentInChildren<TPSInput>();
-            if (input != null)
-            {
-                input.enabled = false;
-            }
-        }
-
-        // 2. 淡出效果（可选，可以接入UI系统）
-        // 这里只是预留接口，实际淡入淡出需要配合UI系统
-        yield return new WaitForSeconds(fadeDuration * 0.5f);
-
-        // 3. 保存位置信息（用于传送回来）
-        if (spawnPoint != null)
-        {
-            PlayerPrefs.SetString($"LastSpawnPoint_{targetSceneName}", spawnPoint.name);
-            PlayerPrefs.SetFloat($"LastSpawnX_{targetSceneName}", spawnPoint.position.x);
-            PlayerPrefs.SetFloat($"LastSpawnY_{targetSceneName}", spawnPoint.position.y);
-            PlayerPrefs.SetFloat($"LastSpawnZ_{targetSceneName}", spawnPoint.position.z);
-            PlayerPrefs.Save();
-        }
-
-        // 4. 加载新场景
-        AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(targetSceneName);
-
-        // 等待场景加载完成
-        while (!asyncLoad.isDone)
-        {
-            yield return null;
-        }
-
-        // 5. 等待新场景初始化
-        yield return new WaitForSeconds(0.1f);
-
-        // 6. 查找新场景中的玩家并设置位置
-        GameObject newPlayer = GameObject.FindGameObjectWithTag("Player");
-        if (newPlayer != null)
-        {
-            // 设置玩家位置到目标传送门的生成点
-            if (spawnPoint != null)
-            {
-                newPlayer.transform.position = spawnPoint.position;
-                newPlayer.transform.rotation = spawnPoint.rotation;
-
-                if (showDebugInfo)
-                {
-                    Debug.Log($"[Portal] 玩家传送到位置: {spawnPoint.position}");
-                }
-            }
-            else if (portalCollider != null)
-            {
-                // 如果没有指定生成点，使用传送门的位置
-                newPlayer.transform.position = portalCollider.bounds.center;
-            }
-
-            // 7. 启用玩家控制
-            var input = newPlayer.GetComponentInChildren<TPSInput>();
-            if (input != null)
-            {
-                input.enabled = true;
-            }
-        }
-
         isTeleporting = false;
+    }
 
-        if (showDebugInfo)
+    private void ShowPrompt(bool show)
+    {
+        // TODO: 这里可以接入UI系统显示提示
+        // 目前使用Debug.Log作为临时方案
+        if (show)
         {
-            Debug.Log($"[Portal] 传送完成！");
+            Debug.Log($"[Portal] {promptText}");
         }
     }
 
     /// <summary>
-    /// 手动设置目标场景
-    /// </summary>
-    public void SetTargetScene(string sceneName)
-    {
-        targetSceneName = sceneName;
-        Debug.Log($"[Portal] 传送门 '{portalName}' 目标场景已设置为: {sceneName}");
-    }
-
-    /// <summary>
-    /// 手动设置生成点
-    /// </summary>
-    public void SetSpawnPoint(Transform spawn)
-    {
-        spawnPoint = spawn;
-        Debug.Log($"[Portal] 传送门 '{portalName}' 生成点已设置");
-    }
-
-    /// <summary>
-    /// 绘制调试信息
+    /// 在Scene视图中绘制Gizmos
     /// </summary>
     private void OnDrawGizmos()
     {
-        if (portalCollider == null)
-        {
-            portalCollider = GetComponent<Collider>();
-        }
+        Gizmos.color = Color.cyan;
+        Collider collider = GetComponent<Collider>();
 
-        // 绘制传送门边界
-        Gizmos.color = portalColor;
-        if (portalCollider != null)
+        if (collider is SphereCollider sphere)
         {
             Gizmos.matrix = transform.localToWorldMatrix;
-            if (portalCollider is BoxCollider box)
-            {
-                Gizmos.DrawWireCube(box.center, box.size);
-            }
-            else if (portalCollider is SphereCollider sphere)
-            {
-                Gizmos.DrawWireSphere(sphere.center, sphere.radius);
-            }
-            else if (portalCollider is CapsuleCollider capsule)
-            {
-                Gizmos.DrawWireSphere(capsule.center, capsule.radius);
-            }
+            Gizmos.DrawWireSphere(Vector3.zero, sphere.radius);
+        }
+        else if (collider is BoxCollider box)
+        {
+            Gizmos.matrix = transform.localToWorldMatrix;
+            Gizmos.DrawWireCube(box.center, box.size);
         }
 
-        // 绘制生成点连接线
-        if (spawnPoint != null)
-        {
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(transform.position, spawnPoint.position);
-            Gizmos.DrawWireSphere(spawnPoint.position, 0.5f);
-        }
-
-        // 显示目标场景名称
-        if (!string.IsNullOrEmpty(targetSceneName))
-        {
+        // 显示传送门信息
+        Gizmos.color = Color.white;
 #if UNITY_EDITOR
-            UnityEditor.Handles.Label(transform.position + Vector3.up * 2, $"传送门: {portalName}\n目标: {targetSceneName}");
+        UnityEditor.Handles.Label(
+            transform.position + Vector3.up * 2,
+            $"传送门\n目标: {targetScene}\nSpawnID: {targetSpawnID}\n按键: {(requireKeyPress ? teleportKey.ToString() : "自动")}"
+        );
 #endif
-        }
     }
 }

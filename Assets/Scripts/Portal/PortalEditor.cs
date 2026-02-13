@@ -9,6 +9,7 @@ public class PortalEditor : EditorWindow
 {
     private string newPortalName = "传送门";
     private string targetScene = "";
+    private string targetSpawnID = "";
     private float portalRadius = 1f;
     private Color portalColor = new Color(0f, 0.8f, 1f, 0.5f);
 
@@ -27,6 +28,7 @@ public class PortalEditor : EditorWindow
         GUILayout.Label("创建新传送门", EditorStyles.label);
         newPortalName = EditorGUILayout.TextField("传送门名称", newPortalName);
         targetScene = EditorGUILayout.TextField("目标场景", targetScene);
+        targetSpawnID = EditorGUILayout.TextField("目标SpawnID", targetSpawnID);
         portalRadius = EditorGUILayout.FloatField("传送门半径", portalRadius);
         portalColor = EditorGUILayout.ColorField("传送门颜色", portalColor);
 
@@ -63,7 +65,7 @@ public class PortalEditor : EditorWindow
         EditorGUILayout.HelpBox(
             "1. 选中一个游戏对象或点击创建按钮\n" +
             "2. 设置目标场景名称\n" +
-            "3. 可选：设置生成点位置\n" +
+            "3. 设置目标SpawnID（对应场景中SpawnPoint的spawnID）\n" +
             "4. 玩家进入传送门后自动传送\n\n" +
             "快捷键: Ctrl+Shift+P 打开此窗口",
             MessageType.Info
@@ -79,7 +81,7 @@ public class PortalEditor : EditorWindow
             ? Selection.activeGameObject.transform.position
             : Vector3.zero;
 
-        CreatePortalWithVisuals(newPortalName, targetScene, position, portalColor);
+        CreatePortalWithVisuals(newPortalName, targetScene, targetSpawnID, position, portalColor);
     }
 
     /// <summary>
@@ -96,16 +98,40 @@ public class PortalEditor : EditorWindow
         string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
         // 创建传送门A（当前场景 -> 目标场景）
-        CreatePortalWithVisuals($"传送门_A_to_{targetScene}", targetScene,
+        string spawnIDA = $"{currentScene}_Entry";
+        CreatePortalWithVisuals($"传送门_A_to_{targetScene}", targetScene, spawnIDA,
             new Vector3(-2, 0, 0), portalColor);
 
+        // 创建SpawnPoint A（目标场景的出生点）
+        CreateSpawnPoint(spawnIDA, targetScene, new Vector3(2, 0, 0));
+
         // 创建传送门B（目标场景 -> 当前场景）
-        CreatePortalWithVisuals($"传送门_B_to_{currentScene}", currentScene,
+        string spawnIDB = $"{targetScene}_Entry";
+        CreatePortalWithVisuals($"传送门_B_to_{currentScene}", currentScene, spawnIDB,
             new Vector3(2, 0, 0), new Color(1f, 0.5f, 0f, 0.5f));
 
+        // 创建SpawnPoint B（当前场景的出生点）
+        CreateSpawnPoint(spawnIDB, currentScene, new Vector3(-2, 0, 0));
+
         Debug.Log($"[PortalEditor] 已创建配对传送门:");
-        Debug.Log($"  - 传送门A: {currentScene} -> {targetScene}");
-        Debug.Log($"  - 传送门B: {targetScene} -> {currentScene}");
+        Debug.Log($"  - 传送门A: {currentScene} -> {targetScene} (SpawnID: {spawnIDA})");
+        Debug.Log($"  - 传送门B: {targetScene} -> {currentScene} (SpawnID: {spawnIDB})");
+        Debug.Log($"  - SpawnPoint A: {spawnIDA} 在场景 {targetScene}");
+        Debug.Log($"  - SpawnPoint B: {spawnIDB} 在场景 {currentScene}");
+    }
+
+    /// <summary>
+    /// 创建SpawnPoint
+    /// </summary>
+    private void CreateSpawnPoint(string spawnID, string targetScene, Vector3 position)
+    {
+        GameObject spawnObj = new GameObject($"SpawnPoint_{spawnID}");
+        spawnObj.transform.position = position;
+
+        SpawnPoint spawnPoint = spawnObj.AddComponent<SpawnPoint>();
+        spawnPoint.spawnID = spawnID;
+
+        Debug.Log($"[PortalEditor] 已创建SpawnPoint: {spawnID}");
     }
 
     /// <summary>
@@ -130,9 +156,8 @@ public class PortalEditor : EditorWindow
 
         // 添加传送门
         Portal portal = selected.AddComponent<Portal>();
-        portal.targetSceneName = targetScene;
-        portal.portalName = selected.name;
-        portal.portalColor = portalColor;
+        portal.targetScene = targetScene;
+        portal.targetSpawnID = targetSpawnID;
 
         // 添加碰撞体（如果没有）
         if (selected.GetComponent<Collider>() == null)
@@ -145,11 +170,6 @@ public class PortalEditor : EditorWindow
         {
             selected.GetComponent<Collider>().isTrigger = true;
         }
-
-        // 添加视觉效果生成器
-        PortalVisualGenerator visualGen = selected.AddComponent<PortalVisualGenerator>();
-        visualGen.portalColor = portalColor;
-        visualGen.portalSize = portalRadius * 2f;
 
         Debug.Log($"[PortalEditor] 已为 {selected.name} 添加传送门组件");
     }
@@ -170,8 +190,9 @@ public class PortalEditor : EditorWindow
         string info = "当前场景中的传送门:\n\n";
         foreach (Portal portal in portals)
         {
-            info += $"• {portal.portalName}\n";
-            info += $"  目标: {portal.targetSceneName}\n";
+            info += $"• {portal.gameObject.name}\n";
+            info += $"  目标: {portal.targetScene}\n";
+            info += $"  SpawnID: {portal.targetSpawnID}\n";
             info += $"  位置: {portal.transform.position}\n\n";
         }
 
@@ -212,7 +233,7 @@ public class PortalEditor : EditorWindow
     /// <summary>
     /// 创建带视觉效果的传送门
     /// </summary>
-    private void CreatePortalWithVisuals(string name, string targetScene, Vector3 position, Color color)
+    private void CreatePortalWithVisuals(string name, string targetScene, string spawnID, Vector3 position, Color color)
     {
         GameObject portalObj = new GameObject(name);
         portalObj.transform.position = position;
@@ -224,9 +245,8 @@ public class PortalEditor : EditorWindow
 
         // 添加传送门脚本
         Portal portal = portalObj.AddComponent<Portal>();
-        portal.targetSceneName = targetScene;
-        portal.portalName = name;
-        portal.portalColor = color;
+        portal.targetScene = targetScene;
+        portal.targetSpawnID = spawnID;
 
         // 添加视觉效果生成器
         PortalVisualGenerator visualGen = portalObj.AddComponent<PortalVisualGenerator>();
@@ -239,6 +259,6 @@ public class PortalEditor : EditorWindow
         // 选中新建的传送门
         Selection.activeGameObject = portalObj;
 
-        Debug.Log($"[PortalEditor] 已创建传送门: {name} -> {targetScene}");
+        Debug.Log($"[PortalEditor] 已创建传送门: {name} -> {targetScene} (SpawnID: {spawnID})");
     }
 }
