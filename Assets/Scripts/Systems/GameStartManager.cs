@@ -18,6 +18,15 @@ public class GameStartManager : MonoBehaviour
 
     private void SpawnPlayer()
     {
+        // 先检查场景中是否已有 Player（避免与 PortalManager 冲突）
+        GameObject existingPlayer = GameObject.FindGameObjectWithTag("Player");
+        if (existingPlayer != null)
+        {
+            Debug.Log("[GameStart] 场景中已有 Player，跳过创建");
+            CreatePlayerCamera(existingPlayer);
+            return;
+        }
+
         if (playerPrefab == null)
         {
             Debug.LogError("[GameStart] 未设置 Player Prefab！请在 Inspector 中赋值。");
@@ -30,7 +39,7 @@ public class GameStartManager : MonoBehaviour
         GameObject player = Instantiate(playerPrefab, spawnPos, spawnRot);
         player.name = "Player";
         Debug.Log("[GameStart] 角色已生成");
-        
+
         // 自动为 Player 创建摄像机
         CreatePlayerCamera(player);
     }
