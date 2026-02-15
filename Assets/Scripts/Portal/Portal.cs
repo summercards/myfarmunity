@@ -107,16 +107,7 @@ public class Portal : MonoBehaviour
         if (isTeleporting || !isPlayerNearby) return;
         if (!other.CompareTag("Player")) return;
 
-        if (requireKeyPress)
-        {
-            // 需要按键传送
-            if (Input.GetKeyDown(teleportKey))
-            {
-                Debug.Log($"[Portal] 玩家按下 {teleportKey} 键，开始传送");
-                StartTeleport();
-            }
-        }
-        else
+        if (!requireKeyPress)
         {
             // 自动传送，等待延迟时间
             teleportTimer += Time.deltaTime;
@@ -125,6 +116,19 @@ public class Portal : MonoBehaviour
                 Debug.Log($"[Portal] 自动传送（延迟{autoTeleportDelay}秒）");
                 StartTeleport();
             }
+        }
+    }
+
+    private void Update()
+    {
+        // 在 Update 中处理按键输入，确保每次按键都能被捕获
+        if (isTeleporting || !isPlayerNearby) return;
+        if (!requireKeyPress) return;
+
+        if (Input.GetKeyDown(teleportKey))
+        {
+            Debug.Log($"[Portal] 玩家按下 {teleportKey} 键，开始传送");
+            StartTeleport();
         }
     }
 
