@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// 游戏启动管理器
-/// 负责在场景加载时生成角色
+/// 负责在场景加载时生成角色，并重新绑定背包UI引用
 /// </summary>
 public class GameStartManager : MonoBehaviour
 {
@@ -14,6 +14,8 @@ public class GameStartManager : MonoBehaviour
     void Start()
     {
         SpawnPlayer();
+        // 场景加载后重新绑定所有背包UI
+        RebindAllInventoryUIs();
     }
 
     private void SpawnPlayer()
@@ -43,7 +45,7 @@ public class GameStartManager : MonoBehaviour
         // 自动为 Player 创建摄像机
         CreatePlayerCamera(player);
     }
-    
+
     private void CreatePlayerCamera(GameObject player)
     {
         // 检查是否已有摄像机
@@ -62,22 +64,19 @@ public class GameStartManager : MonoBehaviour
                 return;
             }
         }
-        
+
         // 没有摄像机，创建新的（独立对象，不作为 Player 的子物体）
         GameObject cameraObj = new GameObject("PlayerCamera");
-        // 不使用 LookAt，让 TPSOrbitCamera 自己控制旋转
-        // cameraObj.transform.position = player.transform.position - Vector3.back * 3.5f + Vector3.up * 1.5f;
-        // cameraObj.transform.LookAt(player.transform.position + Vector3.up);
         cameraObj.transform.position = new Vector3(0, 0, 0); // 初始位置不重要，TPSOrbitCamera 会设置
         cameraObj.transform.rotation = Quaternion.identity; // 初始旋转不重要
-        
+
         // 添加 Camera 组件
         Camera playerCamera = cameraObj.AddComponent<Camera>();
         playerCamera.nearClipPlane = 0.3f;
         playerCamera.farClipPlane = 1000f;
         playerCamera.fieldOfView = 60f;
         playerCamera.tag = "MainCamera";
-        
+
         // 添加 TPSOrbitCamera 组件
         TPSOrbitCamera orbitCam = cameraObj.AddComponent<TPSOrbitCamera>();
         orbitCam.target = player.transform;
@@ -87,7 +86,66 @@ public class GameStartManager : MonoBehaviour
         orbitCam.yawSpeed = 120f;
         orbitCam.pitchSpeed = 120f;
         orbitCam.pitchLimits = new Vector2(-30f, 70f);
-        
+
         Debug.Log("[GameStart] 摄像机已创建并绑定到 Player");
+    }
+
+    /// <summary>
+    /// 重新绑定所有背包UI的PlayerInventoryHolder引用
+    /// 场景切换后调用此方法确保UI引用正确的单例实例
+    /// </summary>
+    private void RebindAllInventoryUIs()
+    {
+        // 延迟一帧执行，确保所有组件都已初始化
+        StartCoroutine(RebindInventoryUIsCoroutine());
+    }
+
+    private System.Collections.IEnumerator RebindInventoryUIsCoroutine()
+    {
+        yield return null; // 等待一帧
+
+        // 确保背包单例已存在
+        if (PlayerInventoryHolder.Instance == null)
+        {
+            Debug.LogWarning("[GameStart] PlayerInventoryHolder 单例不存在，无法重新绑定UI");
+            yield break;
+        }
+
+        // 查找所有 InventoryUI 并重新绑定
+        InventoryUI[] inventoryUIs = FindObjectsOfType<InventoryUI>();
+        int reboundCount = 0;
+
+        foreach (var ui in inventoryUIs)
+        {
+            bool wasBound = ui.playerInv != null;
+            bool needsRebind = ui.playerInv == null || ui.playerInv.gameObject == null;
+
+            if (needsRebind)
+            {
+                // 重新绑定到单例
+                ui.playerInv = PlayerInventoryHolder.Instance;
+
+                // 如果 itemDB 为空，从单例获取
+                if (ui.itemDB == null)
+                {
+                    ui.itemDB = PlayerInventoryHolder.Instance.itemDB;
+                }
+
+                // 刷新UI
+                ui.RefreshAll();
+                reboundCount++;
+
+                Debug.Log($"[GameStart] 已重新绑定 InventoryUI (WasBound: {wasBound})");
+            }
+        }
+
+        if (reboundCount > 0)
+        {
+            Debug.Log($"[GameStart] 成功重新绑定 {reboundCount} 个 InventoryUI");
+        }
+        else
+        {
+            Debug.Log("[GameStart] 所有 InventoryUI 引用都已正确，无需重新绑定");
+        }
     }
 }

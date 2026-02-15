@@ -3,36 +3,38 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 
 /// <summary>
-/// ¼òÒ×±³°üÃæ°å£º
-/// - ×Ô¶¯°´ÈİÁ¿Éú³É¸ñ×Ó
-/// - ÏÔÊ¾Í¼±ê/ÊıÁ¿£¨ÊıÁ¿=1Ò²ÏÔÊ¾£©
-/// - ×ó¼üµã»÷ÇĞ»»¼¤»îÎïÆ·
-/// - I ¼ü¿ª/¹Ø£¨¿É½ûÓÃ£©
-/// ÒÀÀµ£ºPlayerInventoryHolder¡¢ActiveItemController¡¢ItemDatabaseSO
+/// èƒŒåŒ…UIæ§åˆ¶å™¨ï¼š
+/// - è‡ªåŠ¨ç”Ÿæˆæ ¼å­ï¼ˆåŸºäºå®¹é‡ï¼‰
+/// - æ˜¾ç¤ºå›¾æ ‡/æ•°é‡ï¼ˆæ•°é‡=1ä¹Ÿæ˜¾ç¤ºï¼‰
+/// - ç‚¹å‡»æ ¼å­åˆ‡æ¢å½“å‰æ‰‹æŒç‰©å“
+/// - I é”®å¼€å…³/å…³é—­ï¼ˆå¯é…ç½®ï¼‰
+/// ä¾èµ– PlayerInventoryHolderã€ActiveItemControllerã€ItemDatabaseSO
 /// </summary>
 public class InventoryUI : MonoBehaviour
 {
     [Header("Refs")]
-    public PlayerInventoryHolder playerInv;      // Player ÉíÉÏµÄ PlayerInventoryHolder
-    public ActiveItemController activeCtrl;     // Player ÉíÉÏµÄ ActiveItemController
-    public ItemDatabaseSO itemDB;         // Ò»°ã´Ó playerInv.itemDB È¡
+    public PlayerInventoryHolder playerInv;      // Player å¯¹è±¡ä¸Šçš„ PlayerInventoryHolder
+    public ActiveItemController activeCtrl;     // Player å¯¹è±¡ä¸Šçš„ ActiveItemController
+    public ItemDatabaseSO itemDB;         // ä¸€èˆ¬ä» playerInv.itemDB è·å–
 
     [Header("UI")]
-    public GameObject panelRoot;                 // ±³°üÃæ°å¸ù½Úµã£¨ÕûÌå¿ª/¹Ø£©
-    public Transform gridRoot;                  // ·Å¸ñ×ÓµÄ¸¸ÎïÌå£¨´ø GridLayoutGroup£©
-    public InventorySlotUI slotPrefab;           // ²ÛÎ»Ô¤ÖÆ
-    public Sprite emptySprite;                   // ¿Õ¸ñÕ¼Î»Í¼£¨¿É¿Õ£¬½¨ÒéÓÃÍ¸Ã÷1x1£©
+    public GameObject panelRoot;                 // é¢æ¿æ ¹èŠ‚ç‚¹ï¼ˆç”¨äºå¼€/å…³é—­ï¼‰
+    public Transform gridRoot;                  // æ”¾æ ¼å­çš„çˆ¶å®¹å™¨ï¼ˆå¸¦ GridLayoutGroupï¼‰
+    public InventorySlotUI slotPrefab;           // æ ¼å­é¢„åˆ¶ä½“
+    public Sprite emptySprite;                   // ç©ºæ ¼å­å›¾æ ‡ï¼ˆå¯ä¸ºç©ºï¼Œæˆ–é€æ˜1x1ï¼‰
     [Range(0f, 1f)] public float emptyIconAlpha = 0.15f;
 
     [Header("Options")]
-    public bool buildOnAwake = true;             // Æô¶¯Ê±¹¹½¨¸ñ×Ó
-    public bool toggleWithKey = true;            // ÓÃ°´¼üÇĞ»»
+    public bool buildOnAwake = true;             // å¯åŠ¨æ—¶è‡ªåŠ¨æ„å»º
+    public bool toggleWithKey = true;            // å…è®¸æŒ‰é”®åˆ‡æ¢
     public KeyCode toggleKey = KeyCode.I;
 
     private readonly List<InventorySlotUI> _slots = new();
 
     void Reset()
     {
+        // Reset æ—¶å°è¯•åŠ¨æ€æŸ¥æ‰¾
+        if (!playerInv) playerInv = PlayerInventoryHolder.Instance;
         if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
         if (!activeCtrl) activeCtrl = FindObjectOfType<ActiveItemController>();
         if (!itemDB && playerInv) itemDB = playerInv.itemDB;
@@ -40,13 +42,21 @@ public class InventoryUI : MonoBehaviour
 
     void Awake()
     {
+        // å°è¯•ä»å•ä¾‹è·å–
+        if (!playerInv) playerInv = PlayerInventoryHolder.Instance;
+        if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
+
         if (!itemDB && playerInv) itemDB = playerInv.itemDB;
+
         if (buildOnAwake) BuildSlots();
         RefreshAll();
     }
 
     void OnEnable()
     {
+        // ç¡®ä¿å¼•ç”¨æ­£ç¡®
+        EnsureReferences();
+
         if (playerInv != null) playerInv.OnInventoryChanged += RefreshAll;
         if (activeCtrl != null) activeCtrl.OnActiveChanged += _ => RefreshAll();
         RefreshAll();
@@ -60,8 +70,62 @@ public class InventoryUI : MonoBehaviour
 
     void Update()
     {
+        // åŠ¨æ€æŸ¥æ‰¾ PlayerInventoryHolderï¼ˆç¡®ä¿å¼•ç”¨æ­£ç¡®ï¼‰
+        EnsureReferences();
+
         if (toggleWithKey && Input.GetKeyDown(toggleKey))
             TogglePanel();
+    }
+
+    /// <summary>
+    /// ç¡®ä¿æ‰€æœ‰å¼•ç”¨éƒ½æ­£ç¡®è¿æ¥
+    /// åœºæ™¯åˆ‡æ¢æˆ–é¦–æ¬¡åŠ è½½æ—¶è°ƒç”¨
+    /// </summary>
+    private void EnsureReferences()
+    {
+        bool changed = false;
+
+        // æ£€æŸ¥ playerInv
+        if (playerInv == null || playerInv.gameObject == null)
+        {
+            var prevInv = playerInv;
+            playerInv = PlayerInventoryHolder.Instance;
+            if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
+
+            if (prevInv != playerInv && playerInv != null)
+            {
+                Debug.Log($"[InventoryUI] é‡æ–°ç»‘å®š PlayerInventoryHolder");
+                changed = true;
+
+                // é‡æ–°è®¢é˜…äº‹ä»¶
+                if (isActiveAndEnabled)
+                {
+                    if (prevInv != null) prevInv.OnInventoryChanged -= RefreshAll;
+                    playerInv.OnInventoryChanged += RefreshAll;
+                }
+            }
+        }
+
+        // æ£€æŸ¥ activeCtrl
+        if (activeCtrl == null || (activeCtrl as MonoBehaviour) == null ||
+            (activeCtrl as MonoBehaviour).gameObject == null)
+        {
+            activeCtrl = FindObjectOfType<ActiveItemController>();
+            if (activeCtrl != null && isActiveAndEnabled)
+            {
+                Debug.Log($"[InventoryUI] é‡æ–°ç»‘å®š ActiveItemController");
+                changed = true;
+            }
+        }
+
+        // æ£€æŸ¥ itemDB
+        if (!itemDB && playerInv) itemDB = playerInv.itemDB;
+
+        // å¦‚æœå¼•ç”¨å‘ç”Ÿå˜åŒ–ï¼Œåˆ·æ–°UI
+        if (changed && panelRoot != null && panelRoot.activeInHierarchy)
+        {
+            RefreshAll();
+        }
     }
 
     public void TogglePanel()
@@ -71,13 +135,13 @@ public class InventoryUI : MonoBehaviour
         if (panelRoot.activeSelf) RefreshAll();
     }
 
-    /// <summary>¸ù¾İµ±Ç°±³°üÈİÁ¿¹¹½¨²ÛÎ»UI</summary>
+    /// <summary>æ ¹æ®å½“å‰å®¹é‡é‡æ–°æ„å»ºæ ¼å­UI</summary>
     public void BuildSlots()
     {
         _slots.Clear();
         if (!gridRoot || !slotPrefab) return;
 
-        // Çå¿Õ¾É×ÓÎïÌå
+        // æ¸…ç©ºæ—§æ ¼å­
         for (int i = gridRoot.childCount - 1; i >= 0; i--)
             Destroy(gridRoot.GetChild(i).gameObject);
 
@@ -90,7 +154,7 @@ public class InventoryUI : MonoBehaviour
         }
     }
 
-    /// <summary>È«Á¿Ë¢ĞÂ£¨ÈİÁ¿±ä»¯Ê±»áÖØ½¨£©</summary>
+    /// <summary>å…¨éƒ¨åˆ·æ–°ï¼šæ•°æ®å˜åŒ–æ—¶è°ƒç”¨ï¼Œæˆ–é‡æ–°æ„å»º</summary>
     public void RefreshAll()
     {
         if (!_isPanelVisible()) return;
@@ -122,14 +186,14 @@ public class InventoryUI : MonoBehaviour
         RefreshAll();
     }
 
-    /// <summary>¸ù¾İÎïÆ·ID½âÎöÍ¼±ê£»ÈôÊı¾İ¿â»ò×Ö¶ÎÈ±Ê§£¬·µ»Ø null</summary>
+    /// <summary>æ ¹æ®ç‰©å“IDè§£æå›¾æ ‡ï¼›è‹¥æ•°æ®åº“ç¼ºå¤±å­—æ®µåˆ™è¿”å› null</summary>
     public Sprite ResolveIcon(string id)
     {
         if (string.IsNullOrEmpty(id)) return null;
-        var so = (itemDB != null) ? itemDB.Get(id) : null;   // Èô·½·¨Ãû²»ÊÇ Get£¬Çë°´ÄãµÄ ItemDB ¸ÄÃû
+        var so = (itemDB != null) ? itemDB.Get(id) : null;   // ä½ çš„ ItemDB å¦‚æœæœ‰ Get æ–¹æ³•å°±è°ƒç”¨
         if (so == null) return null;
 
-        // ¡ï Èç¹û ItemSO µÄÍ¼±ê×Ö¶Î²»ÊÇ "icon"£¬°ÑÏÂÃæÕâĞĞµÄ "icon" ¸Ä³ÉÄãµÄ×Ö¶ÎÃû
+        // è¿™é‡Œå‡è®¾ ItemSO ä¸Šçš„å›¾æ ‡å­—æ®µåä¸º "icon"ï¼Œå¦‚æœä½ çš„å­—æ®µåä¸åŒï¼Œè¯·æ›¿æ¢
         return so.icon;
     }
 
