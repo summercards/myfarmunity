@@ -5,8 +5,26 @@ using UnityEngine.InputSystem;   // Input System 1.x
 
 public class TPSOrbitCamera : MonoBehaviour
 {
+    private static TPSOrbitCamera instance;
+
     public Transform target;
     public TPSInput input;
+
+    void Awake()
+    {
+        // 单例模式：确保只有一个摄像机实例
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else if (instance != this)
+        {
+            Debug.Log($"[TPSOrbitCamera] 检测到已有摄像机实例，销毁多余的摄像机: {gameObject.name}");
+            Destroy(gameObject);
+            return;
+        }
+    }
 
     [Header("Orbit")]
     public float distance = 3.5f;
@@ -31,17 +49,61 @@ public class TPSOrbitCamera : MonoBehaviour
 
     void Start()
     {
+        // 每次场景加载时都尝试恢复 target 引用
+        RefreshTargetReference();
+
         if (target)
         {
             // 设置初始角度：俯视 25 度
             pitch = 25f;
             yaw = 0f;
-            
+
             // 设置摄像机初始位置
             Quaternion rot = Quaternion.Euler(pitch, yaw, 0);
             Vector3 desiredPos = target.position - rot * Vector3.forward * distance;
-            
+
             transform.SetPositionAndRotation(desiredPos, rot);
+        }
+    }
+
+    // 添加场景加载时的回调
+    void OnLevelWasLoaded(int level)
+    {
+        RefreshTargetReference();
+    }
+
+    /// <summary>
+    /// 在场景加载后刷新 target 引用
+    /// 解决场景切换时 Inspector 引用丢失的问题
+    /// </summary>
+    void RefreshTargetReference()
+    {
+        if (target == null)
+        {
+            // 查找 Player 对象
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                Transform player = playerObj.transform;
+
+                // 优先查找 CameraPivot 子对象
+                Transform cameraPivot = player.Find("CameraPivot");
+                if (cameraPivot != null)
+                {
+                    target = cameraPivot;
+                    Debug.Log($"[TPSOrbitCamera] ✅ 已恢复 target: {cameraPivot.name}");
+                }
+                else
+                {
+                    // 备用方案：直接使用 Player
+                    target = player;
+                    Debug.Log($"[TPSOrbitCamera] ⚠️ CameraPivot 未找到，使用 Player 作为 target: {player.name}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[TPSOrbitCamera] ❌ 无法找到 Player 对象");
+            }
         }
     }
 

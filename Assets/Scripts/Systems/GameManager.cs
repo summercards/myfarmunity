@@ -8,6 +8,11 @@ using System.Collections;
 /// </summary>
 public class GameManager : MonoBehaviour
 {
+    // 常量配置
+    private const float COMPONENT_CHECK_INTERVAL = 0.2f;  // 组件检查间隔（秒）
+    private const float EXTRA_INIT_DELAY = 0.5f;          // 额外初始化等待（秒）
+    private const string DEFAULT_AUTOSAVE_NAME = "autosave"; // 默认存档名称
+
     private static GameManager instance;
     public static GameManager Instance => instance;
 
@@ -16,7 +21,7 @@ public class GameManager : MonoBehaviour
     public bool autoLoadLatestSave = true;
 
     [Tooltip("自动加载的存档名称（留空则加载最新存档）")]
-    public string defaultSaveName = "autosave";
+    public string defaultSaveName = DEFAULT_AUTOSAVE_NAME;
 
     [Header("时间系统配置")]
     [Tooltip("如果不存在存档，是否初始化时间系统")]
@@ -29,8 +34,12 @@ public class GameManager : MonoBehaviour
     [Tooltip("最大等待时间（秒）")]
     public float maxWaitTime = 10f;
 
+    /// <summary>初始化状态变化事件</summary>
+    public System.Action<bool> OnInitializationChanged;
+
     private bool isInitialized = false;
     private bool isInitializing = false;
+    private bool initFailed = false;
 
     void Awake()
     {
@@ -61,6 +70,7 @@ public class GameManager : MonoBehaviour
         if (isInitialized || isInitializing) yield break;
 
         isInitializing = true;
+        initFailed = false;
         float waitTime = 0f;
 
         if (showStartupLog) Debug.Log("[GameManager] 等待组件初始化...");
@@ -68,14 +78,13 @@ public class GameManager : MonoBehaviour
         // 等待 SaveManager
         while (SaveManager.Instance == null && waitTime < maxWaitTime)
         {
-            yield return new WaitForSeconds(0.2f);
-            waitTime += 0.2f;
+            yield return new WaitForSeconds(COMPONENT_CHECK_INTERVAL);
+            waitTime += COMPONENT_CHECK_INTERVAL;
         }
 
         if (SaveManager.Instance == null)
         {
-            if (showStartupLog) Debug.LogError("[GameManager] SaveManager 不存在！请确保场景中有 SaveManager");
-            isInitializing = false;
+            InitializationFailed("SaveManager 不存在！请确保场景中有 SaveManager");
             yield break;
         }
 
@@ -85,8 +94,8 @@ public class GameManager : MonoBehaviour
         waitTime = 0f;
         while (TimeSystemAccessor.TimeSystem == null && waitTime < maxWaitTime)
         {
-            yield return new WaitForSeconds(0.2f);
-            waitTime += 0.2f;
+            yield return new WaitForSeconds(COMPONENT_CHECK_INTERVAL);
+            waitTime += COMPONENT_CHECK_INTERVAL;
         }
 
         if (TimeSystemAccessor.TimeSystem == null)
@@ -102,14 +111,13 @@ public class GameManager : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogError("[GameManager] GameTimeSystem 不存在！请确保场景中有 TimeController 且已配置 GameTimeSystem");
-                    isInitializing = false;
+                    InitializationFailed("GameTimeSystem 不存在！请确保场景中有 TimeController 且已配置 GameTimeSystem");
                     yield break;
                 }
             }
             else
             {
-                isInitializing = false;
+                InitializationFailed("GameTimeSystem 初始化失败（禁用日志）");
                 yield break;
             }
         }
@@ -127,7 +135,7 @@ public class GameManager : MonoBehaviour
     {
         if (showStartupLog) Debug.Log("[GameManager] 开始初始化游戏...");
 
-        yield return new WaitForSeconds(0.5f); // 额外等待确保所有 Start 执行完成
+        yield return new WaitForSeconds(EXTRA_INIT_DELAY); // 额外等待确保所有 Start 执行完成
 
         // 尝试加载存档
         if (autoLoadLatestSave)
@@ -151,7 +159,29 @@ public class GameManager : MonoBehaviour
         isInitializing = false;
 
         if (showStartupLog) Debug.Log("[GameManager] 游戏初始化完成");
+        OnInitializationChanged?.Invoke(true);
     }
+
+    /// <summary>
+    /// 初始化失败处理
+    /// </summary>
+    private void InitializationFailed(string reason)
+    {
+        initFailed = true;
+        isInitializing = false;
+        Debug.LogError($"[GameManager] 初始化失败: {reason}");
+        OnInitializationChanged?.Invoke(false);
+    }
+
+    /// <summary>
+    /// 是否初始化成功
+    /// </summary>
+    public bool IsInitializationComplete => isInitialized;
+
+    /// <summary>
+    /// 是否初始化失败
+    /// </summary>
+    public bool IsInitializationFailed => initFailed;
 
     /// <summary>
     /// 加载最新存档
@@ -210,6 +240,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void LoadGame(string saveName)
     {
+        if (!ValidateInitialization()) return;
         LoadSpecificSave(saveName);
     }
 
@@ -218,6 +249,8 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void NewGame()
     {
+        if (!ValidateInitialization()) return;
+
         if (showStartupLog) Debug.Log("[GameManager] 开始新游戏");
         InitializeTimeSystem();
     }
@@ -227,8 +260,30 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void SaveGame(string saveName = "autosave")
     {
+        if (!ValidateInitialization()) return;
+
         if (showStartupLog) Debug.Log($"[GameManager] 保存游戏: {saveName}");
         SaveManager.Instance.SaveGame(saveName);
+    }
+
+    /// <summary>
+    /// 验证初始化状态
+    /// </summary>
+    private bool ValidateInitialization()
+    {
+        if (initFailed)
+        {
+            Debug.LogError("[GameManager] 初始化失败，无法执行操作。请检查错误日志并修复场景配置。");
+            return false;
+        }
+
+        if (!isInitialized)
+        {
+            Debug.LogWarning("[GameManager] 尚未初始化完成，请稍后再试");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>

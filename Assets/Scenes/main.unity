@@ -374,7 +374,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a24ba0ef2b3ef3449cc2308fd16465f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainGameSceneName: game
+  mainGameSceneName: cloudcity
   titleText: {fileID: 0}
   startGameButton: {fileID: 0}
 --- !u!114 &1170362724

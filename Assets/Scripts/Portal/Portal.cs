@@ -19,12 +19,19 @@ public class Portal : MonoBehaviour
     [Tooltip("自动传送的延迟时间（秒）")]
     public float autoTeleportDelay = 0.5f;
 
+    [Header("传送后配置")]
+    [Tooltip("传送后重置状态的延迟时间（秒）")]
+    public float resetStateDelay = 5f;
+
     [Header("提示信息")]
     [Tooltip("显示传送提示文字")]
     public bool showPrompt = true;
 
     [Tooltip("提示文字")]
     public string promptText = "按 E 传送";
+
+    [Tooltip("提示UI对象（可选，可以是3D Text或UI元素）")]
+    public GameObject promptUIObject;
 
     private bool isPlayerNearby = false;
     private bool isTeleporting = false;
@@ -33,23 +40,46 @@ public class Portal : MonoBehaviour
     private void Awake()
     {
         // 自动添加碰撞体（如果还没有）
-        Collider collider = GetComponent<Collider>();
+        var collider = GetComponent<Collider>();
         if (collider == null)
         {
             collider = gameObject.AddComponent<SphereCollider>();
         }
-        collider.isTrigger = true;
+        if (collider != null)
+        {
+            collider.isTrigger = true;
+        }
+
+        // 初始化时隐藏提示UI
+        if (promptUIObject != null)
+        {
+            promptUIObject.SetActive(false);
+        }
     }
 
     private void Reset()
     {
         // 在编辑器中添加组件时自动设置
-        Collider collider = GetComponent<Collider>();
+        var collider = GetComponent<Collider>();
         if (collider == null)
         {
             collider = gameObject.AddComponent<SphereCollider>();
         }
-        collider.isTrigger = true;
+        if (collider != null)
+        {
+            collider.isTrigger = true;
+        }
+
+        // 尝试查找子对象中的提示UI
+        if (promptUIObject == null)
+        {
+            // 查找名为 "PromptUI" 或 "Prompt" 的子对象
+            var prompt = transform.Find("PromptUI") ?? transform.Find("Prompt");
+            if (prompt != null)
+            {
+                promptUIObject = prompt.gameObject;
+            }
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -115,9 +145,21 @@ public class Portal : MonoBehaviour
     {
         if (isTeleporting) return;
 
+        // 参数验证
+        if (string.IsNullOrEmpty(targetScene))
+        {
+            Debug.LogError("[Portal] 传送失败：目标场景未设置！请在Inspector中设置 targetScene");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(targetSpawnID))
+        {
+            Debug.LogWarning("[Portal] 目标 SpawnID 为空，将使用默认出生点");
+        }
+
         if (PortalManager.Instance == null)
         {
-            Debug.LogError("场景中没有 PortalManager！");
+            Debug.LogError("[Portal] 传送失败：场景中没有 PortalManager！");
             return;
         }
 
@@ -129,7 +171,7 @@ public class Portal : MonoBehaviour
         PortalManager.Instance.Teleport(targetScene, targetSpawnID);
 
         // 传送后重置状态（如果场景未加载成功）
-        Invoke(nameof(ResetTeleportState), 5f);
+        Invoke(nameof(ResetTeleportState), resetStateDelay);
     }
 
     private void ResetTeleportState()
@@ -139,11 +181,16 @@ public class Portal : MonoBehaviour
 
     private void ShowPrompt(bool show)
     {
-        // TODO: 这里可以接入UI系统显示提示
-        // 目前使用Debug.Log作为临时方案
-        if (show)
+        // 如果配置了UI对象，显示/隐藏它
+        if (promptUIObject != null)
         {
-            Debug.Log($"[Portal] {promptText}");
+            promptUIObject.SetActive(show && isPlayerNearby);
+        }
+
+        // 作为备选方案，仍然保留日志输出（可选）
+        if (show && promptUIObject == null)
+        {
+            Debug.Log($"[Portal] {promptText} (提示：请配置 promptUIObject 以显示UI)");
         }
     }
 
@@ -153,7 +200,7 @@ public class Portal : MonoBehaviour
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.cyan;
-        Collider collider = GetComponent<Collider>();
+        var collider = GetComponent<Collider>();
 
         if (collider is SphereCollider sphere)
         {

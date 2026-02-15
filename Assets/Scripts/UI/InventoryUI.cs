@@ -30,6 +30,7 @@ public class InventoryUI : MonoBehaviour
     public KeyCode toggleKey = KeyCode.I;
 
     private readonly List<InventorySlotUI> _slots = new();
+    private bool _referencesInitialized = false;
 
     void Reset()
     {
@@ -54,8 +55,9 @@ public class InventoryUI : MonoBehaviour
 
     void OnEnable()
     {
-        // 确保引用正确
+        // 确保引用正确（只在启用时检查一次）
         EnsureReferences();
+        _referencesInitialized = true;
 
         if (playerInv != null) playerInv.OnInventoryChanged += RefreshAll;
         if (activeCtrl != null) activeCtrl.OnActiveChanged += _ => RefreshAll();
@@ -70,8 +72,11 @@ public class InventoryUI : MonoBehaviour
 
     void Update()
     {
-        // 动态查找 PlayerInventoryHolder（确保引用正确）
-        EnsureReferences();
+        // 只在引用丢失时才重新查找（避免每帧检查）
+        if (_referencesInitialized && (playerInv == null || activeCtrl == null || itemDB == null))
+        {
+            EnsureReferences();
+        }
 
         if (toggleWithKey && Input.GetKeyDown(toggleKey))
             TogglePanel();
