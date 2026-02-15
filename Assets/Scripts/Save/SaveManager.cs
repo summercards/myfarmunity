@@ -45,6 +45,29 @@ public class SaveManager : MonoBehaviour
             instance = this;
             DontDestroyOnLoad(gameObject);
             InitializeSavePath();
+
+            // 自动查找时间系统（如果未手动配置）
+            if (timeSystem == null)
+            {
+                timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
+                if (timeSystem == null)
+                {
+                    GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
+                    if (instances.Length > 0)
+                    {
+                        timeSystem = instances[0];
+                    }
+                }
+                if (timeSystem != null)
+                {
+                    Debug.Log($"[SaveManager] 自动找到时间系统: {timeSystem.name}");
+                }
+                else
+                {
+                    Debug.LogWarning("[SaveManager] 未找到时间系统，请在 Inspector 中手动配置");
+                }
+            }
+
             Debug.Log("[SaveManager] 存档管理器已初始化");
         }
         else
@@ -55,6 +78,20 @@ public class SaveManager : MonoBehaviour
 
     void Start()
     {
+        // 再次检查时间系统（确保场景加载后有引用）
+        if (timeSystem == null)
+        {
+            timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
+            if (timeSystem == null)
+            {
+                GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
+                if (instances.Length > 0)
+                {
+                    timeSystem = instances[0];
+                }
+            }
+        }
+
         // 订阅游戏内每小时事件
         if (timeSystem != null)
         {
