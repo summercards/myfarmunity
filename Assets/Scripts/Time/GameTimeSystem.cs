@@ -72,6 +72,9 @@ public class GameTimeSystem : ScriptableObject
     // 暂停状态
     private bool isPaused = false;
 
+    // 是否已初始化（用于防止重复初始化覆盖存档数据）
+    private bool hasInitialized = false;
+
     // 上次处理过的总天数（用于计算增量）
     private int lastProcessedTotalDays = 0;
 
@@ -116,9 +119,17 @@ public class GameTimeSystem : ScriptableObject
     /// <summary>
     /// 初始化时间系统
     /// 修复：使用SetWeather方法触发事件，并重置所有运行时状态
+    /// 如果已经初始化过（比如从存档加载），则跳过
     /// </summary>
     public void Initialize()
     {
+        // 如果已经初始化过，跳过（保护存档数据不被覆盖）
+        if (hasInitialized)
+        {
+            Debug.Log($"[GameTimeSystem] 已初始化过，跳过重复初始化（当前时间: {TimeString}）");
+            return;
+        }
+
         currentGameTime = startHour * 60f;
         currentDay = startDay;
         currentMonth = startMonth;
@@ -137,6 +148,8 @@ public class GameTimeSystem : ScriptableObject
 
         // 修复：使用SetWeather方法，确保触发onWeatherChanged事件
         SetWeather(WeatherType.Sunny);
+
+        hasInitialized = true;
     }
 
     /// <summary>
@@ -448,6 +461,9 @@ public class GameTimeSystem : ScriptableObject
 
         UpdateTimeFromGameTime();
         currentTimeOfDay = TimeHelpers.GetTimeOfDay(currentHour);
+
+        // 标记已初始化，防止后续 Initialize() 调用覆盖存档数据
+        hasInitialized = true;
 
         // 触发加载完成事件，通知所有子系统更新状态
         onLoadComplete?.Invoke();
