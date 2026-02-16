@@ -3,14 +3,183 @@ using UnityEngine;
 namespace FarmGame.ActorSystem
 {
     /// <summary>
-    /// ActorBrain: 负责“正在做什么”
-    /// - 状态机（Idle, Talking, Working, Sleep）
-    /// - AI 决策
+    /// ActorBrain: 负责"正在做什么"
+    /// Phase 6: 实现状态机（Idle, Talking, Busy, Cutscene）。
+    /// - 状态转换规则
+    /// - 与 ActorMemory 协同记录状态变化
     /// </summary>
     public class ActorBrain : MonoBehaviour
     {
-        // Phase 6 将实现状态机
-        public enum State { Idle, Talking, Busy, Cutscene }
+        /// <summary>
+        /// Actor 状态枚举
+        /// </summary>
+        public enum State
+        {
+            Idle,           // 闲散：默认状态，可以交互
+            Talking,        // 对话中：正在与玩家交流
+            Busy,           // 忙碌：执行某项任务（购物、任务等）
+            Cutscene        // 剧情：过场动画中，不可交互
+        }
+
+        /// <summary> 当前状态 </summary>
         public State CurrentState { get; private set; } = State.Idle;
+
+        /// <summary> 状态变化事件 </summary>
+        public System.Action<State> OnStateChanged;
+
+        private Actor _actor;
+        private ActorMemory _memory;
+
+        // 状态计时
+        private float _stateStartTime;
+        private float _talkingDuration;
+
+        void Awake()
+        {
+            _actor = GetComponent<Actor>();
+            _memory = GetComponent<ActorMemory>();
+            _stateStartTime = Time.time;
+        }
+
+        /// <summary>
+        /// Phase 6: 切换到指定状态
+        /// </summary>
+        public void ChangeState(State newState)
+        {
+            if (CurrentState == newState) return;
+
+            State oldState = CurrentState;
+            CurrentState = newState;
+            _stateStartTime = Time.time;
+
+            Debug.Log($"[ActorBrain] {_actor?.Identity?.Name ?? "Unknown"} 状态变化：{oldState} → {newState}");
+
+            // 记录到 Memory
+            if (_memory != null)
+            {
+                switch (newState)
+                {
+                    case State.Talking:
+                        if (oldState != State.Talking)
+                        {
+                            _talkingDuration = 0f;
+                        }
+                        break;
+
+                    case State.Idle:
+                    case State.Busy:
+                    case State.Cutscene:
+                        // 记录状态结束时间
+                        if (oldState == State.Talking)
+                        {
+                            float duration = Time.time - _stateStartTime;
+                            Debug.Log($"[ActorBrain] 对话持续时间：{duration:F2}秒");
+                        }
+                        break;
+                }
+            }
+
+            // 触发事件
+            OnStateChanged?.Invoke(newState);
+        }
+
+        /// <summary>
+        /// Phase 6: 检查当前状态持续时间
+        /// </summary>
+        public float GetStateDuration()
+        {
+            return Time.time - _stateStartTime;
+        }
+
+        /// <summary>
+        /// Phase 6: 切换到对话状态
+        /// </summary>
+        public void StartTalking()
+        {
+            ChangeState(State.Talking);
+            _talkingDuration = 0f;
+        }
+
+        /// <summary>
+        /// Phase 6: 结束对话，返回空闲
+        /// </summary>
+        public void EndTalking()
+        {
+            if (CurrentState == State.Talking)
+            {
+                ChangeState(State.Idle);
+                float duration = Time.time - _stateStartTime;
+                Debug.Log($"[ActorBrain] 对话结束，持续时间：{duration:F2}秒");
+            }
+        }
+
+        /// <summary>
+        /// Phase 6: 切换到忙碌状态
+        /// </summary>
+        public void SetBusy(string reason = "")
+        {
+            ChangeState(State.Busy);
+            if (!string.IsNullOrEmpty(reason))
+            {
+                Debug.Log($"[ActorBrain] {_actor?.Identity?.Name ?? "Unknown"} 进入忙碌状态：{reason}");
+            }
+        }
+
+        /// <summary>
+        /// Phase 6: 从忙碌状态恢复
+        /// </summary>
+        public void ClearBusy()
+        {
+            if (CurrentState == State.Busy)
+            {
+                ChangeState(State.Idle);
+                Debug.Log($"[ActorBrain] {_actor?.Identity?.Name ?? "Unknown"} 忙碌状态结束");
+            }
+        }
+
+        /// <summary>
+        /// Phase 6: 进入过场状态
+        /// </summary>
+        public void EnterCutscene()
+        {
+            ChangeState(State.Cutscene);
+            Debug.Log($"[ActorBrain] {_actor?.Identity?.Name ?? "Unknown"} 进入过场");
+        }
+
+        /// <summary>
+        /// Phase 6: 退出过场状态
+        /// </summary>
+        public void ExitCutscene()
+        {
+            if (CurrentState == State.Cutscene)
+            {
+                ChangeState(State.Idle);
+                Debug.Log($"[ActorBrain] {_actor?.Identity?.Name ?? "Unknown"} 退出过场");
+            }
+        }
+
+        /// <summary>
+        /// Phase 6: 检查是否可以交互
+        /// </summary>
+        public bool CanInteract()
+        {
+            return CurrentState == State.Idle;
+        }
+
+        void Update()
+        {
+            // Phase 6: 持续更新对话计时
+            if (CurrentState == State.Talking)
+            {
+                _talkingDuration += Time.deltaTime;
+            }
+
+            // 示例：如果超过 10 分钟还在对话，可以自动触发事件
+            // const float MAX_TALKING_DURATION = 600f; // 10 分钟
+            // if (_talkingDuration > MAX_TALKING_DURATION)
+            // {
+            //     Debug.LogWarning($"[ActorBrain] 对话时间过长（{_talkingDuration:F2}秒），可能需要自动结束");
+            // }
+        }
     }
 }

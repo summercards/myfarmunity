@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8eb389cd721e44642baf0c160c141bb8, type: 3}
-  m_Name: NPC_2
+  m_Name: NPC_
   m_EditorClassIdentifier: 
-  useActorSystem: 1
+  useActorSystem: 0
   enableVisuals: 1
   enableCollider: 1
   enableInteraction: 1
@@ -25,11 +25,11 @@ MonoBehaviour:
   function: 0
   defaultShopCatalog: {fileID: 0}
   functionButtonText: 
-  modelPrefab: {fileID: 919132149155446097, guid: e1637817d2e95b44e87c58b24c9d5508, type: 3}
+  modelPrefab: {fileID: 0}
   animatorController: {fileID: 0}
   modelLocalPosition: {x: 0, y: 0, z: 0}
   modelLocalEuler: {x: 0, y: 0, z: 0}
-  modelLocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  modelLocalScale: {x: 1, y: 1, z: 1}
   dailyAnimations:
   - startHour: 0
     endHour: 6

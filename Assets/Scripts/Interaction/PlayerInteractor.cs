@@ -1,8 +1,9 @@
-// Assets/Scripts/Interaction/PlayerInteractor.cs
 using UnityEngine;
 using System.Collections;   // IEnumerator
-using FarmGame.NPCSystem;
+using FarmGame.NPCSystem; // Phase 1: 保留兼容性
 using FarmGame.UI;          // Added for IDialogSubject
+using FarmGame.ActorSystem;    // Phase 8: 新系统支持
+
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
 using UnityEngine.InputSystem;
 #endif
@@ -13,8 +14,7 @@ using UnityEngine.InputSystem;
 /// - 对话打开时隐藏提示；
 /// - 离开当前对话 NPC 超过 closeDistance 自动关闭对话框；
 /// - 对话期间可就近切换到另一个 NPC（通过协程安全切换，避免 UI 竞态）。
-/// Phase 4 修复：添加 UI 缓存，避免持续查找导致性能问题和报错。
-/// Phase 4 修复：避免提示刷屏，只在提示变化时显示。
+/// Phase 8: 支持新 Actor 系统（优先）和旧 NPC 系统（兼容）
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerInteractor : MonoBehaviour
@@ -45,10 +45,7 @@ public class PlayerInteractor : MonoBehaviour
     // —— 对话切换：缓冲与超时 —— //
     private IInteractable _pendingSwitch = null;
     private Coroutine _switchCo = null;
-    [SerializeField] private float switchTimeout = 0.3f; // Phase 4 修复：等待 UI 真正关闭的最长时间（秒）
-
-    // Phase 4 修复：追踪最近 NPC 变化，避免重复日志
-    private IInteractable _lastLoggedInteractable = null;
+    [SerializeField] private float switchTimeout = 0.3f; // 等待 UI 真正关闭的最长时间（秒）
 
     // Phase 4 修复：记录上一次的提示文本，避免重复显示
     private string _lastHintText = "";
@@ -92,7 +89,7 @@ public class PlayerInteractor : MonoBehaviour
             var subject = _cachedDialogUI.CurrentNPC;
             if (subject != null)
             {
-                // 使用 IDialogSubject.SubjectTransform
+                // Phase 8: 使用 IDialogSubject.SubjectTransform（新旧系统通用）
                 float d = Vector3.Distance(transform.position, subject.SubjectTransform.position);
                 if (d > closeDistance)
                 {
@@ -109,7 +106,7 @@ public class PlayerInteractor : MonoBehaviour
         if (_cachedDialogUI.IsOpen)
         {
             var currSubject = _cachedDialogUI.CurrentNPC;
-            // 比较 Transform 引用来判断是否是同一个人
+            // Phase 8: 比较 Transform 引用来判断是否是同一个人
             // （注意：currSubject 可能为 null，防御性编程）
             Transform currTrans = currSubject?.SubjectTransform;
 
@@ -124,6 +121,7 @@ public class PlayerInteractor : MonoBehaviour
 
                 if (isAnother)
                 {
+                    // Phase 8: 优先使用 IDialogSubject.Name
                     if (nearest is IDialogSubject sub)
                         ShowHint($"按 E 对话：{sub.Name}");
                     else
@@ -194,6 +192,12 @@ public class PlayerInteractor : MonoBehaviour
             QueryTriggerInteraction.Collide
         );
 
+        // Debug: Log if anything is found
+        // if (cols.Length > 0)
+        // {
+        //     Debug.Log($"[PlayerInteractor] OverlapSphere found {cols.Length} colliders");
+        // }
+
         IInteractable best = null;
         float bestDist = float.MaxValue;
 
@@ -205,6 +209,8 @@ public class PlayerInteractor : MonoBehaviour
                 // Debug.Log($"[PlayerInteractor] Ignored collider {cols[i].name} (No IInteractable)");
                 continue;
             }
+            
+            // Debug.Log($"[PlayerInteractor] Found candidate: {inter.GetTransform().name}");
 
             float d = Vector3.Distance(transform.position, inter.GetTransform().position);
             if (d < bestDist)
@@ -213,21 +219,8 @@ public class PlayerInteractor : MonoBehaviour
                 bestDist = d;
             }
         }
-
-        // Phase 4 修复：只在最近 NPC 变化时打印日志
-        if (best != _lastLoggedInteractable)
-        {
-            if (best != null)
-            {
-                Debug.Log($"[PlayerInteractor] Closest is: {best.GetTransform().name}");
-            }
-            else
-            {
-                Debug.Log("[PlayerInteractor] No interactable in range");
-            }
-            _lastLoggedInteractable = best;
-        }
-
+        
+        if (best != null) Debug.Log($"[PlayerInteractor] Closest is: {best.GetTransform().name}");
         return best;
     }
 
@@ -236,6 +229,28 @@ public class PlayerInteractor : MonoBehaviour
         Debug.Log($"[PlayerInteractor] SwitchConversation to {target.GetTransform().name}");
         // 标记目标，避免重复启动
         _pendingSwitch = target;
+
+        // Phase 8: 检查目标类型并处理兼容性
+        IDialogSubject dialogSubject = null;
+        GameObject targetGameObject = null;
+
+        if (target is IDialogSubject)
+        {
+            dialogSubject = (IDialogSubject)target;
+            targetGameObject = dialogSubject.SubjectTransform?.gameObject;
+        }
+        else if (target is Component comp)
+        {
+            targetGameObject = comp.gameObject;
+            // 尝试获取 IDialogSubject
+            dialogSubject = comp.GetComponent<IDialogSubject>();
+        }
+
+        if (targetGameObject == null)
+        {
+            Debug.LogWarning("[PlayerInteractor] Target is null, cannot switch conversation");
+            yield break;
+        }
 
         // 1) 请求关闭当前对话（如果开着）
         if (_cachedDialogUI != null && _cachedDialogUI.IsOpen)
@@ -255,28 +270,65 @@ public class PlayerInteractor : MonoBehaviour
         // 4) 切换到新的交互对象并立刻触发
         _current = target;
 
-        // 如果是旧版 NPC 且没单独指定 dialogUI，则复用 sharedDialogUI
-        if (_current is NPCInteractable oldNpc && oldNpc.dialogUI == null && sharedDialogUI != null)
+        // Phase 8: 优先使用新系统的 Actor
+        if (targetGameObject != null)
         {
-            oldNpc.dialogUI = sharedDialogUI;
+            Actor newActor = targetGameObject.GetComponent<Actor>();
+            if (newActor != null)
+            {
+                // 新系统：直接传递 Actor 给 UI
+                if (_cachedDialogUI != null)
+                {
+                    _cachedDialogUI.Open(newActor);
+                    Debug.Log($"[PlayerInteractor] Opened new Actor system NPC: {newActor.Identity?.Name}");
+                }
+            }
+            else
+            {
+                // 旧系统兼容：使用 IInteractable
+                // Phase 8: 如果是旧版 NPC 且没单独指定 dialogUI，则复用 sharedDialogUI
+                if (target is NPCInteractable oldNpc && oldNpc.dialogUI == null && sharedDialogUI != null)
+                {
+                    oldNpc.dialogUI = sharedDialogUI;
+                }
+
+                // Phase 8: 通知 UI
+                if (target is IDialogSubject sub)
+                {
+                    _cachedDialogUI.Open(sub);
+                    Debug.Log($"[PlayerInteractor] Opened legacy NPC system: {sub.Name}");
+                }
+                else
+                {
+                    // Phase 8: 回退到旧方式
+                    target.Interact(gameObject);
+                    Debug.Log("[PlayerInteractor] Used legacy Interact() method");
+                }
+            }
         }
 
-        // —— 关键：在打开对话前，先把 Bridge 绑到"当前 NPC 的锚点" —— //
+        // Phase 8: 绑定世界气泡到当前 NPC
         var bridge = FindObjectOfType<NPCDialogWorldBridge>();
         if (bridge != null)
         {
-            Transform anchor = (target as MonoBehaviour)?.transform;
-            // 如果能找到更精确的 BubbleAnchor，可以扩展这里
-            bridge.Bind(anchor);
+            if (dialogSubject != null)
+            {
+                bridge.BindToSubject(dialogSubject);
+            }
+            else if (targetGameObject != null)
+            {
+                // Phase 8: 如果是旧版 NPC，尝试绑定（保留兼容性）
+                var oldNpc = targetGameObject.GetComponent<NPCInteractable>();
+                if (oldNpc != null)
+                    bridge.BindToNPC(oldNpc);
+            }
+            else
+            {
+                // Phase 8: 简单的 Transform 绑定
+                Transform anchor = target.GetTransform();
+                bridge.Bind(anchor);
+            }
         }
-
-        // 最后再真正打开对话
-        _current.Interact(gameObject);
-
-        // ★ 兜底：再次绑定到当前 NPC (如果是旧版 NPC)
-        var bridge2 = FindObjectOfType<NPCDialogWorldBridge>();
-        if (bridge2 != null && _current is NPCInteractable oldNpc2)
-            bridge2.BindToNPC(oldNpc2);
 
         // 5) 清理状态
         _pendingSwitch = null;

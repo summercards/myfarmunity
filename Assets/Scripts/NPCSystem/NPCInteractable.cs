@@ -1,80 +1,72 @@
 using UnityEngine;
 using UnityEngine.Events;
 using System.Collections.Generic;
-using FarmGame.UI; // Added for IDialogSubject
+using FarmGame.UI;
+using FarmGame.ActorSystem;
 
 namespace FarmGame.NPCSystem
 {
+    /// <summary>
+    /// NPCInteractable: 旧版交互组件
+    /// Phase 8: 已标记为过时，仅保留兼容性。
+    /// 新项目请使用 ActorInteraction (FarmGame.ActorSystem)
+    /// </summary>
+    [System.Obsolete("NPCInteractable is deprecated. Use ActorInteraction (FarmGame.ActorSystem) instead.")]
+    [DisallowMultipleComponent]
     public class NPCInteractable : MonoBehaviour, IInteractable, IDialogSubject
     {
-        [Header("UI 覆盖 (可选)")]
+        [Header("UI References (Legacy)")]
+        [Tooltip("(已过时）对话 UI 引用。新系统使用 Actor")]
         public NPCDialogUI dialogUI;
 
+        // 内部引用到新系统
+        private Actor _actor;
+
+        void Awake()
+        {
+            // Phase 8: 桥接到新系统
+            _actor = GetComponent<Actor>();
+        }
+
         // IDialogSubject Implementation
-        public string Name => GetDefinition()?.npcName ?? "Unknown";
-        public List<string> DialogLines => GetDefinition()?.dialogLines;
-        public string FunctionButtonText => GetDefinition()?.functionButtonText ?? "";
+        public string Name => _actor?.Identity?.Name ?? "Unknown NPC";
+        public List<string> DialogLines => _actor?.DialogLines ?? null;
+        public string FunctionButtonText => _actor?.FunctionButtonText ?? "";
         public Transform SubjectTransform => transform;
 
-        // Internal helper to get definition safely
-        private NPCDefinition GetDefinition()
+        public void InvokeFunction()
         {
-            var fromDef = GetComponent<NPCFromDefinition>();
-            return fromDef != null ? fromDef.definition : null;
+            _actor?.InvokeFunction();
         }
 
         // IInteractable implementation
         public string GetInteractPrompt()
         {
-            var def = GetDefinition();
-            return def != null ? $"按 [E] 对话：{def.npcName}" : "按 [E] 对话";
+            if (_actor == null || _actor.Identity == null) return "按 [E] 交互";
+            return $"按 [E] 对话：{_actor.Identity.Name}";
         }
 
         public Transform GetTransform() => transform;
 
         public void Interact(GameObject interactor)
         {
-            var def = GetDefinition();
-            if (def != null)
+            if (_actor == null)
             {
-                Debug.Log($"Interacting with {def.npcName} ({def.npcId})");
-                
-                NPCDialogUI ui = dialogUI;
-                if (ui == null)
-                {
-                     ui = FindObjectOfType<NPCDialogUI>();
-                }
-                
-                if (ui == null)
-                {
-                    Debug.LogWarning("No NPCDialogUI found in scene.");
-                    return;
-                }
-
-                ui.Open(this);
+                Debug.LogWarning("[NPCInteractable] Actor component missing. NPCInteractable is deprecated, please use ActorInteraction.");
+                return;
             }
-        }
 
-        public void InvokeFunction()
-        {
-            var def = GetDefinition();
-            if (def == null) return;
-
-            if (def.function == NPCFunction.OpenShop)
+            Debug.Log("[NPCInteractable] Redirecting to Actor system (Deprecated)");
+            
+            // 桥接到新系统
+            var ui = dialogUI ?? FindObjectOfType<NPCDialogUI>();
+            if (ui != null)
             {
-                var shopOpener = GetComponent<SimpleShopOpener>();
-                if (shopOpener != null)
-                {
-                    shopOpener.OpenShop();
-                }
-                else
-                {
-                    Debug.LogWarning("NPC has OpenShop function but no SimpleShopOpener component.");
-                }
+                ui.Open(_actor);
             }
-            else if (def.function == NPCFunction.Talk)
+            else
             {
-                Debug.Log("Function button clicked: Talk (Dialog continues or ends)");
+                Debug.LogWarning("[NPCInteractable] NPCDialogUI not found");
             }
         }
     }

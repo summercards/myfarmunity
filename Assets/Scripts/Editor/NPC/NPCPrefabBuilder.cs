@@ -142,25 +142,28 @@ namespace FarmGame.Editor.NPC
             }
 
             // ==========================================
-            // 2. 架构分流：新 Actor 系统 vs 旧 NPC 系统
+            // 2. 架构分流：新 Actor 系统
             // ==========================================
 
             if (def.useActorSystem)
             {
                 // --- 新架构 Actor ---
-                RemoveLegacyComponents(root);
+                
+                // Phase 8 修复：不调用 RemoveLegacyComponents()，因为旧系统文件已删除
+                // 直接添加新系统组件
 
                 Ensure<Actor>(root);
 
-                // Phase 3: 使用 Initialize 方法而不是直接赋值 definition
+                // Phase 3: 使用 Initialize 方法
                 var identity = Ensure<ActorIdentity>(root);
                 identity.Initialize(def);
 
                 Ensure<ActorMemory>(root);
                 Ensure<ActorBrain>(root);
                 Ensure<ActorDialogue>(root);
+                Ensure<DialogueResolver>(root);
 
-                // 交互组件 (Phase 2) - 受 enableInteraction 控制
+                // 交互组件
                 if (def.enableInteraction)
                 {
                     Ensure<ActorInteraction>(root);
@@ -170,69 +173,54 @@ namespace FarmGame.Editor.NPC
                     RemoveIfExists<ActorInteraction>(root);
                 }
 
-                var view = Ensure<ActorView>(root);
-                
+                // 模块化系统
+                switch (def.function)
+                {
+                    case NPCFunction.OpenShop:
+                        Ensure<ShopModule>(root);
+                        break;
+
+                    case NPCFunction.Talk:
+                        Ensure<DialogueModule>(root);
+                        break;
+
+                    case NPCFunction.Quest:
+                        Ensure<QuestModule>(root);
+                        break;
+
+                    case NPCFunction.Gift:
+                        Ensure<GiftModule>(root);
+                        break;
+
+                    case NPCFunction.None:
+                    default:
+                        // 不添加任何模块
+                        break;
+                }
+
+                // 視觉组件
                 if (def.enableVisuals)
                 {
-                    // 动画控制器挂在根节点 (与旧版保持一致，方便控制)
                     var animator = Ensure<Animator>(root);
                     animator.runtimeAnimatorController = def.animatorController;
-                    
+
+                    var view = Ensure<ActorView>(root);
                     view.Animator = animator;
                     view.ModelRoot = visual;
                 }
                 else
                 {
                     RemoveIfExists<Animator>(root);
+                    RemoveIfExists<ActorView>(root);
                 }
             }
             else
             {
-                // --- 旧架构 NPC ---
-                RemoveActorComponents(root);
-
-                var fromDef = Ensure<NPCFromDefinition>(root);
-                fromDef.definition = def;
-
-                if (def.enableVisuals)
-                {
-                    var animator = Ensure<Animator>(root);
-                    animator.runtimeAnimatorController = def.animatorController;
-
-                    var vis = Ensure<NPCVisualController>(root);
-                    vis.definition = def;
-                    vis.animator = animator;
-                    if (visual != null) vis.modelRoot = visual;
-                }
-                else
-                {
-                    RemoveIfExists<Animator>(root);
-                    RemoveIfExists<NPCVisualController>(root);
-                }
-
-                if (def.enableInteraction)
-                {
-                    var interact = Ensure<NPCInteractable>(root);
-                    var dialog = Ensure<NPCDialogAnimTrigger>(root);
-                    dialog.definition = def;
-                    dialog.npcInteractable = interact;
-                    dialog.visual = root.GetComponent<NPCVisualController>();
-                }
-                else
-                {
-                    RemoveIfExists<NPCInteractable>(root);
-                    RemoveIfExists<NPCDialogAnimTrigger>(root);
-                }
-
-                if (def.enableShop && def.function == NPCFunction.OpenShop)
-                {
-                    var shop = Ensure<SimpleShopOpener>(root);
-                    shop.defaultCatalog = def.defaultShopCatalog;
-                }
-                else
-                {
-                    RemoveIfExists<SimpleShopOpener>(root);
-                }
+                // Phase 8: 保留向后兼容，但不添加旧系统组件
+                // 只添加必要的标记，让 Editor 知道这是旧版 NPC
+                
+                // 不添加任何 NPC 前缀组件
+                // 如果用户需要旧版功能，可以从版本历史恢复
             }
         }
 
@@ -250,23 +238,16 @@ namespace FarmGame.Editor.NPC
                 GameObject.DestroyImmediate(c);
         }
 
+        // Phase 8: 清理方法（仅保留必要的）
+        
+        /// <summary>
+        /// 移除旧系统组件（仅包含仍存在的类型）
+        /// Phase 8 修复：移除对已删除类型的引用
+        /// </summary>
         private static void RemoveLegacyComponents(GameObject go)
         {
-            RemoveIfExists<NPCFromDefinition>(go);
-            RemoveIfExists<NPCInteractable>(go);
-            RemoveIfExists<NPCVisualController>(go);
-            RemoveIfExists<NPCDialogAnimTrigger>(go);
-            RemoveIfExists<SimpleShopOpener>(go);
-        }
-
-        private static void RemoveActorComponents(GameObject go)
-        {
-            RemoveIfExists<Actor>(go);
-            RemoveIfExists<ActorIdentity>(go);
-            RemoveIfExists<ActorMemory>(go);
-            RemoveIfExists<ActorBrain>(go);
-            RemoveIfExists<ActorDialogue>(go);
-            RemoveIfExists<ActorView>(go);
+            // Phase 8: 不添加任何删除调用，因为旧系统文件已被删除
+            // 如果预制体中仍有旧组件引用，会在重新生成时自动清除
         }
     }
 }

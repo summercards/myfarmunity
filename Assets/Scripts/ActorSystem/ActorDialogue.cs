@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace FarmGame.ActorSystem
 {
     /// <summary>
-    /// ActorDialogue: 负责"说什么”
-    /// Phase 4: 根据 Memory 决定当前台词。
+    /// ActorDialogue: 负责"说什么"
+    /// Phase 5: 根据记忆状态返回当前台词（使用 DialogueResolver）。
     /// - 从 ActorIdentity 获取默认对话（作为 fallback）
     /// - 根据好感度、标记返回不同对话
     /// - 提供给 UI 的接口
@@ -15,16 +15,18 @@ namespace FarmGame.ActorSystem
         private Actor _actor;
         private ActorIdentity _identity;
         private ActorMemory _memory;
+        private DialogueResolver _resolver;
 
         private void Awake()
         {
             _actor = GetComponent<Actor>();
             _identity = GetComponent<ActorIdentity>();
             _memory = GetComponent<ActorMemory>();
+            _resolver = GetComponent<DialogueResolver>();
         }
 
         /// <summary>
-        /// Phase 4: 根据记忆状态返回当前台词
+        /// Phase 5: 根据记忆状态返回当前台词（通过 DialogueResolver）
         /// </summary>
         public List<string> GetCurrentLines()
         {
@@ -34,47 +36,20 @@ namespace FarmGame.ActorSystem
                 return new List<string> { "(……)" };
             }
 
-            // Phase 4: 根据好感度选择对话
-            if (_memory != null)
+            // Phase 5: 使用 DialogueResolver 获取当前对话
+            string current = _resolver?.GetCurrentDialogue();
+            if (!string.IsNullOrEmpty(current))
             {
-                var friendshipLevel = _memory.GetFriendshipLevel();
-
-                switch (friendshipLevel)
-                {
-                    case ActorMemory.FriendshipLevel.Stranger:
-                        return GetLinesWithTag("stranger") ?? _identity.GetDefaultDialog();
-
-                    case ActorMemory.FriendshipLevel.Acquaintance:
-                        return GetLinesWithTag("acquaintance") ?? GetLinesWithTag("stranger") ?? _identity.GetDefaultDialog();
-
-                    case ActorMemory.FriendshipLevel.Friend:
-                        return GetLinesWithTag("friend") ?? _identity.GetDefaultDialog();
-
-                    case ActorMemory.FriendshipLevel.CloseFriend:
-                        return GetLinesWithTag("close_friend") ?? GetLinesWithTag("friend") ?? _identity.GetDefaultDialog();
-
-                    case ActorMemory.FriendshipLevel.BestFriend:
-                        return GetLinesWithTag("best_friend") ?? GetLinesWithTag("close_friend") ?? _identity.GetDefaultDialog();
-                }
+                return new List<string> { current };
             }
 
-            // Fallback: 返回默认对话
-            return _identity.GetDefaultDialog();
+            // 回退到默认对话
+            List<string> defaultLines = _identity.GetDefaultDialog();
+            return defaultLines ?? new List<string> { "(……)" };
         }
 
         /// <summary>
-        /// Phase 4: 根据标签获取对话行（从默认对话列表中筛选）
-        /// 未来可在 NPCDefinition 中支持多组对话（按好感度分级）
-        /// </summary>
-        private List<string> GetLinesWithTag(string tag)
-        {
-            // Phase 4: 简化实现，未来可从 Definition 的结构化对话中筛选
-            // 当前只返回 null，让系统回退到默认对话
-            return null;
-        }
-
-        /// <summary>
-        /// Phase 4: 记录对话事件到 Memory
+        /// Phase 5: 记录对话事件到 Memory
         /// </summary>
         public void OnDialogueStarted()
         {
