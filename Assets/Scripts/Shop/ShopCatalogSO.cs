@@ -2,32 +2,37 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// å•†åº—ç›®å½• - åŒ…å«æ‰€æœ‰å¯ä¹°å–çš„å•†å“
+/// </summary>
 [CreateAssetMenu(menuName = "Game/Shop Catalog", fileName = "SC_DefaultCatalog")]
 public class ShopCatalogSO : ScriptableObject
 {
     [Serializable]
-    public class Entry
+    public class ShopEntrySO
     {
-        [Tooltip("ÎïÆ·Î¨Ò»ID£¨ºÍÄã±³°üÄÚµÄID±£³ÖÒ»ÖÂ£¬»ò×Ô¶¨ÒåÒ»¸ö¹Ì¶¨ID£©¡£")]
+        [Tooltip("å•†å“å”¯ä¸€ID")]
         public string itemId;
 
-        [Tooltip("Õ¹Ê¾ÓÃÃû³Æ")]
+        [Tooltip("å•†å“æ˜¾ç¤ºåç§°")]
         public string displayName;
 
-        [Tooltip("Í¼±ê")]
+        [Tooltip("å•†å“å›¾æ ‡")]
         public Sprite icon;
 
-        [Header("¼Û¸ñ£¨µ¥Î»£º½ğ±Ò£©")]
+        [Header("ä»·æ ¼")]
         public int buyPrice = 10;
         public int sellPrice = 5;
 
-        [Header("¶µµ×£ºÈôÎŞ·¨Ö±½ÓÌí¼Óµ½±³°ü£¬ÔòÉú³ÉÕâ¸öÊ°È¡Ô¤ÖÆÌå¸øÍæ¼Ò¼ñ")]
+        [Tooltip("æ‹¾å–é¢„åˆ¶ä½“ï¼ˆå¯é€‰ï¼‰")]
         public GameObject pickupPrefab;
     }
 
-    public List<Entry> entries = new List<Entry>();
+    [Tooltip("å•†å“åˆ—è¡¨")]
+    public List<ShopEntrySO> entries = new List<ShopEntrySO>();
 
-    public Entry Get(string id)
+    /// <summary> æ ¹æ®IDè·å–å•†å“</summary>
+    public ShopEntrySO Get(string id)
     {
         return entries.Find(e => e.itemId == id);
     }

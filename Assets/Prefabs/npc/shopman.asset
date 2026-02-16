@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8eb389cd721e44642baf0c160c141bb8, type: 3}
-  m_Name: NPC_
+  m_Name: shopman
   m_EditorClassIdentifier: 
   useActorSystem: 1
   enableVisuals: 1
@@ -18,18 +18,18 @@ MonoBehaviour:
   enableInteraction: 1
   enableShop: 1
   npcId: shopman
-  npcName: "\u5546\u5E97\u4EBA"
+  npcName: "\u4F24\u4EBA"
   dialogLines:
   - "\u4F60\u597D\uFF0C\u6B22\u8FCE\u6765\u5230\u519C\u573A\u3002"
   - "\u6709\u4EC0\u4E48\u9700\u8981\u5E2E\u5FD9\u7684\u5417\uFF1F"
   function: 1
-  defaultShopCatalog: {fileID: 11400000, guid: 36b4b9b3db74b4f40b82f3961cc08be6, type: 2}
-  functionButtonText: "\u5546\u5E97"
+  defaultShopCatalog: {fileID: 11400000, guid: 9dec55b4a0fe100408aa7b90a72c2797, type: 2}
+  functionButtonText: 
   modelPrefab: {fileID: 919132149155446097, guid: e1637817d2e95b44e87c58b24c9d5508, type: 3}
   animatorController: {fileID: 0}
   modelLocalPosition: {x: 0, y: 0, z: 0}
   modelLocalEuler: {x: 0, y: 0, z: 0}
-  modelLocalScale: {x: 1, y: 1, z: 1}
+  modelLocalScale: {x: 0.6, y: 0.6, z: 0.6}
   dailyAnimations:
   - startHour: 0
     endHour: 6

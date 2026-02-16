@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using FarmGame.NPCSystem;
 using FarmGame.ActorSystem; // 引用新系统
 
@@ -179,7 +180,16 @@ namespace FarmGame.Editor.NPC
                         {
                             var shopModule = EnsureOrReplace<ShopModule>(root);
                             // Phase 7 修复：配置商店目录
-                            shopModule.shopCatalog = def.defaultShopCatalog;
+                            var catalogField = shopModule.GetType().GetField("shopCatalog", BindingFlags.Public | BindingFlags.Instance);
+                            if (catalogField != null)
+                            {
+                                catalogField.SetValue(shopModule, def.defaultShopCatalog);
+                                Debug.Log($"[NPCPrefabBuilder] 已配置商店目录到 ShopModule");
+                            }
+                            else
+                            {
+                                Debug.LogWarning("[NPCPrefabBuilder] ShopModule 没有 shopCatalog 字段");
+                            }
                             break;
                         }
 

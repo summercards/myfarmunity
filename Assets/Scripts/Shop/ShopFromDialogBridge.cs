@@ -1,36 +1,31 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Reflection;
+using FarmGame.ActorSystem;
 
 /// <summary>
-/// ´Ó¡°¶Ô»°Ãæ°å°´Å¥¡±´ò¿ªÉÌµê£¬²¢ÔÚ**µã»÷Ë²¼ä**ÇĞ»»Îª¡°ÉÌµêÌ¨´Ê¡±£º
-/// - ¶ÁÈ¡ NPCDialogUI µÄ CurrentNPC£¨²»¸ÄÄãÔ­½Å±¾£¬ÓÃ·´Éä»ñÈ¡£©
-/// - °Ñ player & npc ´«¸ø SimpleShopUI.SetContext(...)£»
-/// - µ÷ÓÃ SimpleShopUI.Open()£»
-/// - ÔÚ Open Ö®Ç°ÏÈ¶Ô NPCDialogWorldBridge µ÷ ShowStandalone(..., shopOpenLine)£¬
-///   È·±£¼´Ê¹Ëæºó¶Ô»°Ãæ°å±»Òş²Ø£¬Í·¶¥ÆøÅİÒ²ÒÑÇĞµ½ÉÌµêÎÄ°¸¡£
+/// ä»å¯¹è¯æŒ‰é’®æ‰“å¼€å•†åº—çš„æ¡¥æ¥ç»„ä»¶ã€‚
 /// </summary>
 [DisallowMultipleComponent]
 public class ShopFromDialogBridge : MonoBehaviour
 {
     [Header("Refs")]
     [Header("Behavior")]
-    [Tooltip("´Ó¶Ô»°Àïµã¡°¹¦ÄÜ/ÉÌµê¡±Ê±£¬ÊÇ·ñÏÈ¹Ø±Õ¶Ô»°Ãæ°åÒÔ±ÜÃâË«ÖØÉúÃüÖÜÆÚ³åÍ»")]
+    [Tooltip("åœ¨æ‰“å¼€å•†åº—å‰æ˜¯å¦å…ˆå…³é—­å¯¹è¯æ¡†ï¼Œè¿™æ ·æ°”æ³¡åˆ‡æ¢æ›´è‡ªç„¶")]
     public bool closeDialogWhenOpenShop = true;
-    public NPCDialogUI npcDialogUI;                 // Panel_NPCDialog ÉÏµÄ×é¼ş
-    public NPCDialogWorldBridge dialogWorldBridge;  // Í¬ÎïÌåÉÏµÄÇÅ½ÓÆ÷£¨½¨ÒéÖ±½ÓÍÏÒıÓÃ£©
-    public SimpleShopUI shopUI;                     // ÉÌµê UI ×é¼ş
-    public Transform player;                        // Íæ¼Ò£¨¿É¿Õ£º×Ô¶¯ÕÒ Tag=Player »òÖ÷Ïà»ú£©
+    public NPCDialogUI npcDialogUI;
+    public NPCDialogWorldBridge dialogWorldBridge;
+    public SimpleShopUI shopUI;
+    public Transform player;
 
-    [Header("Button£¨¿ÉÑ¡£©")]
-    public Button openShopButton;                   // ÈôÍÏÈë£¬ÕâÀï»á×Ô¶¯°ó¶¨µã»÷ÊÂ¼ş
+    [Header("Buttoné…ç½®ä¸ç»‘å®š")]
+    public Button openShopButton;
 
     [Header("Shop Line")]
-    [TextArea] public string shopOpenLine = "»¶Ó­¹âÁÙ£¡ĞèÒªµãÊ²Ã´£¿";
+    [TextArea] public string shopOpenLine = "æ¬¢è¿å…‰ä¸´ï¼Œéœ€è¦ç‚¹ä»€ä¹ˆå—ï¼Ÿ";
 
-    // ·´Éä»º´æ£º¶ÁÈ¡ CurrentNPC
-    PropertyInfo _propCurrentNPC;
-    FieldInfo _fieldCurrentNPC;
+    private PropertyInfo _propCurrentNPC;
+    private FieldInfo _fieldCurrentNPC;
 
     void Awake()
     {
@@ -55,30 +50,26 @@ public class ShopFromDialogBridge : MonoBehaviour
         }
     }
 
-    /// <summary>°ÑÕâ¸öº¯Êı°óµ½¡°´ò¿ªÉÌµê¡±°´Å¥µÄ OnClick()</summary>
     public void OpenShopForCurrentNPC()
     {
         if (!shopUI || !npcDialogUI)
         {
-            Debug.LogWarning("[ShopFromDialogBridge] È±ÉÙÒıÓÃ£ºshopUI »ò npcDialogUI¡£");
+            Debug.LogWarning("[ShopFromDialogBridge] ç¼ºå°‘å¼•ç”¨ï¼ŒshopUI æˆ– npcDialogUI ä¸ºç©º");
             return;
         }
 
-        // 1) ½âÎöµ±Ç° NPC
         Transform npcTr = ResolveCurrentNPCTransform();
         if (!npcTr)
         {
-            Debug.LogWarning("[ShopFromDialogBridge] ÕÒ²»µ½µ±Ç° NPC Transform¡£");
+            Debug.LogWarning("[ShopFromDialogBridge] æ— æ³•è·å–å½“å‰å¯¹è¯ NPC Transform");
             return;
         }
 
-        // ¹Ø¼ü£º´Ó¶Ô»°ÇĞµ½ÉÌµêÊ±£¬ÏÈ¹Ø±Õ¶Ô»° UI£¬±ÜÃâÁ½Ì×Âß¼­²¢´æ
         if (closeDialogWhenOpenShop && npcDialogUI != null && npcDialogUI.IsOpen)
         {
-            npcDialogUI.Close(); // »áÁ¬´ø°ÑÈÎºÎ²ĞÁôÆøÅİÇåµô
+            npcDialogUI.Close();
         }
 
-        // 2) ÏÈÇĞµ½ÉÌµêÌ¨´Ê£¨ÔÚÃæ°å¹Ø±ÕÇ°Ö´ĞĞ£¬È·±£ÇÅ½ÓÆ÷´æÔÚ£©
         var bridge = dialogWorldBridge ? dialogWorldBridge : Object.FindObjectOfType<NPCDialogWorldBridge>();
         if (bridge)
         {
@@ -86,8 +77,6 @@ public class ShopFromDialogBridge : MonoBehaviour
             bridge.ShowStandalone(anchor ? anchor : npcTr, shopOpenLine);
         }
 
-        // 3) °ÑÍæ¼Ò & NPC ÉÏÏÂÎÄ´«¸øÉÌµê£¬ÔÙ´ò¿ªÉÌµê
-        shopUI.SetContext(player, npcTr);
         shopUI.Open();
     }
 
