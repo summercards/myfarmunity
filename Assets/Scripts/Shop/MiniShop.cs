@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FarmGame.NPCSystem;
 
 public class MiniShop : MonoBehaviour
 {
@@ -141,7 +142,7 @@ public class MiniShop : MonoBehaviour
         NPCDialogWorldBridge bridge = null;
         if (dialogUI)
         {
-            if (dialogUI.CurrentNPC) npcFromDialog = dialogUI.CurrentNPC.transform;
+            if (dialogUI.CurrentNPC != null) npcFromDialog = dialogUI.CurrentNPC.SubjectTransform;
             bridge = dialogUI.GetComponent<NPCDialogWorldBridge>();
         }
 

@@ -1,7 +1,10 @@
-// Assets/Scripts/UI/NPCDialogUI.cs
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FarmGame.NPCSystem;
+using FarmGame.UI; // IDialogSubject
+using FarmGame.ActorSystem; // Phase 4: 引入 Actor 命名空间
+
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
 using UnityEngine.InputSystem;
 #endif
@@ -35,9 +38,9 @@ public class NPCDialogUI : MonoBehaviour
     public bool IsOpen { get; private set; }
 
     /// <summary> 当前正在对话的 NPC（供外部读取） </summary>
-    public NPCInteractable CurrentNPC => _curr;
+    public IDialogSubject CurrentNPC => _curr;
 
-    private NPCInteractable _curr;
+    private IDialogSubject _curr;
     private int _index = 0;
 
     void Awake()
@@ -79,13 +82,14 @@ public class NPCDialogUI : MonoBehaviour
     }
 
     /// <summary> 打开对话并显示第一句 </summary>
-    public void Open(NPCInteractable npc)
+    public void Open(IDialogSubject npc)
     {
+        Debug.Log($"[NPCDialogUI] Open called for {npc?.Name}");
         _curr = npc;
         _index = 0;
 
-        if (nameText) nameText.text = npc ? npc.npcName : "";
-        SetFunctionLabel(npc && !string.IsNullOrEmpty(npc.functionButtonText) ? npc.functionButtonText : "功能");
+        if (nameText) nameText.text = npc != null ? npc.Name : "";
+        SetFunctionLabel(npc != null && !string.IsNullOrEmpty(npc.FunctionButtonText) ? npc.FunctionButtonText : "功能");
 
         IsOpen = true;
         if (root) root.SetActive(true);
@@ -95,13 +99,26 @@ public class NPCDialogUI : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
         }
 
-        // ★ 新增：通知世界气泡 Bridge 绑定到当前 NPC
+        // Phase 4: 如果是 Actor，通知对话事件到 ActorDialogue
+        if (npc is Actor actor)
+        {
+            var dialogue = actor.GetComponent<ActorDialogue>();
+            if (dialogue != null)
+            {
+                dialogue.OnDialogueStarted();
+            }
+        }
+
+        // 通知世界气泡 Bridge (Phase 2: 支持IDialogSubject)
         var bridge = FindObjectOfType<NPCDialogWorldBridge>();
-        if (bridge != null) bridge.BindToNPC(npc);
+        if (bridge != null)
+        {
+            // Phase 2: 使用新的 BindToSubject 方法，同时支持 Actor 和 NPC
+            bridge.BindToSubject(npc);
+        }
 
         RefreshLine();
     }
-
 
     /// <summary> 关闭对话面板 </summary>
     public void Close()
@@ -109,18 +126,12 @@ public class NPCDialogUI : MonoBehaviour
         IsOpen = false;
         if (root) root.SetActive(false);
 
-        // 清空状态，避免被当作仍在对话
         _index = 0;
-
-        // _curr 是私有字段，Close 时要清空，防止外部还拿到“旧 NPC”
-        // （在本文件顶部可看到：private NPCInteractable _curr;）
         _curr = null;
 
-        // 统一把任何可能残留的头顶气泡关掉（包括“商店台词”的独立气泡）
         var bridge = FindObjectOfType<NPCDialogWorldBridge>();
         if (bridge != null) bridge.EndStandalone();
     }
-
 
     private void HideImmediate()
     {
@@ -130,26 +141,26 @@ public class NPCDialogUI : MonoBehaviour
 
     private void RefreshLine()
     {
-        if (!_curr || _curr.dialogLines == null || _curr.dialogLines.Length == 0)
+        if (_curr == null || _curr.DialogLines == null || _curr.DialogLines.Count == 0)
         {
             if (lineText) lineText.text = "(……)";
             return;
         }
 
-        _index = Mathf.Clamp(_index, 0, _curr.dialogLines.Length - 1);
-        if (lineText) lineText.text = _curr.dialogLines[_index];
+        _index = Mathf.Clamp(_index, 0, _curr.DialogLines.Count - 1);
+        if (lineText) lineText.text = _curr.DialogLines[_index];
     }
 
     private void ShowNextOrClose()
     {
-        if (_curr == null || _curr.dialogLines == null || _curr.dialogLines.Length == 0)
+        if (_curr == null || _curr.DialogLines == null || _curr.DialogLines.Count == 0)
         {
             Close();
             return;
         }
 
         _index++;
-        if (_index >= _curr.dialogLines.Length)
+        if (_index >= _curr.DialogLines.Count)
         {
             Close();
         }
@@ -159,16 +170,11 @@ public class NPCDialogUI : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 设置功能按钮文字（支持 TMP 与旧 Text；未绑定时会在 functionButton 子物体中自动寻找）
-    /// </summary>
     private void SetFunctionLabel(string s)
     {
-        // 优先使用显式绑定的
         if (functionButtonLabelTMP) { functionButtonLabelTMP.text = s; return; }
         if (functionButtonLabelUGUI) { functionButtonLabelUGUI.text = s; return; }
 
-        // 未绑定则自动查找
         if (functionButton)
         {
             var tmp = functionButton.GetComponentInChildren<TextMeshProUGUI>(true);

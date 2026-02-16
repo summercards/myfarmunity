@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using System.Reflection;
 using UnityEngine.UI;
+using FarmGame.UI; // Phase 2: æ”¯æŒ IDialogSubject
 
 [DisallowMultipleComponent]
 public class NPCDialogWorldBridge : MonoBehaviour
@@ -24,18 +25,18 @@ public class NPCDialogWorldBridge : MonoBehaviour
     public string playerTag = "Player";
     public bool alsoCloseUIDialog = true;
 
-    [Header("UI Line Override£¨¿ÉÑ¡£©")]
+    [Header("UI Line Override (è°ƒè¯•ç”¨)")]
     public TextMeshProUGUI lineTextOverrideTMP;
     public Text lineTextOverrideUGUI;
 
     SpeechBubble3D _bubble;
     Transform _anchor;
-    object _currentNPC;
+    IDialogSubject _currentSubject; // Phase 2: ä» NPC æ”¹ä¸º IDialogSubject
     string _lastLineText = "";
     TextMeshProUGUI _lineTextTMP;
     Text _lineTextUGUI;
-    PropertyInfo _propCurrentNPC;
-    FieldInfo _fieldCurrentNPC;
+    PropertyInfo _propCurrentSubject; // Phase 2: é‡å‘½å
+    FieldInfo _fieldCurrentSubject; // Phase 2: é‡å‘½å
     Transform _player;
 
     bool _standaloneMode = false;
@@ -47,8 +48,9 @@ public class NPCDialogWorldBridge : MonoBehaviour
         if (!ui) ui = GetComponent<NPCDialogUI>();
         CacheLineText();
 
-        _propCurrentNPC = typeof(NPCDialogUI).GetProperty("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
-        _fieldCurrentNPC = typeof(NPCDialogUI).GetField("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
+        // Phase 2: è·å– NPCDialogUI çš„ CurrentNPCï¼ˆIDialogSubject ç±»å‹ï¼‰
+        _propCurrentSubject = typeof(NPCDialogUI).GetProperty("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
+        _fieldCurrentSubject = typeof(NPCDialogUI).GetField("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
 
         if (!string.IsNullOrEmpty(playerTag))
         {
@@ -60,13 +62,15 @@ public class NPCDialogWorldBridge : MonoBehaviour
 
     void OnEnable()
     {
-        // ¼àÌıÉÌµê¿ª¹Ø£ºÉÌµê¹Ø±Õ -> Ç¿ÖÆ½áÊø¶ÀÁ¢Ì¨´Ê
+        // å•†åº—æ‰“å¼€æ—¶å…³é—­ç‹¬ç«‹æ°”æ³¡ -> è¿”å›ä¸»å¯¹è¯æ°”æ³¡
         MiniShop.OnActiveChanged += OnShopActiveChanged;
     }
+
     void OnDisable()
     {
         MiniShop.OnActiveChanged -= OnShopActiveChanged;
     }
+
     void OnShopActiveChanged(bool active)
     {
         if (!active) EndStandalone();
@@ -88,7 +92,10 @@ public class NPCDialogWorldBridge : MonoBehaviour
 
         GameObject rootGO = null;
         var fRoot = t.GetField("root", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        if (fRoot != null) rootGO = fRoot.GetValue(ui) as GameObject;
+        if (fRoot != null)
+        {
+            rootGO = fRoot.GetValue(ui) as GameObject;
+        }
 
         if (rootGO)
         {
@@ -119,7 +126,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
             isOpen = rootGO && rootGO.activeInHierarchy;
         }
 
-        // ¡ª¡ª ¾àÀë×Ô¶¯Òş²Ø£º¶ÀÁ¢Ì¨´Ê/ÆÕÍ¨Ì¨´Ê¶¼ÊÊÓÃ ¡ª¡ª 
+        // è·ç¦»æ£€æµ‹ï¼šå¦‚æœè¿‡è¿œåˆ™éšè—ç‹¬ç«‹æ°”æ³¡/å…³é—­UIå¯¹è¯æ¡†
         if (enableAutoHideByDistance && _player && (_anchor || _standaloneNPC))
         {
             var refTr = _anchor ? _anchor : _standaloneNPC;
@@ -137,7 +144,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
             }
         }
 
-        // ¡ª¡ª ¶ÀÁ¢Ì¨´ÊÄ£Ê½£¨ÉÌµêµÈ£©¡ª¡ª
+        // ç‹¬ç«‹æ¨¡å¼ï¼šæ˜¾ç¤ºå›ºå®šæ°”æ³¡ï¼ˆéUIå¯¹è¯æ¡†æ¨¡å¼ï¼‰
         if (_standaloneMode)
         {
             if (_bubble == null || _anchor == null)
@@ -152,11 +159,11 @@ public class NPCDialogWorldBridge : MonoBehaviour
             return;
         }
 
-        // ¡ª¡ª Õı³£Ä£Ê½£ºÍ¬²½ UI Ì¨´Ê ¡ª¡ª 
-        _currentNPC = GetCurrentNPCObj();
-        if (!isOpen || _currentNPC == null)
+        // UIæ¨¡å¼ï¼šè·ŸéšUIå¯¹è¯æ¡†å½“å‰å¯¹è¯çš„NPCï¼ˆæˆ–Actorï¼‰
+        _currentSubject = GetCurrentSubject();
+        if (!isOpen || _currentSubject == null)
         {
-            // UI ¹ØÁË¾Í°ÑÆøÅİÊÕµô£¬±ÜÃâÕ¼Î»
+            // UIå…³é—­æ—¶æ¸…é™¤æ°”æ³¡
             HideBubble();
             return;
         }
@@ -164,7 +171,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         string line = ReadCurrentLineText() ?? "";
         if (_bubble == null || _anchor == null)
         {
-            _anchor = ResolveAnchor(GetNPCTransform(_currentNPC));
+            _anchor = ResolveAnchor(_currentSubject.SubjectTransform);
             EnsureBubble();
             _bubble.transform.SetParent(null, true);
             _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
@@ -179,7 +186,11 @@ public class NPCDialogWorldBridge : MonoBehaviour
         }
     }
 
-    // ===== ¶ÀÁ¢Ì¨´Ê API =====
+    // ===== æ°”æ³¡ API =====
+
+    /// <summary>
+    /// æ˜¾ç¤ºç‹¬ç«‹æ°”æ³¡ï¼ˆä¸è·ŸéšUIå¯¹è¯æ¡†ï¼‰
+    /// </summary>
     public void ShowStandalone(Transform npcRootOrAnchor, string line)
     {
         if (!npcRootOrAnchor) return;
@@ -195,33 +206,60 @@ public class NPCDialogWorldBridge : MonoBehaviour
         MakeUILineTransparent();
     }
 
-    // Í³Ò»¶ÔÍâ£º°ó¶¨µ½Ò»¸ö¾ßÌåµÄÊÀ½çµã
+    /// <summary>
+    /// ç»‘å®šåˆ°NPCå˜æ¢ï¼ˆPhase 2: æ›´æ–°ä¸ºæ”¯æŒIDialogSubjectï¼‰
+    /// </summary>
     public void Bind(Transform newAnchor)
     {
         if (!newAnchor) return;
 
-        // ÍË³ö¶ÀÁ¢Ä£Ê½£¬±ÜÃâ±»¸²¸Ç
+        // é€€å‡ºç‹¬ç«‹æ¨¡å¼ï¼Œè¿›å…¥ç»‘å®šæ¨¡å¼
         _standaloneMode = false;
         _standaloneNPC = null;
 
         _anchor = ResolveAnchor(newAnchor);
 
-        // ÆøÅİÒÑ¾­ÔÚ³¡¾°ÀïÊ±£¬Á¢¿ÌÖØ°ó£¬±ÜÃâÒ»Ö¡ÂäÔÚ¾É NPC ÉÏ
+        // å¦‚æœæ°”æ³¡å·²å­˜åœ¨ï¼Œç«‹å³æ›´æ–°ä½ç½®ï¼ˆé¿å…åœ¨NPCå¯¹è¯æ¡†æ‰“å¼€æ—¶çœ‹ä¸åˆ°æ°”æ³¡ï¼‰
         if (_bubble != null)
         {
             _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
         }
 
-        _lastLineText = ""; // Ç¿ÖÆÏÂÒ»Ö¡Ë¢ĞÂ
+        _lastLineText = ""; // é¿å…æ°”æ³¡ä¸åˆ·æ–°
     }
 
-    // ÓïÒå¸üÃ÷È·£ºÖ±½Ó°ó¶¨µ½ NPC£¨ÓÅÏÈÆä BubbleAnchor£©
+    /// <summary>
+    /// Phase 2: æ–°å¢æ–¹æ³• - ç›´æ¥ç»‘å®šåˆ°IDialogSubjectï¼ˆæ”¯æŒActorï¼‰
+    /// </summary>
+    public void BindToSubject(IDialogSubject subject)
+    {
+        if (subject == null) return;
+
+        // é€€å‡ºç‹¬ç«‹æ¨¡å¼ï¼Œè¿›å…¥ç»‘å®šæ¨¡å¼
+        _standaloneMode = false;
+        _standaloneNPC = null;
+
+        _anchor = ResolveAnchor(subject.SubjectTransform);
+
+        // å¦‚æœæ°”æ³¡å·²å­˜åœ¨ï¼Œç«‹å³æ›´æ–°ä½ç½®
+        if (_bubble != null)
+        {
+            _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+        }
+
+        _lastLineText = ""; // é¿å…æ°”æ³¡ä¸åˆ·æ–°
+    }
+
+    /// <summary>
+    /// ç»‘å®šåˆ°NPCï¼ˆä¿ç•™å…¼å®¹æ€§ï¼ŒPhase 2: æ”¹ä¸ºä½¿ç”¨BindToSubjectï¼‰
+    /// </summary>
+    [System.Obsolete("Use BindToSubject(IDialogSubject) instead for Phase 2 Actor support")]
     public void BindToNPC(MonoBehaviour npcMono)
     {
         if (npcMono == null) return;
         var t = npcMono.transform;
 
-        // ÓÅÏÈÕÒÃªµã£¨×Ö¶Î»òÊôĞÔÃû£ºBubbleAnchor/WorldAnchor/bubbleAnchor£©
+        // å¯»æ‰¾é”šç‚¹ï¼ˆä¼˜å…ˆç‰¹å®šå­—æ®µBubbleAnchor/WorldAnchor/bubbleAnchorï¼‰
         var tp = npcMono.GetType();
         Transform anchor = null;
         var f = tp.GetField("BubbleAnchor") ?? tp.GetField("WorldAnchor") ?? tp.GetField("bubbleAnchor");
@@ -239,31 +277,27 @@ public class NPCDialogWorldBridge : MonoBehaviour
         _standaloneLine = line ?? "";
         if (_standaloneMode && _bubble) _bubble.SetText(_standaloneLine);
     }
+
     public void EndStandalone()
     {
         _standaloneMode = false;
         HideBubble();
     }
 
-    // ===== ÄÚ²¿¹¤¾ß =====
+    // ===== å†…éƒ¨æ–¹æ³• =====
+
     string ReadCurrentLineText()
     {
         if (_lineTextTMP) return _lineTextTMP.text;
         if (_lineTextUGUI) return _lineTextUGUI.text;
         return "";
     }
-    object GetCurrentNPCObj()
+
+    IDialogSubject GetCurrentSubject()
     {
-        if (_propCurrentNPC != null) return _propCurrentNPC.GetValue(ui);
-        if (_fieldCurrentNPC != null) return _fieldCurrentNPC.GetValue(ui);
+        if (_propCurrentSubject != null) return _propCurrentSubject.GetValue(ui) as IDialogSubject;
+        if (_fieldCurrentSubject != null) return _fieldCurrentSubject.GetValue(ui) as IDialogSubject;
         return null;
-    }
-    Transform GetNPCTransform(object npcObj)
-    {
-        if (npcObj == null) return null;
-        var tNpc = npcObj.GetType();
-        var pTr = tNpc.GetProperty("transform", BindingFlags.Public | BindingFlags.Instance);
-        return pTr != null ? pTr.GetValue(npcObj) as Transform : null;
     }
 
     Transform ResolveAnchor(Transform npcTransform)
@@ -306,16 +340,19 @@ public class NPCDialogWorldBridge : MonoBehaviour
             _bubble = bubblePrefab ? Instantiate(bubblePrefab)
                                    : new GameObject("SpeechBubble3D").AddComponent<SpeechBubble3D>();
     }
+
     void MakeUILineTransparent()
     {
         if (_lineTextTMP) { var c = _lineTextTMP.color; c.a = 0f; _lineTextTMP.color = c; }
         if (_lineTextUGUI) { var c = _lineTextUGUI.color; c.a = 0f; _lineTextUGUI.color = c; }
     }
+
     void RestoreUILineVisibility()
     {
         if (_lineTextTMP) { var c = _lineTextTMP.color; c.a = 1f; _lineTextTMP.color = c; }
         if (_lineTextUGUI) { var c = _lineTextUGUI.color; c.a = 1f; _lineTextUGUI.color = c; }
     }
+
     void HideBubble()
     {
         if (_bubble) _bubble.Hide();

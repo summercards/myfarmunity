@@ -1,12 +1,13 @@
 using UnityEngine;
+using FarmGame.NPCSystem;
 
 /// <summary>
-/// ´ò¿ªÉÌµê£º
-/// - ÓÅÏÈÑØÓÃ SimpleShopUI ÉÏÒÑ¾­ÊÖ¶¯°ó¶¨µÄ player / npc£¨²»¸²¸Ç£©£»
-/// - Èç¹ûÃ»°ó¶¨ npc£¬ÓÅÏÈ´Ó NPCDialogUI.CurrentNPC »ñÈ¡£¬²¢ Close() ¶Ô»°£»
-/// - »¹ÕÒ²»µ½Ê±²ÅÔÚ°ë¾¶ÄÚËÑË÷º¬ NPCInteractable µÄ×î½üÎïÌå£»
-/// - Íæ¼Ò Transform ÖÇÄÜ²éÕÒ£ºÏÔÊ½Ö¸¶¨ > SimpleShopUIÒÑ°ó¶¨ > PlayerInventoryHolder > tag=Player > MainCamera£»
-/// - ÒÀÀµ×¢Èë catalog / bridge / wallet¡£
+/// ï¿½ï¿½ï¿½Ìµê£º
+/// - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ SimpleShopUI ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½Ö¶ï¿½ï¿½ó¶¨µï¿½ player / npcï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç£ï¿½ï¿½ï¿½
+/// - ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ npcï¿½ï¿½ï¿½ï¿½ï¿½È´ï¿½ NPCDialogUI.CurrentNPC ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ Close() ï¿½Ô»ï¿½ï¿½ï¿½
+/// - ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ú°ë¾¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ NPCInteractable ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£»
+/// - ï¿½ï¿½ï¿½ Transform ï¿½ï¿½ï¿½Ü²ï¿½ï¿½Ò£ï¿½ï¿½ï¿½Ê½Ö¸ï¿½ï¿½ > SimpleShopUIï¿½Ñ°ï¿½ > PlayerInventoryHolder > tag=Player > MainCameraï¿½ï¿½
+/// - ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½ catalog / bridge / walletï¿½ï¿½
 /// </summary>
 public class SimpleShopOpener : MonoBehaviour
 {
@@ -17,57 +18,57 @@ public class SimpleShopOpener : MonoBehaviour
     public PlayerWallet wallet;
 
     [Header("Dialog (Optional)")]
-    [Tooltip("³¡¾°ÖÐµÄ NPCDialogUI£»½¨ÒéÍÏÓë PlayerInteractor.sharedDialogUI ÏàÍ¬µÄÄÇÒ»¸ö¡£")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ NPCDialogUIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ PlayerInteractor.sharedDialogUI ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½")]
     public NPCDialogUI dialogUI;
 
     [Header("Context (Optional)")]
-    [Tooltip("ÏÔÊ½Ö¸¶¨Íæ¼Ò Transform£¨ÓÅÏÈ¼¶×î¸ß£©£»Í¨³£¿ÉÁô¿Õ¡£")]
+    [Tooltip("ï¿½ï¿½Ê½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ Transformï¿½ï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¡ï¿½")]
     public Transform player;
-    [Tooltip("ÏÔÊ½Ö¸¶¨ NPC£¨Èç¹ûÄãÏë¹Ì¶¨Ä³¸öNPC£©¡£")]
+    [Tooltip("ï¿½ï¿½Ê½Ö¸ï¿½ï¿½ NPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¶ï¿½Ä³ï¿½ï¿½NPCï¿½ï¿½ï¿½ï¿½")]
     public Transform overrideNPC;
 
     [Header("Fallback Search")]
-    [Tooltip("µ±ÎÞ·¨´Ó¶Ô»°Ãæ°å»ñµÃ NPC Ê±£¬ÔÚ¸Ã°ë¾¶ÄÚËÑË÷×î½üµÄ NPCInteractable¡£")]
+    [Tooltip("ï¿½ï¿½ï¿½Þ·ï¿½ï¿½Ó¶Ô»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ NPC Ê±ï¿½ï¿½ï¿½Ú¸Ã°ë¾¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ NPCInteractableï¿½ï¿½")]
     public float findNpcRadius = 6.0f;
-    [Tooltip("ËÑË÷ NPC Ê±Ê¹ÓÃµÄ LayerMask£¨¿ÉÖ»¹´ Interactable ²ã£©¡£")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ NPC Ê±Ê¹ï¿½Ãµï¿½ LayerMaskï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ Interactable ï¿½ã£©ï¿½ï¿½")]
     public LayerMask npcMask = ~0;
 
     public void OpenShop()
     {
         if (!shopUI)
         {
-            Debug.LogWarning("[SimpleShopOpener] Î´°ó¶¨ SimpleShopUI");
+            Debug.LogWarning("[SimpleShopOpener] Î´ï¿½ï¿½ SimpleShopUI");
             return;
         }
 
-        // 1) ×¢ÈëÒÀÀµ
+        // 1) ×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         if (defaultCatalog) shopUI.catalog = defaultCatalog;
         if (inventoryBridge) shopUI.inventoryBridge = inventoryBridge;
         if (wallet) shopUI.wallet = wallet;
 
-        // 2) ¾ö¶¨Íæ¼Ò£¨²»¸²¸Ç SimpleShopUI ÉÏÒÑÉèÖÃµÄ player£©
+        // 2) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ SimpleShopUI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ playerï¿½ï¿½
         Transform p = player;
-        if (!p && shopUI.player) p = shopUI.player;                                  // ±£ÁôÄãÊÖ¶¯°ó¶¨µÄ
-        if (!p) p = TryFindPlayerByHolder();                                          // Íæ¼Ò±³°ü³ÖÓÐÕß
+        if (!p && shopUI.player) p = shopUI.player;                                  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ï¿½ó¶¨µï¿½
+        if (!p) p = TryFindPlayerByHolder();                                          // ï¿½ï¿½Ò±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         if (!p) p = TryFindPlayerByTag();                                             // tag=Player
-        if (!p) p = Camera.main ? Camera.main.transform : null;                       // ¶µµ×
+        if (!p) p = Camera.main ? Camera.main.transform : null;                       // ï¿½ï¿½ï¿½ï¿½
 
-        // 3) ¾ö¶¨ NPC£¨²»¸²¸Ç SimpleShopUI ÉÏÒÑÉèÖÃµÄ npc£©
-        Transform n = overrideNPC ? overrideNPC : null;                               // ÏÔÊ½Ç¿ÖÆ
-        if (!n && shopUI.npc) n = shopUI.npc;                                         // ±£ÁôÄãÊÖ¶¯°ó¶¨µÄ
+        // 3) ï¿½ï¿½ï¿½ï¿½ NPCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ SimpleShopUI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ npcï¿½ï¿½
+        Transform n = overrideNPC ? overrideNPC : null;                               // ï¿½ï¿½Ê½Ç¿ï¿½ï¿½
+        if (!n && shopUI.npc) n = shopUI.npc;                                         // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½ï¿½ó¶¨µï¿½
 
-        // ÓÅÏÈ´Ó¶Ô»°ÄÃµ±Ç° NPC£¬²¢¹Ø±Õ¶Ô»°
+        // ï¿½ï¿½ï¿½È´Ó¶Ô»ï¿½ï¿½Ãµï¿½Ç° NPCï¿½ï¿½ï¿½ï¿½ï¿½Ø±Õ¶Ô»ï¿½
         if (!n && dialogUI && dialogUI.IsOpen)
         {
             var curr = dialogUI.CurrentNPC;
-            if (curr) n = curr.transform;
+            if (curr != null) n = curr.SubjectTransform;
             dialogUI.Close();
         }
 
-        // ¶µµ×£ºËÑË÷¸½½üº¬ NPCInteractable µÄ×î½üÎïÌå
+        // ï¿½ï¿½ï¿½×£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ NPCInteractable ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         if (!n) n = FindClosestNpcWithInteractable(p);
 
-        // 4) ×¢ÈëÉÏÏÂÎÄ²¢´ò¿ª
+        // 4) ×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½
         shopUI.SetContext(p, n);
         shopUI.Open();
     }
@@ -77,10 +78,10 @@ public class SimpleShopOpener : MonoBehaviour
         if (shopUI) shopUI.Close();
     }
 
-    // ---------- ¸¨Öú ----------
+    // ---------- ï¿½ï¿½ï¿½ï¿½ ----------
     Transform TryFindPlayerByHolder()
     {
-        // ³¢ÊÔÕÒ PlayerInventoryHolder£¨ÄãÏîÄ¿ÀïÓÐ£©
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ PlayerInventoryHolderï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½Ð£ï¿½
         var holder = FindObjectOfType<PlayerInventoryHolder>();
         return holder ? holder.transform : null;
     }

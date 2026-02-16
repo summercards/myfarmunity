@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 using FarmGame.NPCSystem;
+using FarmGame.Editor.NPC; // Import the Builder namespace
 
 public class NPCManagerWindow : EditorWindow
 {
@@ -15,8 +16,8 @@ public class NPCManagerWindow : EditorWindow
     private ReorderableList _linesList;
     private ReorderableList _animList;
 
-    [MenuItem("Tools/Farm/NPC π‹¿Ì∆˜")]
-    public static void Open() => GetWindow<NPCManagerWindow>("NPC π‹¿Ì∆˜");
+    [MenuItem("Â∑•ÂÖ∑/NPC/NPC ÁÆ°ÁêÜÂô®")]
+    public static void Open() => GetWindow<NPCManagerWindow>("NPC ÁÆ°ÁêÜÂô®");
 
     private void OnEnable()
     {
@@ -38,8 +39,8 @@ public class NPCManagerWindow : EditorWindow
         EditorGUILayout.Space();
 
         EditorGUILayout.BeginHorizontal();
-        GUILayout.Label("NPC  ˝æ›£®ScriptableObjects£©", EditorStyles.boldLabel);
-        if (GUILayout.Button("À¢–¬", GUILayout.Width(60))) RefreshList();
+        GUILayout.Label("NPC Êï∞ÊçÆÂàóË°®", EditorStyles.boldLabel);
+        if (GUILayout.Button("Âà∑Êñ∞", GUILayout.Width(60))) RefreshList();
         EditorGUILayout.EndHorizontal();
 
         _leftScroll = EditorGUILayout.BeginScrollView(_leftScroll);
@@ -53,7 +54,7 @@ public class NPCManagerWindow : EditorWindow
                     BuildLinesList(); BuildAnimList();
                     EditorGUIUtility.PingObject(def);
                 }
-                if (GUILayout.Button("—°÷–", GUILayout.Width(50)))
+                if (GUILayout.Button("ÈÄâÊã©", GUILayout.Width(50)))
                     Selection.activeObject = def;
             }
         }
@@ -62,17 +63,17 @@ public class NPCManagerWindow : EditorWindow
         EditorGUILayout.Space();
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("–¬Ω® NPC  ˝æ›")) CreateDefinition();
-            if (_selected != null && GUILayout.Button("∏¥÷∆"))
+            if (GUILayout.Button("Êñ∞Âª∫Êï∞ÊçÆ")) CreateDefinition();
+            if (_selected != null && GUILayout.Button("Â§çÂà∂"))
             {
                 var path = AssetDatabase.GetAssetPath(_selected);
                 var newPath = AssetDatabase.GenerateUniqueAssetPath(path);
                 AssetDatabase.CopyAsset(path, newPath);
                 AssetDatabase.Refresh(); RefreshList();
             }
-            if (_selected != null && GUILayout.Button("…æ≥˝"))
+            if (_selected != null && GUILayout.Button("Âà†Èô§"))
             {
-                if (EditorUtility.DisplayDialog("…æ≥˝»∑»œ", $"»∑∂®…æ≥˝ {_selected.name} ?", "…æ≥˝", "»°œ˚"))
+                if (EditorUtility.DisplayDialog("Á°ÆËÆ§Âà†Èô§", $"Á°ÆÂÆöË¶ÅÂà†Èô§ {_selected.name} Âêó?", "Âà†Èô§", "ÂèñÊ∂à"))
                 {
                     var path = AssetDatabase.GetAssetPath(_selected);
                     AssetDatabase.DeleteAsset(path);
@@ -92,7 +93,7 @@ public class NPCManagerWindow : EditorWindow
 
         if (_selected == null)
         {
-            EditorGUILayout.HelpBox("◊Û≤‡—°‘Ò“ª∏ˆ NPC  ˝æ›£¨ªÚµ„ª˜°∞–¬Ω® NPC  ˝æ›°±°£", MessageType.Info);
+            EditorGUILayout.HelpBox("ËØ∑Âú®Â∑¶‰æßÈÄâÊã©‰∏Ä‰∏™ NPC Êï∞ÊçÆËøõË°åÁºñËæë„ÄÇ", MessageType.Info);
             EditorGUILayout.EndVertical();
             return;
         }
@@ -106,14 +107,14 @@ public class NPCManagerWindow : EditorWindow
         EditorGUILayout.PropertyField(so.FindProperty("npcName"));
 
         EditorGUILayout.Space();
-        GUILayout.Label("∂‘ª∞Ã®¥ ", EditorStyles.boldLabel);
+        GUILayout.Label("ÂØπËØùÂÜÖÂÆπ", EditorStyles.boldLabel);
         _linesList?.DoLayoutList();
 
         EditorGUILayout.Space();
-        GUILayout.Label("π¶ƒ‹∞¥≈•", EditorStyles.boldLabel);
+        GUILayout.Label("ÂäüËÉΩÈÖçÁΩÆ", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(so.FindProperty("function"));
         var funcProp = so.FindProperty("function");
-        if ((NPCFunctionType)funcProp.enumValueIndex == NPCFunctionType.OpenShop)
+        if ((NPCFunction)funcProp.enumValueIndex == NPCFunction.OpenShop)
         {
             EditorGUILayout.PropertyField(so.FindProperty("defaultShopCatalog"));
         }
@@ -121,7 +122,7 @@ public class NPCManagerWindow : EditorWindow
 
 
         EditorGUILayout.Space(10);
-        GUILayout.Label("ƒ£–Õ”Î∂Ø◊˜", EditorStyles.boldLabel);
+        GUILayout.Label("Ê®°Âûã‰∏éÂä®Áîª", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(so.FindProperty("modelPrefab"));
         EditorGUILayout.PropertyField(so.FindProperty("animatorController"));
         EditorGUILayout.PropertyField(so.FindProperty("modelLocalPosition"));
@@ -132,16 +133,16 @@ public class NPCManagerWindow : EditorWindow
         _animList?.DoLayoutList();
 
         EditorGUILayout.Space(6);
-        GUILayout.Label("∂‘ª∞ ±∂Ø◊˜", EditorStyles.boldLabel);
+        GUILayout.Label("ÂØπËØùËÆæÁΩÆ", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(so.FindProperty("talkStateName"));
         EditorGUILayout.PropertyField(so.FindProperty("talkSpeed"));
         EditorGUILayout.PropertyField(so.FindProperty("talkCrossFade"));
 
         EditorGUILayout.Space(10);
-        GUILayout.Label("…˙≥…—°œÓ", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(so.FindProperty("defaultColliderCenter"));
-        EditorGUILayout.PropertyField(so.FindProperty("defaultColliderSize"));
-        EditorGUILayout.PropertyField(so.FindProperty("addCapsuleColliderInstead"));
+        GUILayout.Label("Á¢∞Êíû‰ΩìËÆæÁΩÆ", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(so.FindProperty("colliderCenter"));
+        EditorGUILayout.PropertyField(so.FindProperty("colliderRadius"));
+        EditorGUILayout.PropertyField(so.FindProperty("colliderHeight"));
         EditorGUILayout.PropertyField(so.FindProperty("gizmoColor"));
 
         so.ApplyModifiedProperties();
@@ -149,9 +150,8 @@ public class NPCManagerWindow : EditorWindow
         EditorGUILayout.Space(10);
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("°˙ ‘⁄≥°æ∞¥¥Ω® NPC", GUILayout.Height(28))) CreateNPCInScene(_selected);
-            if (GUILayout.Button("°˙ ”¶”√µΩ—°÷–ŒÔÃÂ", GUILayout.Height(28))) ApplyToSelection(_selected);
-            if (GUILayout.Button("°˙ —°÷–ŒÔÃÂ◊ˆ≥… Prefab", GUILayout.Height(28))) MakePrefabFromSelection();
+            if (GUILayout.Button("Âú®Âú∫ÊôØ‰∏≠ÁîüÊàê", GUILayout.Height(28))) CreateNPCInScene(_selected);
+            if (GUILayout.Button("ÈáçÂª∫È¢ÑÂà∂‰Ωì", GUILayout.Height(28))) NPCPrefabBuilder.BuildPrefab(_selected);
         }
 
         EditorGUILayout.EndScrollView();
@@ -164,7 +164,7 @@ public class NPCManagerWindow : EditorWindow
         var so = new SerializedObject(_selected);
         var linesProp = so.FindProperty("dialogLines");
         _linesList = new ReorderableList(so, linesProp, true, true, true, true);
-        _linesList.drawHeaderCallback = r => EditorGUI.LabelField(r, "Ã®¥ £®∞¥ªÿ≥µÃÌº”––£¨À≥–Úø…Õœ∂Ø£©");
+        _linesList.drawHeaderCallback = r => EditorGUI.LabelField(r, "ÂØπËØùË°å");
         _linesList.drawElementCallback = (rect, i, a, f) =>
         {
             rect.height = EditorGUIUtility.singleLineHeight;
@@ -185,7 +185,7 @@ public class NPCManagerWindow : EditorWindow
         var animProp = so.FindProperty("dailyAnimations");
 
         _animList = new ReorderableList(so, animProp, true, true, true, true);
-        _animList.drawHeaderCallback = r => EditorGUI.LabelField(r, " ±º‰∂Œ∂Ø◊˜£®Start°‹ ±<End£ª÷ß≥÷øÁ“π£©");
+        _animList.drawHeaderCallback = r => EditorGUI.LabelField(r, "Êó•Â∏∏Ë°åÁ®ã (24Â∞èÊó∂Âà∂)");
         _animList.elementHeight = EditorGUIUtility.singleLineHeight * 2.6f;
 
         _animList.drawElementCallback = (rect, index, active, focused) =>
@@ -201,18 +201,16 @@ public class NPCManagerWindow : EditorWindow
             var r1 = new Rect(rect.x, rect.y + 2, rect.width, lh);
             var r2 = new Rect(rect.x, rect.y + 6 + lh, rect.width, lh);
 
-            // ––1£∫Start / End / Speed
             float col = r1.width / 3f;
-            EditorGUI.LabelField(new Rect(r1.x, r1.y, 40, lh), "Start");
+            EditorGUI.LabelField(new Rect(r1.x, r1.y, 40, lh), "ÂºÄÂßã");
             startHour.intValue = EditorGUI.IntSlider(new Rect(r1.x + 42, r1.y, col - 48, lh), startHour.intValue, 0, 23);
-            EditorGUI.LabelField(new Rect(r1.x + col, r1.y, 32, lh), "End");
+            EditorGUI.LabelField(new Rect(r1.x + col, r1.y, 32, lh), "ÁªìÊùü");
             endHour.intValue = EditorGUI.IntSlider(new Rect(r1.x + col + 34, r1.y, col - 40, lh), endHour.intValue, 0, 24);
-            speed.floatValue = EditorGUI.Slider(new Rect(r1.x + 2 * col + 6, r1.y, col - 8, lh), "Speed", speed.floatValue, 0.1f, 3f);
+            speed.floatValue = EditorGUI.Slider(new Rect(r1.x + 2 * col + 6, r1.y, col - 8, lh), "ÈÄüÂ∫¶", speed.floatValue, 0.1f, 3f);
 
-            // ––2£∫State / Condition(‘§¡Ù)
-            EditorGUI.LabelField(new Rect(r2.x, r2.y, 52, lh), "State");
+            EditorGUI.LabelField(new Rect(r2.x, r2.y, 52, lh), "Áä∂ÊÄÅÂêç");
             stateName.stringValue = EditorGUI.TextField(new Rect(r2.x + 54, r2.y, r2.width * 0.6f - 60, lh), stateName.stringValue);
-            EditorGUI.LabelField(new Rect(r2.x + r2.width * 0.62f, r2.y, 70, lh), "Cond(‘§¡Ù)");
+            EditorGUI.LabelField(new Rect(r2.x + r2.width * 0.62f, r2.y, 70, lh), "Êù°‰ª∂");
             cond.stringValue = EditorGUI.TextField(new Rect(r2.x + r2.width * 0.62f + 72, r2.y, r2.width * 0.38f - 74, lh), cond.stringValue);
         };
 
@@ -240,7 +238,7 @@ public class NPCManagerWindow : EditorWindow
 
     private void CreateDefinition()
     {
-        var path = EditorUtility.SaveFilePanelInProject("–¬Ω® NPC  ˝æ›", "NPC_New", "asset", "±£¥ÊµΩœÓƒø");
+        var path = EditorUtility.SaveFilePanelInProject("Êñ∞Âª∫ NPC Êï∞ÊçÆ", "NPC_New", "asset", "‰øùÂ≠ò");
         if (string.IsNullOrEmpty(path)) return;
         var def = ScriptableObject.CreateInstance<NPCDefinition>();
         AssetDatabase.CreateAsset(def, path);
@@ -251,86 +249,20 @@ public class NPCManagerWindow : EditorWindow
 
     private void CreateNPCInScene(NPCDefinition def)
     {
-        var go = new GameObject(def.npcName);
-        Undo.RegisterCreatedObjectUndo(go, "Create NPC");
+        // Use the Builder to get/ensure the prefab exists
+        GameObject prefab = NPCPrefabBuilder.BuildPrefab(def);
+        if (prefab == null) return;
 
-        int interactableLayer = LayerMask.NameToLayer("Interactable");
-        if (interactableLayer != -1) go.layer = interactableLayer;
+        // Instantiate the prefab
+        var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        instance.name = def.npcName;
+        Undo.RegisterCreatedObjectUndo(instance, "Spawn NPC");
 
-        if (def.addCapsuleColliderInstead)
-        {
-            var cap = go.AddComponent<CapsuleCollider>();
-            cap.center = def.defaultColliderCenter;
-            cap.height = def.defaultColliderSize.y;
-            cap.radius = Mathf.Max(def.defaultColliderSize.x, def.defaultColliderSize.z) * 0.5f;
-            cap.isTrigger = true;
-        }
-        else
-        {
-            var box = go.AddComponent<BoxCollider>();
-            box.center = def.defaultColliderCenter;
-            box.size = def.defaultColliderSize;
-            box.isTrigger = true;
-        }
-
-        var npcType = FindTypeContains("NPCInteractable");
-        if (npcType != null) go.AddComponent(npcType);
-
-        var binder = go.AddComponent<NPCFromDefinition>();
-        binder.definition = def; binder.TryAutoFill(); binder.ApplyDefinitionToTarget();
-
-        var vis = go.AddComponent<NPCVisualController>();
-        vis.definition = def;
-
-        var talk = go.AddComponent<NPCDialogAnimTrigger>();
-        talk.definition = def; talk.TryAutoFill();
-
+        // Move to scene view pivot
         var sv = SceneView.lastActiveSceneView;
-        if (sv != null) go.transform.position = sv.pivot;
+        if (sv != null) instance.transform.position = sv.pivot;
 
-        Selection.activeGameObject = go;
-    }
-
-    private void ApplyToSelection(NPCDefinition def)
-    {
-        foreach (var go in Selection.gameObjects)
-        {
-            var binder = go.GetComponent<NPCFromDefinition>() ?? Undo.AddComponent<NPCFromDefinition>(go);
-            binder.definition = def; binder.TryAutoFill(); binder.ApplyDefinitionToTarget();
-
-            var vis = go.GetComponent<NPCVisualController>() ?? Undo.AddComponent<NPCVisualController>(go);
-            vis.definition = def;
-
-            var talk = go.GetComponent<NPCDialogAnimTrigger>() ?? Undo.AddComponent<NPCDialogAnimTrigger>(go);
-            talk.definition = def; talk.TryAutoFill();
-
-            EditorUtility.SetDirty(go);
-        }
-        Debug.Log($"“—Ω´ NPC  ˝æ› [{def.npcName}] ”¶”√µΩ {Selection.gameObjects.Length} ∏ˆŒÔÃÂ°£");
-    }
-
-    private void MakePrefabFromSelection()
-    {
-        var go = Selection.activeGameObject;
-        if (go == null) { EditorUtility.DisplayDialog("Ã· æ", "«Îœ»‘⁄≤„º∂¿Ô—°÷–“ª∏ˆ NPC ŒÔÃÂ°£", "∫√µƒ"); return; }
-        var path = EditorUtility.SaveFilePanelInProject("±£¥ÊŒ™ Prefab", go.name, "prefab", "—°‘Ò±£¥ÊŒª÷√");
-        if (string.IsNullOrEmpty(path)) return;
-#if UNITY_2021_3_OR_NEWER
-        var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
-#else
-        var prefab = PrefabUtility.CreatePrefab(path, go);
-#endif
-        if (prefab != null) { EditorGUIUtility.PingObject(prefab); Debug.Log("Prefab “—¥¥Ω®£∫" + path); }
-    }
-
-    private System.Type FindTypeContains(string namePart)
-    {
-        namePart = namePart.ToLower();
-        foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
-            foreach (var t in asm.GetTypes())
-                if (typeof(MonoBehaviour).IsAssignableFrom(t) && t.Name.ToLower().Contains(namePart))
-                    return t;
-        return null;
+        Selection.activeGameObject = instance;
     }
 }
 #endif

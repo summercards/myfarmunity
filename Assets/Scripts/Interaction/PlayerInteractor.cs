@@ -1,16 +1,20 @@
 // Assets/Scripts/Interaction/PlayerInteractor.cs
 using UnityEngine;
 using System.Collections;   // IEnumerator
+using FarmGame.NPCSystem;
+using FarmGame.UI;          // Added for IDialogSubject
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
 using UnityEngine.InputSystem;
 #endif
 
 /// <summary>
-/// 玩家“交互”控制器：
+/// 玩家"交互"控制器：
 /// - 在半径内搜索最近的 IInteractable，显示提示；按 E 执行交互；
 /// - 对话打开时隐藏提示；
 /// - 离开当前对话 NPC 超过 closeDistance 自动关闭对话框；
 /// - 对话期间可就近切换到另一个 NPC（通过协程安全切换，避免 UI 竞态）。
+/// Phase 4 修复：添加 UI 缓存，避免持续查找导致性能问题和报错。
+/// Phase 4 修复：避免提示刷屏，只在提示变化时显示。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerInteractor : MonoBehaviour
@@ -36,24 +40,63 @@ public class PlayerInteractor : MonoBehaviour
 
     // 当前锁定的可交互体
     private IInteractable _current;
+    private IInteractable _lastDetectedInteractable; // 用于减少日志刷屏和优化检测
 
     // —— 对话切换：缓冲与超时 —— //
     private IInteractable _pendingSwitch = null;
     private Coroutine _switchCo = null;
-    [SerializeField] private float switchTimeout = 0.3f; // 等待 UI 真正关闭的最长时间（秒）
+    [SerializeField] private float switchTimeout = 0.3f; // Phase 4 修复：等待 UI 真正关闭的最长时间（秒）
+
+    // Phase 4 修复：追踪最近 NPC 变化，避免重复日志
+    private IInteractable _lastLoggedInteractable = null;
+
+    // Phase 4 修复：记录上一次的提示文本，避免重复显示
+    private string _lastHintText = "";
+
+    // Phase 4 修复：缓存的 UI 引用
+    private NPCDialogUI _cachedDialogUI;
+
+    void Awake()
+    {
+        // Phase 4 修复：缓存 NPCDialogUI 引用
+        if (sharedDialogUI != null)
+        {
+            _cachedDialogUI = sharedDialogUI;
+            Debug.Log("[PlayerInteractor] 已使用指定的 NPCDialogUI 引用");
+        }
+        else
+        {
+            _cachedDialogUI = FindObjectOfType<NPCDialogUI>();
+            if (_cachedDialogUI != null)
+            {
+                Debug.Log("[PlayerInteractor] 已找到并缓存 NPCDialogUI");
+            }
+            else
+            {
+                Debug.LogWarning("[PlayerInteractor] 场景中找不到 NPCDialogUI，交互功能将不可用");
+            }
+        }
+    }
 
     void Update()
     {
-        // 对话打开时：优先处理“离开距离自动关闭”
-        if (sharedDialogUI && sharedDialogUI.IsOpen && autoCloseWhenFar)
+        // Phase 4 修复：检查 UI 缓存
+        if (_cachedDialogUI == null)
         {
-            var npc = sharedDialogUI.CurrentNPC;
-            if (npc != null)
+            return;
+        }
+
+        // 对话打开时：优先处理"离开距离自动关闭"
+        if (_cachedDialogUI.IsOpen && autoCloseWhenFar)
+        {
+            var subject = _cachedDialogUI.CurrentNPC;
+            if (subject != null)
             {
-                float d = Vector3.Distance(transform.position, npc.transform.position);
+                // 使用 IDialogSubject.SubjectTransform
+                float d = Vector3.Distance(transform.position, subject.SubjectTransform.position);
                 if (d > closeDistance)
                 {
-                    sharedDialogUI.Close();
+                    _cachedDialogUI.Close();
                     // 关键：走远自动关闭时，也把世界气泡一并关掉
                     var bridge = FindObjectOfType<NPCDialogWorldBridge>();
                     if (bridge != null) bridge.EndStandalone();
@@ -62,25 +105,31 @@ public class PlayerInteractor : MonoBehaviour
             }
         }
 
-        // —— 对话期间允许“就近切换” —— //
-        if (sharedDialogUI && sharedDialogUI.IsOpen)
+        // —— 对话期间允许"就近切换" —— //
+        if (_cachedDialogUI.IsOpen)
         {
-            var curr = sharedDialogUI.CurrentNPC;
+            var currSubject = _cachedDialogUI.CurrentNPC;
+            // 比较 Transform 引用来判断是否是同一个人
+            // （注意：currSubject 可能为 null，防御性编程）
+            Transform currTrans = currSubject?.SubjectTransform;
 
             // 1) 若未超距，则检查是否靠近另一个 NPC
-            if (!(autoCloseWhenFar && curr != null && Vector3.Distance(transform.position, curr.transform.position) > closeDistance))
+            if (!(autoCloseWhenFar && currTrans != null && Vector3.Distance(transform.position, currTrans.position) > closeDistance))
             {
                 var nearest = FindClosestInteractable();
-                bool isAnotherNpc = nearest != null && !ReferenceEquals(nearest, curr);
 
-                if (isAnotherNpc)
+                // 判断是否是"另一个人"
+                // 只要 nearest 存在，且它的 Transform 不等于当前正在对话者的 Transform
+                bool isAnother = nearest != null && (currTrans == null || nearest.GetTransform() != currTrans);
+
+                if (isAnother)
                 {
-                    if (nearest is NPCInteractable nn)
-                        ShowHint($"按 E 对话：{nn.npcName}");
+                    if (nearest is IDialogSubject sub)
+                        ShowHint($"按 E 对话：{sub.Name}");
                     else
                         ShowHint("按 E 交互");
 
-                    // 使用协程进行“安全切换”（不要直接 Close()+Interact）
+                    // 使用协程进行"安全切换"（不要直接 Close()+Interact()）
                     if (PressedInteractKey() && _switchCo == null)
                     {
                         if (_pendingSwitch != nearest)
@@ -102,20 +151,35 @@ public class PlayerInteractor : MonoBehaviour
         // 1) 查找最近的 IInteractable
         _current = FindClosestInteractable();
 
-        // 2) 显示提示
+        // 2) 显示提示（Phase 4 修复：只在提示变化时显示）
         if (_current != null)
         {
             string tip = _current.GetInteractPrompt();
-            if (!string.IsNullOrEmpty(tip)) ShowHint(tip);
+            if (!string.IsNullOrEmpty(tip))
+            {
+                // Phase 4 修复：只在提示变化时才显示
+                if (tip != _lastHintText)
+                {
+                    Debug.Log($"[PlayerInteractor] ShowHint: {tip}");
+                    ShowHint(tip);
+                    _lastHintText = tip;
+                }
+            }
         }
         else
         {
-            HideHint();
+            // Phase 4 修复：清除提示文本，避免下次重复显示
+            if (!string.IsNullOrEmpty(_lastHintText))
+            {
+                HideHint();
+                _lastHintText = "";
+            }
         }
 
-        // 3) 按键触发（统一走“安全切换”协程）
+        // 3) 按键触发（统一走"安全切换"协程）
         if (_current != null && PressedInteractKey() && _switchCo == null)
         {
+            Debug.Log("[PlayerInteractor] E pressed! Starting switch...");
             if (_pendingSwitch != _current)
                 _switchCo = StartCoroutine(SwitchConversation(_current));
         }
@@ -136,7 +200,11 @@ public class PlayerInteractor : MonoBehaviour
         for (int i = 0; i < cols.Length; i++)
         {
             var inter = cols[i].GetComponentInParent<IInteractable>();
-            if (inter == null) continue;
+            if (inter == null)
+            {
+                // Debug.Log($"[PlayerInteractor] Ignored collider {cols[i].name} (No IInteractable)");
+                continue;
+            }
 
             float d = Vector3.Distance(transform.position, inter.GetTransform().position);
             if (d < bestDist)
@@ -145,21 +213,37 @@ public class PlayerInteractor : MonoBehaviour
                 bestDist = d;
             }
         }
+
+        // Phase 4 修复：只在最近 NPC 变化时打印日志
+        if (best != _lastLoggedInteractable)
+        {
+            if (best != null)
+            {
+                Debug.Log($"[PlayerInteractor] Closest is: {best.GetTransform().name}");
+            }
+            else
+            {
+                Debug.Log("[PlayerInteractor] No interactable in range");
+            }
+            _lastLoggedInteractable = best;
+        }
+
         return best;
     }
 
     private IEnumerator SwitchConversation(IInteractable target)
     {
+        Debug.Log($"[PlayerInteractor] SwitchConversation to {target.GetTransform().name}");
         // 标记目标，避免重复启动
         _pendingSwitch = target;
 
         // 1) 请求关闭当前对话（如果开着）
-        if (sharedDialogUI != null && sharedDialogUI.IsOpen)
-            sharedDialogUI.Close();
+        if (_cachedDialogUI != null && _cachedDialogUI.IsOpen)
+            _cachedDialogUI.Close();
 
         // 2) 等待 UI 真正关闭（IsOpen == false），最多等待 switchTimeout
         float t = 0f;
-        while (sharedDialogUI != null && sharedDialogUI.IsOpen && t < switchTimeout)
+        while (_cachedDialogUI != null && _cachedDialogUI.IsOpen && t < switchTimeout)
         {
             t += Time.unscaledDeltaTime;   // 不受 Time.timeScale 影响
             yield return null;             // 等一帧
@@ -168,53 +252,35 @@ public class PlayerInteractor : MonoBehaviour
         // 3) 保险：再让一帧过去，让 Close 回调/事件收尾
         yield return null;
 
-        // 4) 切到新的交互对象并立刻触发
-        // 4) 切到新的交互对象并立刻触发
+        // 4) 切换到新的交互对象并立刻触发
         _current = target;
 
-        // 如果是 NPC 且没单独指定 dialogUI，则复用 sharedDialogUI
-        var asNpc = _current as NPCInteractable;
-        if (asNpc != null && asNpc.dialogUI == null && sharedDialogUI != null)
-            asNpc.dialogUI = sharedDialogUI;
+        // 如果是旧版 NPC 且没单独指定 dialogUI，则复用 sharedDialogUI
+        if (_current is NPCInteractable oldNpc && oldNpc.dialogUI == null && sharedDialogUI != null)
+        {
+            oldNpc.dialogUI = sharedDialogUI;
+        }
 
-        // —— 关键：在打开对话前，先把 Bridge 绑到“当前 NPC 的锚点” —— //
+        // —— 关键：在打开对话前，先把 Bridge 绑到"当前 NPC 的锚点" —— //
         var bridge = FindObjectOfType<NPCDialogWorldBridge>();
         if (bridge != null)
         {
-            Transform anchor = null;
-
-            // 你的 NPC 脚本里通常会有 BubbleAnchor/WorldAnchor 之类的 Transform
-            // 请优先使用它；没有就退回 NPC 的 transform
-            // 按你项目常用的命名尝试（任选一个真实存在的字段/属性）：
-            if (asNpc != null)
-            {
-                // 依次尝试几种常见命名（你有哪个就用哪个）
-                anchor = asNpc.transform;
-                var tField = asNpc.GetType().GetField("bubbleAnchor") ?? asNpc.GetType().GetField("BubbleAnchor");
-                if (tField != null) anchor = tField.GetValue(asNpc) as Transform;
-
-                var tProp = asNpc.GetType().GetProperty("BubbleAnchor") ?? asNpc.GetType().GetProperty("WorldAnchor");
-                if (tProp != null) anchor = (tProp.GetValue(asNpc) as Transform) ?? anchor;
-            }
-            else
-            {
-                anchor = (target as MonoBehaviour)?.transform;
-            }
-
-            // 调用你 Bridge 暴露的方法（如果你已有 SetTarget/SetAnchor/BindTo，请把 Bind 换成你的方法名）
+            Transform anchor = (target as MonoBehaviour)?.transform;
+            // 如果能找到更精确的 BubbleAnchor，可以扩展这里
             bridge.Bind(anchor);
         }
+
         // 最后再真正打开对话
         _current.Interact(gameObject);
 
-        // ★ 兜底：再次绑定到当前 NPC，确保世界气泡跟随正确对象
+        // ★ 兜底：再次绑定到当前 NPC (如果是旧版 NPC)
         var bridge2 = FindObjectOfType<NPCDialogWorldBridge>();
-        if (bridge2 != null && asNpc != null) bridge2.BindToNPC(asNpc);
+        if (bridge2 != null && _current is NPCInteractable oldNpc2)
+            bridge2.BindToNPC(oldNpc2);
 
         // 5) 清理状态
         _pendingSwitch = null;
         _switchCo = null;
-
     }
 
     private bool PressedInteractKey()

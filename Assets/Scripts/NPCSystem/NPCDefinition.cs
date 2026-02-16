@@ -3,54 +3,67 @@ using UnityEngine;
 
 namespace FarmGame.NPCSystem
 {
-    public enum NPCFunctionType { None = 0, OpenShop = 1 }
-
     [System.Serializable]
     public class DailyAnimEntry
     {
-        [Header("Ê±¼ä¶Î£¨º¬Æğ²»º¬Ö¹£¬Ö§³Ö¿çÒ¹£ºÈç 22¡ú4£©")]
+        [Header("æ—¶é—´æ®µ (å¼€å§‹æ—¶é—´åŒ…å«ï¼Œç»“æŸæ—¶é—´ä¸åŒ…å«ï¼Œæ”¯æŒè·¨å¤œå¦‚ 22-4)")]
         [Range(0, 23)] public int startHour = 8;
         [Range(0, 24)] public int endHour = 18;
 
-        [Header("Animator ×´Ì¬Ãû£¨Ğè´æÔÚÓÚ AnimatorController£©")]
+        [Header("åŠ¨ç”»çŠ¶æ€å")]
         public string stateName = "Idle";
 
         [Range(0.1f, 3f)] public float speed = 1f;
 
-        [Header("Ìõ¼ş£¨Ô¤Áô£¬²»ÆôÓÃ£©")]
-        public string conditionTag = ""; // ÏÈÕ¼Î»£¬Ôİ²»Ê¹ÓÃ
+        [Header("æ¡ä»¶æ ‡ç­¾ (é¢„ç•™)")]
+        public string conditionTag = ""; 
 
         public bool ContainsHour(float hour)
         {
             if (startHour <= endHour) return hour >= startHour && hour < endHour;
-            else return hour >= startHour || hour < endHour; // ¿çÒ¹
+            else return hour >= startHour || hour < endHour; // Overnight
         }
     }
 
     [CreateAssetMenu(fileName = "NPC_", menuName = "Farm/NPC Definition", order = 10)]
     public class NPCDefinition : ScriptableObject
     {
-        [Header("»ù´¡ĞÅÏ¢")]
-        public string npcId = "npc_001";
-        public string npcName = "ĞÂ´åÃñ";
-        [Tooltip("¶Ô»°Ì¨´Ê£¨ÖğĞĞÏÔÊ¾£©")]
-        public List<string> dialogLines = new List<string> { "ÄãºÃ£¬»¶Ó­À´µ½ÎÒÃÇµÄÅ©³¡¡£", "ĞèÒªÎÒ×öµãÊ²Ã´Âğ£¿" };
+        [Header("æ¶æ„åˆ‡æ¢ (é‡æ„)")]
+        [Tooltip("æ˜¯å¦ä½¿ç”¨æ–°çš„ Actor ç³»ç»Ÿæ¶æ„")]
+        public bool useActorSystem = false;
 
-        [Header("¹¦ÄÜ°´Å¥£¨¶Ô»°¿òÀïµÄ¡°¹¦ÄÜ¡±£©")]
-        public NPCFunctionType function = NPCFunctionType.None;
-        [Tooltip("µ±¹¦ÄÜÊÇ OpenShop Ê±Ê¹ÓÃ£»Ö¸ÏòÉÌµêµÄÄ¬ÈÏ»õ¼Ü Catalog£¨¿ÉÑ¡£©")]
-        public ScriptableObject defaultShopCatalog;
-        [Tooltip("¹¦ÄÜ°´Å¥ÏÔÊ¾ÓÃµÄÎÄ×Ö£»Îª¿ÕÔòÊ¹ÓÃÄ¬ÈÏ")]
+        [Header("æ¨¡å—å¼€å…³ (ç”¨äºå•ç‹¬æµ‹è¯•)")]
+        [Tooltip("æ˜¯å¦ç”Ÿæˆ Visual å­ç‰©ä½“ï¼ˆæ¨¡å‹ä¸åŠ¨ç”»ï¼‰")]
+        public bool enableVisuals = true;
+        [Tooltip("æ˜¯å¦æ·»åŠ ç¢°æ’ä½“å’Œåˆšä½“")]
+        public bool enableCollider = true;
+        [Tooltip("æ˜¯å¦æ·»åŠ äº¤äº’ç»„ä»¶ (NPCInteractable)")]
+        public bool enableInteraction = true;
+        [Tooltip("æ˜¯å¦å¯ç”¨å•†åº—ç»„ä»¶ (SimpleShopOpener)")]
+        public bool enableShop = true;
+
+        [Header("åŸºæœ¬ä¿¡æ¯")]
+        public string npcId = "npc_001";
+        public string npcName = "æ–°è§’è‰²";
+        [Tooltip("ç®€å•çš„å¯¹è¯åˆ—è¡¨")]
+        public List<string> dialogLines = new List<string> { "ä½ å¥½ï¼Œæ¬¢è¿æ¥åˆ°å†œåœºã€‚", "æœ‰ä»€ä¹ˆéœ€è¦å¸®å¿™çš„å—ï¼Ÿ" };
+
+        [Header("åŠŸèƒ½é…ç½®")]
+        public NPCFunction function = NPCFunction.None;
+        [Tooltip("å¦‚æœæ˜¯ OpenShop ç±»å‹ï¼Œè¯·åœ¨æ­¤é…ç½®å•†åº—ç›®å½•")]
+        public ShopCatalogSO defaultShopCatalog;
+        [Tooltip("åŠŸèƒ½æŒ‰é’®ä¸Šçš„æ–‡æœ¬ï¼ˆå¦‚â€œæ‰“å¼€å•†åº—â€ï¼‰")]
         public string functionButtonText = "";
 
-        [Header("Ä£ĞÍÓë¶¯×÷")]
+        [Header("æ¨¡å‹ä¸åŠ¨ç”»")]
         public GameObject modelPrefab;
         public RuntimeAnimatorController animatorController;
         public Vector3 modelLocalPosition = Vector3.zero;
         public Vector3 modelLocalEuler = Vector3.zero;
         public Vector3 modelLocalScale = Vector3.one;
 
-        [Tooltip("Ò»Ìì 24h µÄ¶¯×÷±í£¨°´Ë³Ğò¼ì²é£¬ÏÈÆ¥ÅäÏÈÓÃ£©")]
+        [Header("æ—¥å¸¸ä½œæ¯ (24å°æ—¶åˆ¶)")]
+        [Tooltip("è®¾å®š NPC åœ¨ä¸åŒæ—¶é—´æ®µçš„åŠ¨ç”»çŠ¶æ€")]
         public List<DailyAnimEntry> dailyAnimations = new List<DailyAnimEntry>()
         {
             new DailyAnimEntry(){ startHour=0, endHour=6, stateName="Sleep", speed=1 },
@@ -58,17 +71,17 @@ namespace FarmGame.NPCSystem
             new DailyAnimEntry(){ startHour=22,endHour=24,stateName="Sleep", speed=1 },
         };
 
-        [Header("¶Ô»°Ê±¶¯×÷")]
-        public string talkStateName = "Talk";       // ¶Ô»°ÆÚ¼ä²¥·ÅµÄ×´Ì¬
+        [Header("å¯¹è¯è¡¨ç°")]
+        public string talkStateName = "Talk";
         [Range(0.1f, 3f)] public float talkSpeed = 1f;
         [Range(0f, 1f)] public float talkCrossFade = 0.2f;
 
-        [Header("Éú³ÉÑ¡Ïî£¨ÓÃÓÚÒ»¼ü·ÅÖÃÊ±µÄÄ¬ÈÏÖµ£©")]
-        public Vector3 defaultColliderCenter = new Vector3(0, 1, 0);
-        public Vector3 defaultColliderSize = new Vector3(1, 2, 1);
-        public bool addCapsuleColliderInstead = false;
-
-        [Header("Gizmos£¨¿ÉÑ¡£©")]
+        [Header("ç¢°æ’ä½“è®¾ç½® (é¢„åˆ¶ä½“æ„å»º)")]
+        public Vector3 colliderCenter = new Vector3(0, 1, 0);
+        public float colliderRadius = 0.5f;
+        public float colliderHeight = 2.0f;
+        
+        [Header("è°ƒè¯•ç»˜åˆ¶ (Gizmos)")]
         public Color gizmoColor = new Color(0.2f, 0.8f, 1f, 0.35f);
     }
 }
