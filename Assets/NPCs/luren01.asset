@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8eb389cd721e44642baf0c160c141bb8, type: 3}
   m_Name: luren01
   m_EditorClassIdentifier: 
+  useActorSystem: 1
+  enableVisuals: 1
+  enableCollider: 1
+  enableInteraction: 1
+  enableShop: 0
   npcId: npc_001
   npcName: "\u65B0\u6751\u6C11"
   dialogLines:
@@ -40,11 +45,10 @@ MonoBehaviour:
     endHour: 24
     stateName: Sleep
     speed: 1
-    conditionTag: 
   talkStateName: Talk
   talkSpeed: 1
   talkCrossFade: 0.2
-  defaultColliderCenter: {x: 0, y: 1, z: 0}
-  defaultColliderSize: {x: 1, y: 2, z: 1}
-  addCapsuleColliderInstead: 0
+  colliderCenter: {x: 0, y: 1, z: 0}
+  colliderRadius: 0.5
+  colliderHeight: 2
   gizmoColor: {r: 0.2, g: 0.8, b: 1, a: 0.35}

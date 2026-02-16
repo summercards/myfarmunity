@@ -11,25 +11,37 @@ namespace FarmGame.ActorSystem
     [DisallowMultipleComponent]
     public class ActorIdentity : MonoBehaviour
     {
-        // 内部存储的身份数据
-        public string Id { get; private set; }
-        public string Name { get; private set; }
-        public List<string> DialogLines { get; private set; }
-        public NPCFunction Function { get; private set; }
-        public string FunctionButtonText { get; private set; }
-        public ShopCatalogSO DefaultShopCatalog { get; private set; }
+        // 内部存储的身份数据（可序列化）
+        [SerializeField] private string _id;
+        [SerializeField] private string _name;
+        [SerializeField] private List<string> _dialogLines;
+        [SerializeField] private NPCFunction _function;
+        [SerializeField] private string _functionButtonText;
+        [SerializeField] private ShopCatalogSO _defaultShopCatalog;
         
         // 动画控制器和模型相关的设置 (用于 ActorView 初始化)
-        public RuntimeAnimatorController AnimatorController { get; private set; }
-        public GameObject ModelPrefab { get; private set; }
-        public Vector3 ModelLocalPosition { get; private set; }
-        public Vector3 ModelLocalEuler { get; private set; }
-        public Vector3 ModelLocalScale { get; private set; }
+        [SerializeField] private RuntimeAnimatorController _animatorController;
+        [SerializeField] private GameObject _modelPrefab;
+        [SerializeField] private Vector3 _modelLocalPosition;
+        [SerializeField] private Vector3 _modelLocalEuler;
+        [SerializeField] private Vector3 _modelLocalScale;
 
-        /// <summary>
-        /// Phase 3: 标记是否已从 Definition 初始化
-        /// </summary>
-        public bool IsInitialized { get; private set; } = false;
+        // 初始化标记（可序列化）
+        [SerializeField] private bool _isInitialized = false;
+
+        // 公开属性（只读）
+        public string Id => _id;
+        public string Name => _name;
+        public List<string> DialogLines => _dialogLines ?? new List<string>();
+        public NPCFunction Function => _function;
+        public string FunctionButtonText => _functionButtonText;
+        public ShopCatalogSO DefaultShopCatalog => _defaultShopCatalog;
+        public RuntimeAnimatorController AnimatorController => _animatorController;
+        public GameObject ModelPrefab => _modelPrefab;
+        public Vector3 ModelLocalPosition => _modelLocalPosition;
+        public Vector3 ModelLocalEuler => _modelLocalEuler;
+        public Vector3 ModelLocalScale => _modelLocalScale;
+        public bool IsInitialized => _isInitialized;
 
         /// <summary>
         /// Phase 3: 在构建或加载时调用，从 NPCDefinition 初始化身份数据。
@@ -43,22 +55,22 @@ namespace FarmGame.ActorSystem
                 return;
             }
 
-            Id = def.npcId;
-            Name = def.npcName;
-            DialogLines = new List<string>(def.dialogLines); // 复制一份，避免直接引用 Definition
-            Function = def.function;
-            FunctionButtonText = def.functionButtonText;
-            DefaultShopCatalog = def.defaultShopCatalog;
+            _id = def.npcId;
+            _name = def.npcName;
+            _dialogLines = new List<string>(def.dialogLines); // 复制一份，避免直接引用 Definition
+            _function = def.function;
+            _functionButtonText = def.functionButtonText;
+            _defaultShopCatalog = def.defaultShopCatalog;
             
-            AnimatorController = def.animatorController;
-            ModelPrefab = def.modelPrefab;
-            ModelLocalPosition = def.modelLocalPosition;
-            ModelLocalEuler = def.modelLocalEuler;
-            ModelLocalScale = def.modelLocalScale;
+            _animatorController = def.animatorController;
+            _modelPrefab = def.modelPrefab;
+            _modelLocalPosition = def.modelLocalPosition;
+            _modelLocalEuler = def.modelLocalEuler;
+            _modelLocalScale = def.modelLocalScale;
 
-            IsInitialized = true;
+            _isInitialized = true;
 
-            Debug.Log($"[ActorIdentity] {Name} 初始化完成（从 {def.npcId}）。");
+            Debug.Log($"[ActorIdentity] {_name} 初始化完成（从 {def.npcId}）。");
         }
 
         /// <summary>
@@ -66,7 +78,7 @@ namespace FarmGame.ActorSystem
         /// </summary>
         public List<string> GetDefaultDialog()
         {
-            return DialogLines ?? new List<string>();
+            return DialogLines;
         }
     }
 }

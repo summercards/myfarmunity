@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Linq;
 using FarmGame.NPCSystem;
 using FarmGame.ActorSystem; // 引用新系统
 
@@ -79,11 +80,11 @@ namespace FarmGame.Editor.NPC
             // 物理/碰撞模块
             if (def.enableCollider)
             {
-                var rb = Ensure<Rigidbody>(root);
+                var rb = EnsureOrReplace<Rigidbody>(root);
                 rb.isKinematic = true; 
                 rb.useGravity = false;
 
-                var col = Ensure<CapsuleCollider>(root);
+                var col = EnsureOrReplace<CapsuleCollider>(root);
                 col.center = def.colliderCenter;
                 col.radius = def.colliderRadius;
                 col.height = def.colliderHeight;
@@ -149,24 +150,22 @@ namespace FarmGame.Editor.NPC
             {
                 // --- 新架构 Actor ---
                 
-                // Phase 8 修复：不调用 RemoveLegacyComponents()，因为旧系统文件已删除
-                // 直接添加新系统组件
-
-                Ensure<Actor>(root);
+                // Phase 8 修复：确保所有 Actor 组件都正确添加
+                EnsureOrReplace<Actor>(root);
 
                 // Phase 3: 使用 Initialize 方法
-                var identity = Ensure<ActorIdentity>(root);
+                var identity = EnsureOrReplace<ActorIdentity>(root);
                 identity.Initialize(def);
 
-                Ensure<ActorMemory>(root);
-                Ensure<ActorBrain>(root);
-                Ensure<ActorDialogue>(root);
-                Ensure<DialogueResolver>(root);
+                EnsureOrReplace<ActorMemory>(root);
+                EnsureOrReplace<ActorBrain>(root);
+                EnsureOrReplace<ActorDialogue>(root);
+                EnsureOrReplace<DialogueResolver>(root);
 
                 // 交互组件
                 if (def.enableInteraction)
                 {
-                    Ensure<ActorInteraction>(root);
+                    EnsureOrReplace<ActorInteraction>(root);
                 }
                 else
                 {
@@ -177,19 +176,23 @@ namespace FarmGame.Editor.NPC
                 switch (def.function)
                 {
                     case NPCFunction.OpenShop:
-                        Ensure<ShopModule>(root);
-                        break;
+                        {
+                            var shopModule = EnsureOrReplace<ShopModule>(root);
+                            // Phase 7 修复：配置商店目录
+                            shopModule.shopCatalog = def.defaultShopCatalog;
+                            break;
+                        }
 
                     case NPCFunction.Talk:
-                        Ensure<DialogueModule>(root);
+                        EnsureOrReplace<DialogueModule>(root);
                         break;
 
                     case NPCFunction.Quest:
-                        Ensure<QuestModule>(root);
+                        EnsureOrReplace<QuestModule>(root);
                         break;
 
                     case NPCFunction.Gift:
-                        Ensure<GiftModule>(root);
+                        EnsureOrReplace<GiftModule>(root);
                         break;
 
                     case NPCFunction.None:
@@ -201,10 +204,10 @@ namespace FarmGame.Editor.NPC
                 // 視觉组件
                 if (def.enableVisuals)
                 {
-                    var animator = Ensure<Animator>(root);
+                    var animator = EnsureOrReplace<Animator>(root);
                     animator.runtimeAnimatorController = def.animatorController;
 
-                    var view = Ensure<ActorView>(root);
+                    var view = EnsureOrReplace<ActorView>(root);
                     view.Animator = animator;
                     view.ModelRoot = visual;
                 }
@@ -224,30 +227,65 @@ namespace FarmGame.Editor.NPC
             }
         }
 
-        private static T Ensure<T>(GameObject go) where T : Component
+        /// <summary>
+        /// 确保组件存在且有效，如果无效则替换
+        /// Phase 8 修复：检测并替换 Missing Script 组件
+        /// </summary>
+        private static T EnsureOrReplace<T>(GameObject go) where T : Component
         {
-            var c = go.GetComponent<T>();
-            if (c == null) c = go.AddComponent<T>();
-            return c;
+            // 获取所有 T 类型的组件
+            var components = go.GetComponents<T>();
+            
+            // 查找有效的组件（不是 null 且脚本是正确的）
+            T validComponent = null;
+            foreach (var comp in components)
+            {
+                if (comp != null && comp.GetType() == typeof(T))
+                {
+                    validComponent = comp;
+                    break;
+                }
+            }
+            
+            // 如果有有效组件，返回
+            if (validComponent != null)
+            {
+                return validComponent;
+            }
+            
+            // 如果没有有效组件，删除所有 T 类型的组件（包括 Missing Script）
+            RemoveAllComponentsOfType<T>(go);
+            
+            // 添加新组件
+            return go.AddComponent<T>();
+        }
+
+        /// <summary>
+        /// 删除所有 T 类型的组件（包括 Missing Script）
+        /// </summary>
+        private static void RemoveAllComponentsOfType<T>(GameObject go) where T : Component
+        {
+            var components = go.GetComponents<Component>();
+            foreach (var comp in components)
+            {
+                // 检查组件类型是否为 T 或其派生类
+                // 使用字符串比较，因为 Missing Script 的类型为 null
+                if (comp == null)
+                {
+                    // Missing Script 组件，删除
+                    GameObject.DestroyImmediate(comp);
+                }
+                else if (typeof(T).IsAssignableFrom(comp.GetType()))
+                {
+                    // 正确的 T 类型组件，删除
+                    GameObject.DestroyImmediate(comp);
+                }
+            }
         }
 
         private static void RemoveIfExists<T>(GameObject go) where T : Component
         {
-            var c = go.GetComponent<T>();
-            if (c != null)
-                GameObject.DestroyImmediate(c);
-        }
-
-        // Phase 8: 清理方法（仅保留必要的）
-        
-        /// <summary>
-        /// 移除旧系统组件（仅包含仍存在的类型）
-        /// Phase 8 修复：移除对已删除类型的引用
-        /// </summary>
-        private static void RemoveLegacyComponents(GameObject go)
-        {
-            // Phase 8: 不添加任何删除调用，因为旧系统文件已被删除
-            // 如果预制体中仍有旧组件引用，会在重新生成时自动清除
+            RemoveAllComponentsOfType<T>(go);
         }
     }
 }

@@ -4,24 +4,28 @@ namespace FarmGame.ActorSystem
 {
     /// <summary>
     /// ShopModule: 负责"商店"能力模块
-    /// Phase 7: 管理商店系统，与 ShopCatalogSO 交互。
-    /// - 控制商店 UI 的打开/关闭
+    /// Phase 7: 管理商店系统，与 MiniShop 集成。
+    /// - 调用 MiniShop.OpenFromDialog() 打开商店
     /// - 记录商店解锁到 Memory
-    /// - 修复编译错误：移除对不存在的 ShopCatalogSO.items 的引用
+    /// - 支持商店台词切换
     /// </summary>
     public class ShopModule : ActorModule
     {
         [Header("Shop Configuration")]
         [Tooltip("商店商品目录（从 NPCDefinition 配置）")]
-        public GameObject catalogObject;
+        public ShopCatalogSO shopCatalog;
 
         [Header("UI References")]
-        [Tooltip("商店 UI 引用（动态查找）")]
-        public GameObject shopUIObject;
+        [Tooltip("商店 UI 引用（如果留空，会自动查找 MiniShop）")]
+        public MiniShop shopUI;
 
         [Header("Options")]
         [Tooltip("打开商店后是否自动关闭对话框")]
         public bool closeDialogAfterShop = true;
+
+        [Header("Shop Line")]
+        [Tooltip("打开商店时显示的台词（如果留空，使用默认台词）")]
+        public string shopOpenLine = "欢迎光临！需要点什么？";
 
         [Header("Debug")]
         [Tooltip("显示调试日志")]
@@ -35,27 +39,56 @@ namespace FarmGame.ActorSystem
         /// </summary>
         public void InitializeShop()
         {
-            if (catalogObject == null)
+            if (shopCatalog == null)
             {
-                Debug.LogWarning("[ShopModule] 商店目录对象为空");
+                Debug.LogWarning("[ShopModule] 商店目录未配置");
             }
             else
             {
                 if (showDebugLogs)
                 {
-                    Debug.Log($"[ShopModule] 商店已初始化，使用对象：{catalogObject.name}");
+                    Debug.Log($"[ShopModule] 商店已初始化，目录：{shopCatalog.name}");
+                }
+            }
+
+            // 动态查找 MiniShop
+            if (shopUI == null)
+            {
+                shopUI = FindObjectOfType<MiniShop>();
+                if (shopUI != null)
+                {
+                    if (showDebugLogs) Debug.Log("[ShopModule] 已自动找到 MiniShop");
+                }
+                else
+                {
+                    Debug.LogWarning("[ShopModule] 场景中未找到 MiniShop，商店功能将不可用");
                 }
             }
         }
 
         /// <summary>
-        /// Phase 7: 打开商店
+        /// Phase 7: 打开商店（从 NPC 对话面板）
         /// </summary>
         public void OpenShop()
         {
-            if (catalogObject == null)
+            if (showDebugLogs) Debug.Log("[ShopModule] OpenShop() 被调用");
+
+            // 查找 MiniShop
+            if (shopUI == null)
             {
-                Debug.LogWarning("[ShopModule] 商店目录未配置，无法打开");
+                shopUI = FindObjectOfType<MiniShop>();
+                if (showDebugLogs)
+                {
+                    if (shopUI != null)
+                        Debug.Log("[ShopModule] 运行时找到了 MiniShop");
+                    else
+                        Debug.LogWarning("[ShopModule] 运行时未找到 MiniShop");
+                }
+            }
+
+            if (shopUI == null)
+            {
+                Debug.LogError("[ShopModule] MiniShop 未找到，无法打开商店！请确保场景中有 MiniShop 组件。");
                 return;
             }
 
@@ -65,28 +98,24 @@ namespace FarmGame.ActorSystem
                 _memory.RecordEvent(ActorMemory.EventType.ShopOpened);
             }
 
-            // Phase 7: 动态查找并打开商店 UI
-            if (shopUIObject == null)
+            // Phase 7: 配置商店目录
+            if (shopCatalog != null)
             {
-                shopUIObject = GameObject.FindGameObjectWithTag("ShopUI");
-                if (shopUIObject != null)
-                {
-                    shopUIObject.SetActive(true);
-                    _isShopOpen = true;
-                    if (showDebugLogs) Debug.Log("[ShopModule] 商店已打开（动态查找）");
-                }
-                else
-                {
-                    Debug.LogWarning("[ShopModule] 场景中未找到 ShopUI（Tag: ShopUI），商店功能将不可用");
-                }
+                shopUI.catalog = shopCatalog;
+                if (showDebugLogs) Debug.Log($"[ShopModule] 已配置商店目录：{shopCatalog.name}");
             }
-            else
+
+            // Phase 7: 调用 MiniShop 的打开方法
+            if (!string.IsNullOrEmpty(shopOpenLine))
             {
-                // 如果有直接引用，直接使用
-                shopUIObject.SetActive(true);
-                _isShopOpen = true;
-                if (showDebugLogs) Debug.Log("[ShopModule] 商店已打开（直接引用）");
+                shopUI.shopOpenLine = shopOpenLine;
+                if (showDebugLogs) Debug.Log($"[ShopModule] 已设置商店台词：{shopOpenLine}");
             }
+            
+            shopUI.OpenFromDialog();
+            _isShopOpen = true;
+
+            if (showDebugLogs) Debug.Log("[ShopModule] 商店已打开");
         }
 
         /// <summary>
@@ -94,23 +123,16 @@ namespace FarmGame.ActorSystem
         /// </summary>
         public void CloseShop()
         {
+            if (shopUI == null)
+            {
+                Debug.LogWarning("[ShopModule] MiniShop 未找到，无法关闭商店");
+                return;
+            }
+
+            shopUI.Close();
             _isShopOpen = false;
 
-            // Phase 7: 动态关闭商店 UI
-            if (shopUIObject == null)
-            {
-                shopUIObject = GameObject.FindGameObjectWithTag("ShopUI");
-                if (shopUIObject != null)
-                {
-                    shopUIObject.SetActive(false);
-                    if (showDebugLogs) Debug.Log("[ShopModule] 商店已关闭（动态查找）");
-                }
-            }
-            else
-            {
-                if (shopUIObject != null) shopUIObject.SetActive(false);
-                if (showDebugLogs) Debug.Log("[ShopModule] 商店已关闭（直接引用）");
-            }
+            if (showDebugLogs) Debug.Log("[ShopModule] 商店已关闭");
         }
 
         /// <summary>
@@ -148,17 +170,17 @@ namespace FarmGame.ActorSystem
         {
             base.OnEnabled();
             
-            // Phase 7: 动态查找商店 UI
-            if (shopUIObject == null)
+            // Phase 7: 动态查找 MiniShop
+            if (shopUI == null)
             {
-                shopUIObject = GameObject.FindGameObjectWithTag("ShopUI");
-                if (shopUIObject != null)
+                shopUI = FindObjectOfType<MiniShop>();
+                if (shopUI != null)
                 {
-                    Debug.Log("[ShopModule] 已自动找到 ShopUI");
+                    Debug.Log("[ShopModule] 已自动找到 MiniShop");
                 }
                 else
                 {
-                    Debug.LogWarning("[ShopModule] 场景中未找到 ShopUI（Tag: ShopUI），商店功能将不可用");
+                    Debug.LogWarning("[ShopModule] 场景中未找到 MiniShop，商店功能将不可用");
                 }
             }
         }
@@ -168,7 +190,7 @@ namespace FarmGame.ActorSystem
         /// </summary>
         protected override void OnDisabled()
         {
-            shopUIObject = null;
+            shopUI = null;
             _isShopOpen = false;
             base.OnDisabled();
         }

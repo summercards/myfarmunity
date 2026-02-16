@@ -220,7 +220,7 @@ public class PlayerInteractor : MonoBehaviour
             }
         }
         
-        if (best != null) Debug.Log($"[PlayerInteractor] Closest is: {best.GetTransform().name}");
+        // Debug.Log($"[PlayerInteractor] Closest is: {best?.GetTransform().name}");
         return best;
     }
 

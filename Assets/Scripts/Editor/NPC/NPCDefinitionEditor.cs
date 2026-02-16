@@ -18,10 +18,12 @@ namespace FarmGame.Editor.NPC
                 style.normal.textColor = new Color(0.2f, 0.7f, 1f); // 醒目的蓝色
                 EditorGUILayout.LabelField("【重构阶段】架构设置", style);
                 DrawProp("useActorSystem", "使用 Actor 系统 (新架构)");
-                if (serializedObject.FindProperty("useActorSystem").boolValue)
-                {
-                    EditorGUILayout.HelpBox("当前使用 Actor 架构构建。旧的交互组件将被移除，暂时无法对话是正常的。", MessageType.Info);
-                }
+                
+                // 移除误导性提示
+                // if (serializedObject.FindProperty("useActorSystem").boolValue)
+                // {
+                //     EditorGUILayout.HelpBox("当前使用 Actor 架构构建。旧的交互组件将被移除，暂时无法对话是正常的。", MessageType.Info);
+                // }
             }
             EditorGUILayout.Space();
 
@@ -120,9 +122,14 @@ namespace FarmGame.Editor.NPC
             serializedObject.ApplyModifiedProperties();
             
             EditorGUILayout.Space(20);
+            
+            // 构建按钮
             if (GUILayout.Button("构建/更新此 NPC 预制体", GUILayout.Height(30)))
             {
                 NPCPrefabBuilder.BuildPrefab((NPCDefinition)target);
+                
+                // 构建完成后显示提示
+                EditorGUILayout.HelpBox("Prefab 已构建完成。请在场景中测试功能。", MessageType.Info);
             }
         }
 
