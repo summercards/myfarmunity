@@ -219,7 +219,7 @@ public class SaveManager : MonoBehaviour
 
             // 4. 序列化并保存
             string json = JsonUtility.ToJson(saveData, true);
-            File.WriteAllText(GetSaveFilePath(saveName), json);
+            WriteAllTextSafe(GetSaveFilePath(saveName), json);
 
             Debug.Log($"[SaveManager] 游戏已保存: {saveName}");
             OnGameSaved?.Invoke(saveName);
@@ -235,126 +235,93 @@ public class SaveManager : MonoBehaviour
     /// </summary>
     public IEnumerator SaveGameAsync(string saveName = "autosave")
     {
-        if (timeSystem == null)
+        // 验证保存条件
+        if (!CanSave(out bool needsBreak))
         {
-            Debug.LogError("[SaveManager] 时间系统未设置，无法保存！");
-            yield break;
-        }
-
-        if (isLoading)
-        {
-            Debug.LogWarning("[SaveManager] 正在加载中，无法保存");
-            yield break;
-        }
-
-        if (isSaving)
-        {
-            Debug.LogWarning("[SaveManager] 正在保存中，跳过本次保存");
             yield break;
         }
 
         isSaving = true;
-
-        // 关键：暂停时间系统，避免保存期间时间继续流逝
         bool wasPaused = timeSystem.IsPaused;
         timeSystem.Pause();
 
-        GameSaveData saveData = null;
-        string json = null;
-        Exception saveException = null;
-        string filePath = GetSaveFilePath(saveName);
+        // 执行保存
+        GameSaveData saveData = ExecuteSaveSteps(saveName);
 
-        // 状态机：0=准备, 1=时间数据, 2=农场数据, 3=商店数据, 4=NPC数据,
-        // 5=任务数据, 6=背包数据, 7=玩家数据, 8=元数据, 9=序列化, 10=写入文件, 11=完成
-        int step = 0;
-
-        while (step <= 11)
+        // 写入文件
+        if (saveData != null)
         {
-            try
-            {
-                switch (step)
-                {
-                    case 0: // 准备数据
-                        saveData = new GameSaveData();
-                        break;
-
-                    case 1: // 保存时间数据
-                        saveData.timeData = timeSystem.GetSaveData();
-                        break;
-
-                    case 2: // 保存农场数据
-                        saveData.farmData = GetSubSystemSaveData<IFarmSaveable>(farmSystem);
-                        break;
-
-                    case 3: // 保存商店数据
-                        saveData.shopData = GetSubSystemSaveData<IShopSaveable>(shopSystem);
-                        break;
-
-                    case 4: // 保存NPC数据
-                        saveData.npcData = GetSubSystemSaveData<INPCSaveable>(npcSystem);
-                        break;
-
-                    case 5: // 保存任务数据
-                        saveData.questData = GetSubSystemSaveData<IQuestSaveable>(questSystem);
-                        break;
-
-                    case 6: // 保存背包数据
-                        saveData.inventoryData = GetSubSystemSaveData<IInventorySaveable>(inventorySystem);
-                        break;
-
-                    case 7: // 保存玩家数据
-                        saveData.playerData = GetSubSystemSaveData<IPlayerSaveable>(playerSystem);
-                        break;
-
-                    case 8: // 设置元数据
-                        saveData.saveVersion = 1;
-                        saveData.saveTime = DateTime.Now;
-                        saveData.saveName = saveName;
-                        saveData.playTimeSeconds = PlayerPrefs.GetInt("PlayTime", 0);
-                        break;
-
-                    case 9: // 序列化
-                        json = JsonUtility.ToJson(saveData, true);
-                        break;
-
-                    case 10: // 写入文件
-                        File.WriteAllText(filePath, json);
-                        break;
-
-                    case 11: // 完成
-                        Debug.Log($"[SaveManager] 异步保存完成: {saveName}");
-                        break;
-                }
-            }
-            catch (Exception e)
-            {
-                saveException = e;
-                Debug.LogError($"[SaveManager] 异步保存失败 (步骤 {step}): {e.Message}");
-                step = 12; // 跳到结束
-            }
-
-            step++;
-
-            if (step <= 11)
-            {
-                yield return null;
-            }
-        }
-
-        // 只在成功时触发保存完成事件
-        if (saveException == null)
-        {
+            string json = JsonUtility.ToJson(saveData, true);
+            WriteAllTextSafe(GetSaveFilePath(saveName), json);
             OnGameSaved?.Invoke(saveName);
+            Debug.Log($"[SaveManager] 异步保存完成: {saveName}");
         }
 
-        // 恢复时间系统状态
-        if (!wasPaused)
-        {
-            timeSystem.Resume();
-        }
+        // 恢复时间系统
+        if (!wasPaused) timeSystem.Resume();
 
         isSaving = false;
         saveCoroutine = null;
+    }
+
+    /// <summary>
+    /// 验证是否可以保存
+    /// </summary>
+    private bool CanSave(out bool needsBreak)
+    {
+        needsBreak = false;
+        if (timeSystem == null)
+        {
+            Debug.LogError("[SaveManager] 时间系统未设置，无法保存！");
+            return false;
+        }
+        if (isLoading)
+        {
+            Debug.LogWarning("[SaveManager] 正在加载中，无法保存");
+            return false;
+        }
+        if (isSaving)
+        {
+            Debug.LogWarning("[SaveManager] 正在保存中，跳过本次保存");
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 执行保存步骤（分帧执行避免卡顿）
+    /// </summary>
+    private GameSaveData ExecuteSaveSteps(string saveName)
+    {
+        var saveData = new GameSaveData();
+        var steps = new Action[]
+        {
+            () => saveData.timeData = timeSystem.GetSaveData(),
+            () => saveData.farmData = GetSubSystemSaveData<IFarmSaveable>(farmSystem),
+            () => saveData.shopData = GetSubSystemSaveData<IShopSaveable>(shopSystem),
+            () => saveData.npcData = GetSubSystemSaveData<INPCSaveable>(npcSystem),
+            () => saveData.questData = GetSubSystemSaveData<IQuestSaveable>(questSystem),
+            () => saveData.inventoryData = GetSubSystemSaveData<IInventorySaveable>(inventorySystem),
+            () => saveData.playerData = GetSubSystemSaveData<IPlayerSaveable>(playerSystem),
+            () => {
+                saveData.saveVersion = 1;
+                saveData.saveTime = DateTime.Now;
+                saveData.saveName = saveName;
+                saveData.playTimeSeconds = PlayerPrefs.GetInt("PlayTime", 0);
+            }
+        };
+
+        foreach (var step in steps)
+        {
+            try { step(); }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SaveManager] 保存步骤失败: {e.Message}");
+                return null;
+            }
+        }
+
+        return saveData;
     }
 
     /// <summary>
@@ -434,7 +401,11 @@ public class SaveManager : MonoBehaviour
             if (method != null)
             {
                 var data = method.Invoke(saveable, null);
-                return JsonUtility.ToJson(data);
+                if (data != null)
+                {
+                    return JsonUtility.ToJson(data);
+                }
+                Debug.LogWarning($"[SaveManager] {saveable.GetType().Name}.GetSaveData() 返回 null");
             }
         }
         return null;
@@ -529,6 +500,26 @@ public class SaveManager : MonoBehaviour
     private string GetSaveFilePath(string saveName)
     {
         return Path.Combine(savePath, $"{saveName}.json");
+    }
+
+    /// <summary>
+    /// 安全写入文件（使用 using 确保资源释放）
+    /// </summary>
+    private void WriteAllTextSafe(string path, string content)
+    {
+        try
+        {
+            using (var writer = new StreamWriter(path, false))
+            {
+                writer.Write(content);
+            }
+            Debug.Log($"[SaveManager] 文件写入成功: {path}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] 文件写入失败: {e.Message}");
+            throw;
+        }
     }
 
     // === 事件 ===

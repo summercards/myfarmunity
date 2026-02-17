@@ -2,35 +2,43 @@ using UnityEngine;
 using System.Collections;
 
 /// <summary>
-/// °ÑÕâ¸ö×é¼þ¹ÒÔÚÉÌµê UI ¸ùÎïÌå£¨º¬ SimpleShopUI µÄÍ¬Ò»¸öÎïÌå£©ÉÏ¡£
-/// ×÷ÓÃ£ºÍæ¼ÒÓëµ±Ç°½»Ò× NPC/ÃªµãµÄ¾àÀë³¬¹ýãÐÖµÊ±£¬×Ô¶¯¹Ø±ÕÉÌµê£¬²¢½áÊøÍ·¶¥ÆøÅÝ¡£
+/// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ìµï¿½ UI ï¿½ï¿½ï¿½ï¿½ï¿½å£¨ï¿½ï¿½ SimpleShopUI ï¿½ï¿½Í¬Ò»ï¿½ï¿½ï¿½ï¿½ï¿½å£©ï¿½Ï¡ï¿½
+/// ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ëµ±Ç°ï¿½ï¿½ï¿½ï¿½ NPC/Ãªï¿½ï¿½Ä¾ï¿½ï¿½ë³¬ï¿½ï¿½ï¿½ï¿½ÖµÊ±ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½Ø±ï¿½ï¿½Ìµê£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½Ý¡ï¿½
 /// </summary>
 [DisallowMultipleComponent]
 public class ShopAutoCloseByDistance : MonoBehaviour
 {
+    private NPCDialogWorldBridge _cachedWorldBridge;
+
+    void Awake()
+    {
+        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
+    }
+
     [Header("References")]
-    [SerializeField] private SimpleShopUI shopUI;                // Ö¸ÏòÄãµÄÉÌµê UI ½Å±¾
-    [SerializeField] private Transform target;                   // µ±Ç°½»»¥ NPC »òÆäÍ·¶¥ÆøÅÝÃªµã
-    [SerializeField] private Transform player;                   // Íæ¼Ò£¨¿É¿Õ£¬×Ô¶¯°´ Tag ²éÕÒ£©
-    [SerializeField] private string playerTag = "Player";        // Íæ¼Ò Tag£¬Ä¬ÈÏ Player
-    [SerializeField] private NPCDialogWorldBridge worldBridge;   // ¿É¿Õ£¬×Ô¶¯²éÕÒ£¬ÓÃÓÚ¹ØµôÍ·¶¥ÆøÅÝ
+    [SerializeField] private SimpleShopUI shopUI;                // Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ìµï¿½ UI ï¿½Å±ï¿½
+    [SerializeField] private Transform target;                   // ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ NPC ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãªï¿½ï¿½
+    [SerializeField] private Transform player;                   // ï¿½ï¿½Ò£ï¿½ï¿½É¿Õ£ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ Tag ï¿½ï¿½ï¿½Ò£ï¿½
+    [SerializeField] private string playerTag = "Player";        // ï¿½ï¿½ï¿½ Tagï¿½ï¿½Ä¬ï¿½ï¿½ Player
+    [SerializeField] private NPCDialogWorldBridge worldBridge;   // ï¿½É¿Õ£ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Ò£ï¿½ï¿½ï¿½ï¿½Ú¹Øµï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     [Header("Auto Close by Distance")]
-    [SerializeField] private bool autoCloseWhenFar = true;       // ´ò¿ª×Ô¶¯¹Ø±Õ¹¦ÄÜ
-    [SerializeField] private float closeDistance = 4f;           // ³¬¹ýÕâ¸ö¾àÀë¾Í¹Ø±Õ
-    [Tooltip("·À¶¶ãÐÖµ£¬±ÜÃâÁÙ½çÖµÀ´»Ø¶¶¶¯£»Í¨³£ 0.2~0.4 ¼´¿É")]
+    [SerializeField] private bool autoCloseWhenFar = true;       // ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½Ø±Õ¹ï¿½ï¿½ï¿½
+    [SerializeField] private float closeDistance = 4f;           // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¹Ø±ï¿½
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù½ï¿½Öµï¿½ï¿½ï¿½Ø¶ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ 0.2~0.4 ï¿½ï¿½ï¿½ï¿½")]
     [SerializeField] private float hysteresis = 0.2f;
-    [SerializeField] private float checkInterval = 0.1f;         // ÂÖÑ¯¼ä¸ô£¬±ÜÃâÃ¿Ö¡¼ÆËã
+    [SerializeField] private float checkInterval = 0.1f;         // ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿Ö¡ï¿½ï¿½ï¿½ï¿½
 
     private Coroutine loop;
 
     /// <summary>
-    /// ÔÚ´ò¿ªÉÌµêÊ±°ó¶¨ NPC/ÃªµãÓëÍæ¼Ò
+    /// ï¿½Ú´ï¿½ï¿½Ìµï¿½Ê±ï¿½ï¿½ NPC/Ãªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public void Bind(Transform npcOrAnchor, Transform playerTransform = null)
     {
         target = npcOrAnchor;
         if (playerTransform != null) player = playerTransform;
+        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
     }
 
     private void OnEnable()
@@ -54,10 +62,10 @@ public class ShopAutoCloseByDistance : MonoBehaviour
             yield return new WaitForSeconds(checkInterval);
 
             if (shopUI == null) continue;
-            if (!shopUI.IsOpen) continue;        // ÄãµÄ SimpleShopUI ÐèÒªÓÐ IsOpen ÊôÐÔ£¨¼ûÏÂ·½ËµÃ÷£©
+            if (!shopUI.IsOpen) continue;        // ï¿½ï¿½ï¿½ SimpleShopUI ï¿½ï¿½Òªï¿½ï¿½ IsOpen ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½Â·ï¿½Ëµï¿½ï¿½ï¿½ï¿½
             if (!autoCloseWhenFar) continue;
 
-            // ×Ô¶¯°´ Tag »ñÈ¡Íæ¼Ò
+            // ï¿½Ô¶ï¿½ï¿½ï¿½ Tag ï¿½ï¿½È¡ï¿½ï¿½ï¿½
             if (player == null && !string.IsNullOrEmpty(playerTag))
             {
                 var go = GameObject.FindGameObjectWithTag(playerTag);
@@ -69,11 +77,11 @@ public class ShopAutoCloseByDistance : MonoBehaviour
             float d = Vector3.Distance(player.position, target.position);
             if (d > closeDistance + hysteresis)
             {
-                // ÏÈ½áÊøÈÎºÎÍ·¶¥ÆøÅÝ£¨ÉÌµêÌ¨´Ê/¶ÀÁ¢ÆøÅÝ£©
-                if (worldBridge == null) worldBridge = FindObjectOfType<NPCDialogWorldBridge>();
-                if (worldBridge != null) worldBridge.EndStandalone();
+                // ï¿½È½ï¿½ï¿½ï¿½ï¿½Îºï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½Ìµï¿½Ì¨ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½
+                
+                if (_cachedWorldBridge != null) _cachedWorldBridge.EndStandalone();
 
-                // ÔÙ¹Ø±ÕÉÌµê
+                // ï¿½Ù¹Ø±ï¿½ï¿½Ìµï¿½
                 shopUI.Close();
             }
         }

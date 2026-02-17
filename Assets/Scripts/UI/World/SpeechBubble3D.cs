@@ -47,11 +47,13 @@ public class SpeechBubble3D : MonoBehaviour
     private Coroutine _fadeCo;
     private Coroutine _typeCo;
     private string _fullText = "";
+    Camera _cachedCamera;
 
     public void Init(Transform t, Camera cam, float maxWidth = 300f, Vector3? offset = null)
     {
         target = t;
         mainCamera = cam != null ? cam : Camera.main;
+        _cachedCamera = mainCamera;  // 缓存相机引用
         this.maxWidth = maxWidth;
         if (offset.HasValue) worldOffset = offset.Value;
 
@@ -64,7 +66,11 @@ public class SpeechBubble3D : MonoBehaviour
 
     public void BuildRuntimeUI()
     {
-        if (!mainCamera) mainCamera = Camera.main;
+        if (!mainCamera)
+        {
+            mainCamera = Camera.main;
+            _cachedCamera = mainCamera;
+        }
 
         canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
@@ -175,7 +181,7 @@ public class SpeechBubble3D : MonoBehaviour
     {
         if (target) ForceUpdatePosition();
 
-        var cam = mainCamera ? mainCamera : Camera.main;
+        var cam = _cachedCamera ? _cachedCamera : Camera.main;
         if (cam)
         {
             Vector3 fwd = transform.position - cam.transform.position;

@@ -82,11 +82,19 @@ public class MiniShop : MonoBehaviour
 
     readonly List<GameObject> _spawned = new();
     float _openedAt = -1f;
+    NPCDialogUI _cachedDialogUI;
+    PlayerInventoryHolder _cachedPlayerHolder;
+    NPCDialogWorldBridge _cachedWorldBridge;
 
     void Awake()
     {
         if (root) root.SetActive(false);
         if (closeButton) closeButton.onClick.AddListener(Close);
+
+        // 缓存引用
+        _cachedDialogUI = FindObjectOfType<NPCDialogUI>();
+        _cachedPlayerHolder = FindObjectOfType<PlayerInventoryHolder>();
+        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
     }
     void OnEnable() { if (wallet) wallet.onCoinsChanged.AddListener(OnCoinsChanged); }
     void OnDisable()
@@ -135,7 +143,7 @@ public class MiniShop : MonoBehaviour
     public void OpenFromDialog()
     {
         // 兜底：找对话 UI
-        if (!dialogUI) dialogUI = FindObjectOfType<NPCDialogUI>();
+        if (!dialogUI) dialogUI = _cachedDialogUI;
 
         // 解析当前 NPC & 桥接器（此时面板仍激活）
         Transform npcFromDialog = null;
@@ -147,7 +155,7 @@ public class MiniShop : MonoBehaviour
         }
 
         // Player
-        var holder = FindObjectOfType<PlayerInventoryHolder>();
+        var holder = _cachedPlayerHolder;
         player = holder ? holder.transform :
                  (GameObject.FindGameObjectWithTag("Player") ?
                    GameObject.FindGameObjectWithTag("Player").transform :
@@ -409,7 +417,7 @@ public class MiniShop : MonoBehaviour
     // ====== 气泡台词控制 ======
     void ShowShopBubble(string line, Transform targetNpc, NPCDialogWorldBridge preferredBridge = null)
     {
-        var bridge = preferredBridge ? preferredBridge : FindObjectOfType<NPCDialogWorldBridge>();
+        var bridge = preferredBridge ? preferredBridge : _cachedWorldBridge;
         if (!bridge || !targetNpc) return;
 
         var anchor = targetNpc.Find("BubbleAnchor");
@@ -419,7 +427,6 @@ public class MiniShop : MonoBehaviour
 
     void EndShopBubble()
     {
-        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
-        if (bridge) bridge.EndStandalone();
+        if (_cachedWorldBridge) _cachedWorldBridge.EndStandalone();
     }
 }

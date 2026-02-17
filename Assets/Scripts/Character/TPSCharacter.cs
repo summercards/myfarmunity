@@ -2,31 +2,31 @@
 using UnityEngine;
 
 /// <summary>
-/// ½ÇÉ«ºËÐÄ£ºÔË¶¯²ÎÊý¡¢µØÃæ¼ì²â¡¢ÌøÔ¾¡¢ÖØÁ¦¡¢×´Ì¬»ú
-/// ÐèÒª CharacterController ×é¼þ
-/// ¿ÉÑ¡ Animator£¨Speed/Grounded/Jump ´¥·¢£©
-/// ½öÐÞ¸´£ºÕ¾ÔÚ°Ú·ÅÎï£¨Buildable ²ã£©ÉÏÎÞ·¨ÅÐµØµÄÎÊÌâ£»ÆäÓàÒÆ¶¯/×ªÏòÂß¼­±£³Ö²»±ä¡£
+/// ï¿½ï¿½É«ï¿½ï¿½ï¿½Ä£ï¿½ï¿½Ë¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â¡¢ï¿½ï¿½Ô¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½
+/// ï¿½ï¿½Òª CharacterController ï¿½ï¿½ï¿½
+/// ï¿½ï¿½Ñ¡ Animatorï¿½ï¿½Speed/Grounded/Jump ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+/// ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½Õ¾ï¿½Ú°Ú·ï¿½ï¿½ï£¨Buildable ï¿½ã£©ï¿½ï¿½ï¿½Þ·ï¿½ï¿½ÐµØµï¿½ï¿½ï¿½ï¿½â£»ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½/×ªï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ä¡£
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class TPSCharacter : MonoBehaviour
 {
     [Header("Refs")]
-    public TPSInput input;                 // ´ÓÍ¬ÎïÌå»ò³¡¾°ÒýÓÃ
-    public Transform cameraRoot;           // ¾ÉµÄ²Î¿¼£¨Ïà»úÊàÅ¦£©£¬¿ÉÁô¿Õ
-    public Animator animator;              // ¿ÉÎª¿Õ
+    public TPSInput input;                 // ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ò³¡¾ï¿½ï¿½ï¿½ï¿½ï¿½
+    public Transform cameraRoot;           // ï¿½ÉµÄ²Î¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    public Animator animator;              // ï¿½ï¿½Îªï¿½ï¿½
 
     [Header("Move")]
     public float walkSpeed = 3.5f;
     public float sprintSpeed = 5.5f;
-    public float acceleration = 20f;       // Ë®Æ½¼ÓËÙ
-    public float rotationSpeed = 540f;     // Ãæ³¯ÒÆ¶¯·½Ïò
+    public float acceleration = 20f;       // Ë®Æ½ï¿½ï¿½ï¿½ï¿½
+    public float rotationSpeed = 540f;     // ï¿½æ³¯ï¿½Æ¶ï¿½ï¿½ï¿½ï¿½ï¿½
 
     [Header("Jump/Gravity")]
     public float jumpHeight = 1.2f;
-    public float gravity = -20f;           // ÏòÏÂ£¨¸ºÖµ£©
-    public float airControl = 0.5f;        // ¿ÕÖÐ¿ØÖÆ±È
-    public float coyoteTime = 0.12f;       // ÀëµØºó¶ÌÊ±¼ä¿ÉÆðÌø
-    public float jumpBuffer = 0.12f;       // ÌáÇ°°´ÌøÔ¾»º³å
+    public float gravity = -20f;           // ï¿½ï¿½ï¿½Â£ï¿½ï¿½ï¿½Öµï¿½ï¿½
+    public float airControl = 0.5f;        // ï¿½ï¿½ï¿½Ð¿ï¿½ï¿½Æ±ï¿½
+    public float coyoteTime = 0.12f;       // ï¿½ï¿½Øºï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    public float jumpBuffer = 0.12f;       // ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½Ô¾ï¿½ï¿½ï¿½ï¿½
 
     [Header("Ground Check")]
     public Vector3 groundCheckOffset = new Vector3(0, 0.1f, 0);
@@ -35,15 +35,16 @@ public class TPSCharacter : MonoBehaviour
 
     CharacterController cc;
     TPSStateMachine fsm;
+    Camera _cachedMainCamera;
 
-    // ÔËÐÐÌ¬
-    Vector3 velocity;       // °üº¬´¹Ö±ËÙ¶È
-    Vector3 planarVel;      // Ë®Æ½ËÙ¶È
+    // ï¿½ï¿½ï¿½ï¿½Ì¬
+    Vector3 velocity;       // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ù¶ï¿½
+    Vector3 planarVel;      // Ë®Æ½ï¿½Ù¶ï¿½
     float lastGroundedTime;
     float lastJumpPressedTime;
     bool grounded;
 
-    // ×´Ì¬ÊµÀý
+    // ×´Ì¬Êµï¿½ï¿½
     State stGrounded, stAir;
 
     void Awake()
@@ -51,7 +52,7 @@ public class TPSCharacter : MonoBehaviour
         cc = GetComponent<CharacterController>();
         if (!input) input = GetComponent<TPSInput>();
 
-        // ¡ï ×Ô¶¯°Ñ Buildable Í¼²ã²¢ÈëµØÃæ¼ì²â£¨Èô¹¤³ÌÀï½¨ÁË¸Ã²ã£©
+        // ï¿½ï¿½ ï¿½Ô¶ï¿½ï¿½ï¿½ Buildable Í¼ï¿½ã²¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï½¨ï¿½Ë¸Ã²ã£©
         int buildable = LayerMask.NameToLayer("Buildable");
         if (buildable >= 0)
             groundMask |= (1 << buildable);
@@ -59,7 +60,10 @@ public class TPSCharacter : MonoBehaviour
 
     void Start()
     {
-        // ×´Ì¬»ú
+        // ç¼“å­˜ä¸»ç›¸æœºå¼•ç”¨
+        _cachedMainCamera = Camera.main;
+
+        // çŠ¶æ€æœº
         fsm = new TPSStateMachine();
         stGrounded = new GroundedState(this);
         stAir = new AirborneState(this);
@@ -70,19 +74,19 @@ public class TPSCharacter : MonoBehaviour
     {
         float dt = Time.deltaTime;
 
-        // ÊäÈëÊ±¼ä´Á£¨ÓÃÓÚ»º³åÌø£©
+        // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         if (input && input.JumpPressed)
             lastJumpPressedTime = Time.time;
 
-        // ¡ï µØÃæ¼ì²â£¨¸üÎÈ£©£ºcc.isGrounded || SphereCast£¨ºöÂÔ Trigger£©
+        // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½â£¨ï¿½ï¿½ï¿½È£ï¿½ï¿½ï¿½cc.isGrounded || SphereCastï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Triggerï¿½ï¿½
         bool ccGround = cc.isGrounded;
 
-        // ÆðµãÈ¡½ÇÉ«½ºÄÒÌåµ×²¿ÉÔÉÏ·½£¬±ÜÃâÇ¶Èë
-        Vector3 origin = GetGroundCheckOrigin();   // ¼ûÏÂ·½·½·¨
+        // ï¿½ï¿½ï¿½È¡ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×²ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶ï¿½ï¿½
+        Vector3 origin = GetGroundCheckOrigin();   // ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½
         float radius = Mathf.Max(0.01f, groundCheckRadius);
         bool sphereHit = Physics.SphereCast(
-            origin, radius, Vector3.down, out _,     // ÃüÖÐÐÅÏ¢´Ë´¦²»Ê¹ÓÃ
-            0.2f,                                    // ¶Ì¾àÀëÌ½²â
+            origin, radius, Vector3.down, out _,     // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½Ë´ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+            0.2f,                                    // ï¿½Ì¾ï¿½ï¿½ï¿½Ì½ï¿½ï¿½
             groundMask,
             QueryTriggerInteraction.Ignore);
 
@@ -92,7 +96,7 @@ public class TPSCharacter : MonoBehaviour
 
         fsm.Tick(dt);
 
-        // ¶¯»­²ÎÊý£¨¿ÉÑ¡£©
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
         if (animator)
         {
             float speed = new Vector2(planarVel.x, planarVel.z).magnitude;
@@ -101,7 +105,7 @@ public class TPSCharacter : MonoBehaviour
         }
     }
 
-    // === ¹«¹²£º¹©×´Ì¬¶ÁÈ¡/²Ù×÷ ===
+    // === ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½È¡/ï¿½ï¿½ï¿½ï¿½ ===
 
     public bool IsGrounded() => grounded;
     public bool CanCoyoteJump() => (Time.time - lastGroundedTime) <= coyoteTime;
@@ -115,46 +119,46 @@ public class TPSCharacter : MonoBehaviour
 
     public void ApplyGravity(float dt)
     {
-        // ÔÚµØÊ±ÇáÌùµØ£¨·ÀÖ¹ÏÂÆÂÐü¿Õµ¯Ìø£©
+        // ï¿½Úµï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Ø£ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½
         if (grounded && velocity.y < 0f) velocity.y = -2f;
         velocity.y += gravity * dt;
     }
 
     public void Jump()
     {
-        // v = sqrt(2gh); gravity Îª¸º
+        // v = sqrt(2gh); gravity Îªï¿½ï¿½
         velocity.y = Mathf.Sqrt(Mathf.Max(0.01f, -2f * gravity * jumpHeight));
         animator?.SetTrigger("Jump");
         ConsumeBufferedJump();
     }
 
     /// <summary>
-    /// ÒÆ¶¯Óë×ªÏòÂß¼­ÍêÈ«ÑØÓÃÄãµ±Ç°°æ±¾£¬Î´¸Ä¶¯
+    /// ï¿½Æ¶ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ãµ±Ç°ï¿½æ±¾ï¿½ï¿½Î´ï¿½Ä¶ï¿½
     /// </summary>
     public void MovePlanar(float dt, Vector2 inputMove, bool sprint)
     {
-        // È¡·½Î»²Î¿¼
+        // È¡ï¿½ï¿½Î»ï¿½Î¿ï¿½
         Transform src = null;
-        if (Camera.main) src = Camera.main.transform;          // Ê×Ñ¡£ºÏà»ú±¾Ìå³¯Ïò
-        else if (cameraRoot) src = cameraRoot;                 // ±¸Ñ¡£ºÏà»úÊàÅ¦£¨¿ÉÄÜ²»ËæÏà»úÐý×ª£©
-        else src = transform;                                  // ×îºó¶µµ×
+        if (_cachedMainCamera) src = _cachedMainCamera.transform;  //) ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å³¯ï¿½ï¿½
+        else if (cameraRoot) src = cameraRoot;                 // ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¦ï¿½ï¿½ï¿½ï¿½ï¿½Ü²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½
+        else src = transform;                                  // ï¿½ï¿½ó¶µµï¿½
 
-        // ÓÉ²Î¿¼³¯ÏòµÃµ½Ë®Æ½ÃæµÄÇ°/ÓÒ
+        // ï¿½É²Î¿ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½Ë®Æ½ï¿½ï¿½ï¿½Ç°/ï¿½ï¿½
         Vector3 camF = Vector3.ProjectOnPlane(src.forward, Vector3.up).normalized;
         Vector3 camR = Vector3.ProjectOnPlane(src.right, Vector3.up).normalized;
 
-        // ÊäÈëÓ³Éäµ½ÊÀ½ç·½Ïò£¨W=camF£¬D=camR£©
+        // ï¿½ï¿½ï¿½ï¿½Ó³ï¿½äµ½ï¿½ï¿½ï¿½ç·½ï¿½ï¿½W=camFï¿½ï¿½D=camRï¿½ï¿½
         Vector3 desired = camF * inputMove.y + camR * inputMove.x;
         desired = desired.sqrMagnitude > 1e-4f ? desired.normalized : Vector3.zero;
 
         float targetSpeed = sprint ? sprintSpeed : walkSpeed;
         Vector3 targetVel = desired * targetSpeed;
 
-        // µØÃæÓë¿ÕÖÐ²»Í¬¼ÓËÙ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð²ï¿½Í¬ï¿½ï¿½ï¿½ï¿½
         float acc = grounded ? acceleration : (acceleration * airControl);
         planarVel = Vector3.MoveTowards(new Vector3(planarVel.x, 0, planarVel.z), new Vector3(targetVel.x, 0, targetVel.z), acc * dt);
 
-        // ½öµ±ÓÐÊäÈëÊ±×ªÉí£¨Êó±êÖ»¿ØÖÆÏà»ú£¬²»Ö±½Ó¸Ä½ÇÉ«Ðý×ª£©
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó¸Ä½ï¿½É«ï¿½ï¿½×ªï¿½ï¿½
         if (desired.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(desired, Vector3.up);
@@ -164,40 +168,40 @@ public class TPSCharacter : MonoBehaviour
 
     public void ApplyMotion(float dt)
     {
-        // ºÏ²¢Ë®Æ½ + ´¹Ö±
+        // ï¿½Ï²ï¿½Ë®Æ½ + ï¿½ï¿½Ö±
         Vector3 motion = new Vector3(planarVel.x, 0, planarVel.z) + Vector3.up * velocity.y;
         cc.Move(motion * dt);
     }
 
-    // === ¾ßÌå×´Ì¬ ===
+    // === ï¿½ï¿½ï¿½ï¿½×´Ì¬ ===
 
     class GroundedState : State
     {
         public GroundedState(TPSCharacter o) : base(o) { }
         public override void OnEnter()
         {
-            // ÌùµØ/ÇåÀí´¹Ö±ËÙ¶È
+            // ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ù¶ï¿½
             if (owner.velocity.y < 0f) owner.velocity.y = -2f;
         }
 
         public override void Tick(float dt)
         {
             var inp = owner.input;
-            // ÒÆ¶¯
+            // ï¿½Æ¶ï¿½
             owner.MovePlanar(dt, inp ? inp.Move : Vector2.zero, inp && inp.SprintHeld);
 
-            // ÌøÔ¾£ºÔÚµØ »ò Coyote + »º³å
+            // ï¿½ï¿½Ô¾ï¿½ï¿½ï¿½Úµï¿½ ï¿½ï¿½ Coyote + ï¿½ï¿½ï¿½ï¿½
             bool wantJump = (inp && inp.JumpPressed) || owner.HasBufferedJump();
             if (wantJump && (owner.IsGrounded() || owner.CanCoyoteJump()))
             {
                 owner.Jump();
             }
 
-            // ÖØÁ¦ & ÔË¶¯
+            // ï¿½ï¿½ï¿½ï¿½ & ï¿½Ë¶ï¿½
             owner.ApplyGravity(dt);
             owner.ApplyMotion(dt);
 
-            // ×´Ì¬ÇÐ»»
+            // ×´Ì¬ï¿½Ð»ï¿½
             if (!owner.IsGrounded())
                 owner.fsm.Change(owner.stAir);
         }
@@ -209,10 +213,10 @@ public class TPSCharacter : MonoBehaviour
         public override void Tick(float dt)
         {
             var inp = owner.input;
-            // ¿ÕÖÐÈÔÓÐÉÙÁ¿Ë®Æ½¿ØÖÆ
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®Æ½ï¿½ï¿½ï¿½ï¿½
             owner.MovePlanar(dt, inp ? inp.Move : Vector2.zero, inp && inp.SprintHeld);
 
-            // »º³åÌøÖ»ÔÚÂäµØÇ°¼ÇÂ¼£¬²»ÔÚ¿ÕÖÐ¶þ¶ÎÌø£¨ÈôÒª¼Ó¶þ¶ÎÌø£¬¿ÉÔÚ´ËÅÐ¶Ï£©
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½Ú¿ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ó¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ð¶Ï£ï¿½
             if (inp && inp.JumpPressed)
                 owner.lastJumpPressedTime = Time.time;
 
@@ -224,10 +228,10 @@ public class TPSCharacter : MonoBehaviour
         }
     }
 
-    // === ¹¤¾ß£ºÒÔ CharacterController µ×²¿Îª»ù×¼µÄ¼ì²âÆðµã ===
+    // === ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½ CharacterController ï¿½×²ï¿½Îªï¿½ï¿½×¼ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ ===
     Vector3 GetGroundCheckOrigin()
     {
-        // ÒÔ½ºÄÒµ×²¿Îª»ù×¼£¬ÔÙ¼ÓÉÙÐíÏòÉÏÆ«ÒÆ£¬±ÜÃâÇòÐÄÌùÔÚ±íÃæÄÚ²à
+        // ï¿½Ô½ï¿½ï¿½Òµ×²ï¿½Îªï¿½ï¿½×¼ï¿½ï¿½ï¿½Ù¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ«ï¿½Æ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½Ú²ï¿½
         Vector3 bottom = transform.position + cc.center + Vector3.down * (cc.height * 0.5f - cc.radius);
         return bottom + Vector3.up * 0.05f + groundCheckOffset;
     }

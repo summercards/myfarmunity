@@ -32,7 +32,7 @@ public class PlayerBuilder : MonoBehaviour
     public bool forceSolidColliders = true;
 
     [Header("Surface stacking")]
-    [Tooltip("½öµ±ÃüÖÐ±íÃæµÄ³¯ÉÏ³Ì¶È >= ¸ÃãÐÖµÊ±£¬²ÅÔÊÐí°´ Surface Ìù·Å")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½Ä³ï¿½ï¿½Ï³Ì¶ï¿½ >= ï¿½ï¿½ï¿½ï¿½ÖµÊ±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Surface ï¿½ï¿½ï¿½ï¿½")]
     [Range(0f, 1f)] public float minUpDotForSurface = 0.6f;
 
     // runtime
@@ -41,6 +41,7 @@ public class PlayerBuilder : MonoBehaviour
     GameObject _ghost;
     string _ghostItemId = "";
     float _yaw = 0f;
+    Camera _cachedCamera;
 
     readonly List<(Renderer r, Material[] original)> _renderers = new();
     Collider[] _playerCols;
@@ -52,13 +53,14 @@ public class PlayerBuilder : MonoBehaviour
         _inv = GetComponent<PlayerInventoryHolder>();
         _active = GetComponent<ActiveItemController>();
         if (viewCamera == null) viewCamera = Camera.main;
+        _cachedCamera = viewCamera;
 
         _playerCols = GetComponentsInChildren<Collider>(true);
 
         _placedLayer = LayerMask.NameToLayer(placedLayerName);
 #if UNITY_EDITOR
         if (_placedLayer < 0)
-            Debug.LogWarning($"[PlayerBuilder] ÕÒ²»µ½Í¼²ã \"{placedLayerName}\"£¬½«Ê¹ÓÃPrefabÔ­Í¼²ã¡£½¨ÒéÔÚ Project Settings ¡ú Tags and Layers ÐÂ½¨¸Ã²ã£¬²¢°ÑËü¼ÓÈë½ÇÉ«µÄ Ground Layers¡£");
+            Debug.LogWarning($"[PlayerBuilder] ï¿½Ò²ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ \"{placedLayerName}\"ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½PrefabÔ­Í¼ï¿½ã¡£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Project Settings ï¿½ï¿½ Tags and Layers ï¿½Â½ï¿½ï¿½Ã²ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ Ground Layersï¿½ï¿½");
 #endif
     }
 
@@ -87,7 +89,7 @@ public class PlayerBuilder : MonoBehaviour
         {
             if (TryConsumeOne(id)) Place(entry, id, pos, rot);
 #if UNITY_EDITOR
-            else Debug.Log("[PlayerBuilder] ±³°üÊýÁ¿²»×ã");
+            else Debug.Log("[PlayerBuilder] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
 #endif
         }
 
@@ -130,7 +132,8 @@ public class PlayerBuilder : MonoBehaviour
 
     bool ComputePoseAndCheck(BuildCatalogSO.Entry e, out Vector3 pos, out Quaternion rot)
     {
-        var cam = viewCamera != null ? viewCamera : Camera.main;
+        var cam = _cachedCamera != null ? _cachedCamera : viewCamera;
+        if (cam == null) cam = Camera.main;
         var ray = cam != null
             ? cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f))
             : new Ray(transform.position + Vector3.up * 1.5f, transform.forward);
@@ -141,11 +144,11 @@ public class PlayerBuilder : MonoBehaviour
             return false;
         }
 
-        // ¶Ô Surface£ºÖ»ÔÊÐí¡°¶¥Ãæ¡±£¨·¨Ïß³¯ÉÏ£©
+        // ï¿½ï¿½ Surfaceï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ¡±ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½ï¿½Ï£ï¿½
         if (e.snapMode == BuildSnapMode.Surface)
         {
             float upDot = Vector3.Dot(hit.normal, Vector3.up);
-            if (upDot < minUpDotForSurface)    // ÃüÖÐÇ½Ãæ/Ð±ÃæÔò²»ÔÊÐí
+            if (upDot < minUpDotForSurface)    // ï¿½ï¿½ï¿½ï¿½Ç½ï¿½ï¿½/Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             {
                 pos = hit.point; rot = Quaternion.identity;
                 return false;
@@ -167,14 +170,14 @@ public class PlayerBuilder : MonoBehaviour
                 var yaw = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
                 yaw = SnapYaw(yaw + _yaw, e.yawStep);
                 targetRot = Quaternion.Euler(0f, yaw, 0f);
-                targetPos = hit.point + hit.normal * 0.01f; // ÌùÇ½
+                targetPos = hit.point + hit.normal * 0.01f; // ï¿½ï¿½Ç½
                 break;
         }
 
-        // ÏÈ°Ñ Ghost ·Åµ½ºòÑ¡Î»×Ë
+        // ï¿½È°ï¿½ Ghost ï¿½Åµï¿½ï¿½ï¿½Ñ¡Î»ï¿½ï¿½
         if (_ghost != null) _ghost.transform.SetPositionAndRotation(targetPos, targetRot);
 
-        // ÓÃÊÀ½ç°üÎ§ºÐÈÃ¡°µ×Ãæ=ÃüÖÐµã+yOffset+skin¡±£¨¼æÈÝÖáÐÄÔÚµ×/ÖÐ/Æ«ÒÆ£©
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î§ï¿½ï¿½ï¿½Ã¡ï¿½ï¿½ï¿½ï¿½ï¿½=ï¿½ï¿½ï¿½Ðµï¿½+yOffset+skinï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½/ï¿½ï¿½/Æ«ï¿½Æ£ï¿½
         if (_ghost != null && (e.snapMode == BuildSnapMode.Ground || e.snapMode == BuildSnapMode.Surface))
         {
             if (TryGetWorldBounds(_ghost, out Bounds b))
@@ -187,8 +190,8 @@ public class PlayerBuilder : MonoBehaviour
             }
         }
 
-        // === ÖØµþ¼ì²â ===
-        // ÔÊÐí¡°ÌùÔÚ³ÐÔØÎïÌåÉÏ¡±£ººöÂÔÕâ´ÎÉäÏßÃüÖÐµÄÄÇ¿Ã²ã¼¶£¨×À×Ó/Ïä×ÓµÈ£©
+        // === ï¿½Øµï¿½ï¿½ï¿½ï¿½ ===
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½Ç¿Ã²ã¼¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ÓµÈ£ï¿½
         Transform supportRoot = hit.collider != null ? hit.collider.transform.root : null;
 
         LayerMask layers = (e.blockerLayers.value == 0) ? (LayerMask)~0 : e.blockerLayers;
@@ -199,7 +202,7 @@ public class PlayerBuilder : MonoBehaviour
         return !blocked;
     }
 
-    // ºöÂÔ supportRoot£¨ÃüÖÐ³ÐÔØÎïÌå£©½øÐÐ Overlap
+    // ï¿½ï¿½ï¿½ï¿½ supportRootï¿½ï¿½ï¿½ï¿½ï¿½Ð³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£©ï¿½ï¿½ï¿½ï¿½ Overlap
     bool HasColliderOverlapExcept(GameObject ghostRoot, LayerMask layers, Transform supportRoot)
     {
         if (ghostRoot == null) return true;
@@ -246,9 +249,9 @@ public class PlayerBuilder : MonoBehaviour
             if (col == null) continue;
             if (!col.enabled) continue;
             if (col.isTrigger) continue;
-            if (_ghost != null && col.transform.IsChildOf(_ghost.transform)) continue; // ºöÂÔÔ¤ÀÀ
-            if (IsPlayerCollider(col)) continue;                                       // ºöÂÔÍæ¼Ò
-            if (supportRoot != null && col.transform.IsChildOf(supportRoot)) continue; // ºöÂÔ³ÐÔØÎïÌå£¨ÔÊÐí½Ó´¥£©
+            if (_ghost != null && col.transform.IsChildOf(_ghost.transform)) continue; // ï¿½ï¿½ï¿½ï¿½Ô¤ï¿½ï¿½
+            if (IsPlayerCollider(col)) continue;                                       // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            if (supportRoot != null && col.transform.IsChildOf(supportRoot)) continue; // ï¿½ï¿½ï¿½Ô³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£¨ï¿½ï¿½ï¿½ï¿½ï¿½Ó´ï¿½ï¿½ï¿½
             return true;
         }
         return false;

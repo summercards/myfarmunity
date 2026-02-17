@@ -28,12 +28,23 @@ namespace FarmGame.ActorSystem
             Brain = GetComponent<ActorBrain>();
             Dialogue = GetComponent<ActorDialogue>();
             View = GetComponent<ActorView>();
-            
+
+            if (Identity == null) Debug.LogWarning("[Actor] 未找到 ActorIdentity 组件！");
+            if (Memory == null) Debug.LogWarning("[Actor] 未找到 ActorMemory 组件！");
+            if (Brain == null) Debug.LogWarning("[Actor] 未找到 ActorBrain 组件！");
+            if (Dialogue == null) Debug.LogWarning("[Actor] 未找到 ActorDialogue 组件！");
+            if (View == null) Debug.LogWarning("[Actor] 未找到 ActorView 组件！");
+
             // 缓存模块
             _shopModule = GetComponent<ShopModule>();
             _questModule = GetComponent<QuestModule>();
             _giftModule = GetComponent<GiftModule>();
             _dialogueModule = GetComponent<DialogueModule>();
+
+            if (_shopModule == null) Debug.LogWarning($"[Actor] {name} 未找到 ShopModule 组件");
+            if (_questModule == null) Debug.LogWarning($"[Actor] {name} 未找到 QuestModule 组件");
+            if (_giftModule == null) Debug.LogWarning($"[Actor] {name} 未找到 GiftModule 组件");
+            if (_dialogueModule == null) Debug.LogWarning($"[Actor] {name} 未找到 DialogueModule 组件");
         }
 
         // IDialogSubject Implementation

@@ -10,7 +10,7 @@ public class HeldItemDisplay : MonoBehaviour
     public Animator animator;
 
     [Header("Behaviour")]
-    public float defaultShowSeconds = 0f; // ½¨ÒéÉè 0£ºÒ»Ö±ÏÔÊ¾£¬Ö±µ½¶ªÆú/ÇĞ»»
+    public float defaultShowSeconds = 0f; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 0ï¿½ï¿½Ò»Ö±ï¿½ï¿½Ê¾ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½Ğ»ï¿½
     public bool forceActiveOnSpawn = true;
 
     [Header("Debug")]
@@ -56,6 +56,9 @@ public class HeldItemDisplay : MonoBehaviour
 
     public void Show(ItemSO item, float seconds = -1f)
     {
+        // å…ˆåœæ­¢ä¹‹å‰çš„åç¨‹ï¼Œé˜²æ­¢æ³„æ¼
+        if (_hideCo != null) { StopCoroutine(_hideCo); _hideCo = null; }
+
         Clear();
         CurrentItem = item;
         LastItem = item;
@@ -63,7 +66,7 @@ public class HeldItemDisplay : MonoBehaviour
         if (item == null || item.heldPrefab == null) return;
 
         var hand = Hand;
-        if (!hand) { Debug.LogWarning("[HeldItemDisplay] Î´ÕÒµ½ HandSocket/ÓÒÊÖ¹Ç÷À"); return; }
+        if (!hand) { Debug.LogWarning("[HeldItemDisplay] Î´ï¿½Òµï¿½ HandSocket/ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½"); return; }
 
         _current = Instantiate(item.heldPrefab, hand, false);
         _current.name = $"HELD_{item.id}";

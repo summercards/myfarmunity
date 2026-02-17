@@ -38,6 +38,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
     PropertyInfo _propCurrentSubject; // Phase 2: 重命名
     FieldInfo _fieldCurrentSubject; // Phase 2: 重命名
     Transform _player;
+    Camera _cachedCamera;
 
     bool _standaloneMode = false;
     Transform _standaloneNPC;
@@ -52,12 +53,14 @@ public class NPCDialogWorldBridge : MonoBehaviour
         _propCurrentSubject = typeof(NPCDialogUI).GetProperty("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
         _fieldCurrentSubject = typeof(NPCDialogUI).GetField("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
 
+        _cachedCamera = Camera.main;  // 缓存相机引用
+
         if (!string.IsNullOrEmpty(playerTag))
         {
             var go = GameObject.FindGameObjectWithTag(playerTag);
             if (go) _player = go.transform;
         }
-        if (!_player && Camera.main) _player = Camera.main.transform;
+        if (!_player && _cachedCamera) _player = _cachedCamera.transform;
     }
 
     void OnEnable()
@@ -152,7 +155,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
                 _anchor = ResolveAnchor(_standaloneNPC);
                 EnsureBubble();
                 _bubble.transform.SetParent(null, true);
-                _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+                _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
                 _bubble.SetText(_standaloneLine);
                 MakeUILineTransparent();
             }
@@ -174,7 +177,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
             _anchor = ResolveAnchor(_currentSubject.SubjectTransform);
             EnsureBubble();
             _bubble.transform.SetParent(null, true);
-            _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+            _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
             _bubble.SetText(line);
             MakeUILineTransparent();
         }
@@ -201,7 +204,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         _anchor = ResolveAnchor(_standaloneNPC);
         EnsureBubble();
         _bubble.transform.SetParent(null, true);
-        _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+        _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
         _bubble.SetText(_standaloneLine);
         MakeUILineTransparent();
     }
@@ -222,7 +225,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         // 如果气泡已存在，立即更新位置（避免在NPC对话框打开时看不到气泡）
         if (_bubble != null)
         {
-            _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+            _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
         }
 
         _lastLineText = ""; // 避免气泡不刷新
@@ -244,7 +247,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         // 如果气泡已存在，立即更新位置
         if (_bubble != null)
         {
-            _bubble.Init(_anchor, Camera.main, bubbleMaxWidth, bubbleOffset);
+            _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
         }
 
         _lastLineText = ""; // 避免气泡不刷新

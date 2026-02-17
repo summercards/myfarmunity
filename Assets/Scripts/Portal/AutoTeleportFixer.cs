@@ -21,6 +21,8 @@ public class AutoTeleportFixer : MonoBehaviour
     public Vector3 safePosition = new Vector3(0, 1.5f, 0);
 
     private bool isInitialized = false;
+    private Coroutine _checkRoutine;
+    private Coroutine _fixRoutine;
 
     void Awake()
     {
@@ -49,15 +51,18 @@ public class AutoTeleportFixer : MonoBehaviour
 
     void Start()
     {
-        StartCoroutine(FixPlayerRoutine());
+        _fixRoutine = StartCoroutine(FixPlayerRoutine());
     }
 
     void Update()
     {
         if (!enableAutoFix) return;
 
-        // 持续监控Player状态
-        StartCoroutine(CheckPlayerRoutine());
+        // 持续监控Player状态（防止重复启动协程）
+        if (_checkRoutine == null)
+        {
+            _checkRoutine = StartCoroutine(CheckPlayerRoutine());
+        }
     }
 
     void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
@@ -65,8 +70,11 @@ public class AutoTeleportFixer : MonoBehaviour
         if (debugMode)
             Debug.Log($"[AutoTeleportFixer] 场景已加载: {scene.name}");
 
-        // 场景加载后立即开始修复
-        StartCoroutine(FixPlayerRoutine());
+        // 场景加载后立即开始修复（防止重复启动）
+        if (_fixRoutine == null)
+        {
+            _fixRoutine = StartCoroutine(FixPlayerRoutine());
+        }
     }
 
     /// <summary>
@@ -74,7 +82,11 @@ public class AutoTeleportFixer : MonoBehaviour
     /// </summary>
     private IEnumerator FixPlayerRoutine()
     {
-        if (isInitialized) yield break;
+        if (isInitialized)
+        {
+            _fixRoutine = null;
+            yield break;
+        }
 
         // 等待几帧让所有系统初始化
         for (int i = 0; i < 5; i++)
@@ -106,6 +118,7 @@ public class AutoTeleportFixer : MonoBehaviour
 
         // 重置初始化状态，以便下次场景加载时再次修复
         isInitialized = false;
+        _fixRoutine = null;
     }
 
     /// <summary>
@@ -118,7 +131,11 @@ public class AutoTeleportFixer : MonoBehaviour
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
 
-        if (player == null) yield break;
+        if (player == null)
+        {
+            _checkRoutine = null;
+            yield break;
+        }
 
         // 检查Player是否被禁用
         if (!player.activeInHierarchy)
@@ -141,6 +158,9 @@ public class AutoTeleportFixer : MonoBehaviour
 
             yield return StartCoroutine(FixPlayerPosition(player));
         }
+
+        // 协程执行完毕，允许下次启动
+        _checkRoutine = null;
     }
 
     /// <summary>

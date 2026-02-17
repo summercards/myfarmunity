@@ -8,6 +8,8 @@ public class PortalManager : MonoBehaviour
 
     private string pendingSpawnID;
     private bool isTeleporting;
+    private Coroutine _loadSceneRoutine;
+    private Coroutine _placePlayerRoutine;
 
     private void Awake()
     {
@@ -31,7 +33,7 @@ public class PortalManager : MonoBehaviour
         if (isTeleporting) return;
 
         pendingSpawnID = spawnID;
-        StartCoroutine(LoadSceneRoutine(sceneName));
+        _loadSceneRoutine = StartCoroutine(LoadSceneRoutine(sceneName));
     }
 
     IEnumerator LoadSceneRoutine(string scene)
@@ -49,7 +51,7 @@ public class PortalManager : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        StartCoroutine(PlacePlayer());
+        _placePlayerRoutine = StartCoroutine(PlacePlayer());
     }
 
     IEnumerator PlacePlayer()

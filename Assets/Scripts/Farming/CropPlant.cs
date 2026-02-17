@@ -55,6 +55,7 @@ public class CropPlant : MonoBehaviour
     public Color barFillColor = new Color(0.2f, 0.9f, 0.2f, 0.95f);
     Transform _barRoot; Transform _bgQuad; Transform _fillQuad;
     static Material _matBG, _matFill;
+    Camera _cachedCamera;
 
     // —— 树：生产改为“入库存”，收获一次性清空库存 —— 
     float _produceTimer = 0f;   // 距离下次入库计时
@@ -115,8 +116,8 @@ public class CropPlant : MonoBehaviour
         _barRoot.position = pos;
 
         // 朝向相机（Billboard）
-        if (Camera.main)
-            _barRoot.rotation = Quaternion.LookRotation(Camera.main.transform.forward, Vector3.up);
+        if (_cachedCamera)
+            _barRoot.rotation = Quaternion.LookRotation(_cachedCamera.transform.forward, Vector3.up);
     }
 
 
@@ -166,14 +167,15 @@ public class CropPlant : MonoBehaviour
     void FaceCamera()
     {
         if (_barRoot == null) return;
-        var cam = Camera.main; if (!cam) return;
-        _barRoot.rotation = Quaternion.LookRotation(_barRoot.position - cam.transform.position);
+        if (!_cachedCamera) return;
+        _barRoot.rotation = Quaternion.LookRotation(_barRoot.position - _cachedCamera.transform.position);
     }
 
     // ===== 生命周期 =====
     public void Init(SeedPlantDataSO.Entry cfg)
     {
         _cfg = cfg;
+        _cachedCamera = Camera.main;  // 缓存相机引用
         BuildStageDurations();
         SetupStageVisuals();
         BuildBar();

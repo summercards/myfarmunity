@@ -4,8 +4,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-/// ¶ªÆú=ÒÔ¡°µ±Ç°¼¤»îÎïÆ·¡±Îª×¼£º±³°üÀïÓÐ²ÅÔÊÐí¶ª£»¿Û¼õ1ºóÔÚµØÃæÉú³É¿ÉÊ°È¡Trigger£»
-/// È»ºóË¢ÐÂ¼¤»îÎïÓëÊÖÉÏÏÔÊ¾£¨Èç¹ûÊýÁ¿Îª0¾ÍÇå¿Õ/ÇÐµ½ÏÂÒ»¸öÓÐ»õµÄ£©¡£
+/// ï¿½ï¿½ï¿½ï¿½=ï¿½Ô¡ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ·ï¿½ï¿½Îª×¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½1ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¿ï¿½Ê°È¡Triggerï¿½ï¿½
+/// È»ï¿½ï¿½Ë¢ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½Ðµï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð»ï¿½ï¿½Ä£ï¿½ï¿½ï¿½
 [RequireComponent(typeof(PlayerInventoryHolder))]
 public class PlayerThrower : MonoBehaviour
 {
@@ -32,12 +32,14 @@ public class PlayerThrower : MonoBehaviour
     PlayerInventoryHolder _inv;
     ActiveItemController _active;
     PlayerPickupController _pickupCtrl;
+    Camera _cachedCamera;
 
     void Awake()
     {
         _inv = GetComponent<PlayerInventoryHolder>();
         _active = GetComponent<ActiveItemController>();
         _pickupCtrl = GetComponent<PlayerPickupController>();
+        _cachedCamera = Camera.main;
 
         if (groundMask.value == 0)
         {
@@ -48,8 +50,8 @@ public class PlayerThrower : MonoBehaviour
 
     void Update()
     {
-        if (DropPressedThisFrame()) TryPlace(true);   // Q ½ü
-        if (ThrowPressedThisFrame()) TryPlace(false);  // R Ô¶£¨Í¬Âß¼­£¬²»ÎïÀí£©
+        if (DropPressedThisFrame()) TryPlace(true);   // Q ï¿½ï¿½
+        if (ThrowPressedThisFrame()) TryPlace(false);  // R Ô¶ï¿½ï¿½Í¬ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     }
 
     bool DropPressedThisFrame()
@@ -73,38 +75,38 @@ public class PlayerThrower : MonoBehaviour
 
     void TryPlace(bool isNear)
     {
-        // ¡ª¡ª ÒÔ¡°µ±Ç°¼¤»îÎïÆ·¡±Îª×¼ ¡ª¡ª 
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¡ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ·ï¿½ï¿½Îª×¼ ï¿½ï¿½ï¿½ï¿½ 
         if (_active == null || string.IsNullOrEmpty(_active.ActiveId) || !_active.HasActive)
         {
-            if (debugLogs) Debug.Log("[Thrower] Ã»ÓÐ¼¤»îÎïÆ·»òÊýÁ¿Îª 0£¬ÎÞ·¨¶ªÆú¡£");
+            if (debugLogs) Debug.Log("[Thrower] Ã»ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½ï¿½Æ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª 0ï¿½ï¿½ï¿½Þ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
             return;
         }
 
         string id = _active.ActiveId;
         ItemSO def = _active.ActiveItemSO;
 
-        // ±³°ü¼ì²é & ¿Û¼õ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ & ï¿½Û¼ï¿½
         if (_inv.GetCount(id) <= 0) { _active.OnInventoryChanged(); return; }
         if (_inv.RemoveItem(id, 1) <= 0) { _active.OnInventoryChanged(); return; }
 
-        // ¼ÆËãÂäµã²¢Éú³É
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã²¢ï¿½ï¿½ï¿½ï¿½
         float dist = isNear ? nearDistance : farDistance;
         Vector3 approxPoint = ComputeApproxPlacePoint(dist);
         SpawnPickupAt(id, def, approxPoint);
 
-        // Ë¢ÐÂ¼¤»îÎï/ÊÖÉÏÏÔÊ¾£¨¿ÉÄÜÇÐ»»µ½ÏÂÒ»¸öÓÐ»õµÄ£©
+        // Ë¢ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð»ï¿½ï¿½Ä£ï¿½
         _active.OnInventoryChanged(id);
 
-        // ×è¶Ï×Ô¶¯¼ñ»Ø
+        // ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½
         _pickupCtrl?.BlockFor(pickupBlockSecondsAfterPlace);
 
-        if (debugLogs) Debug.Log($"[Thrower] ¶ª³ö {id}£¬Ê£Óà£º{_inv.GetCount(id)}");
+        if (debugLogs) Debug.Log($"[Thrower] ï¿½ï¿½ï¿½ï¿½ {id}ï¿½ï¿½Ê£ï¿½à£º{_inv.GetCount(id)}");
     }
 
-    // ¡ª¡ª ·ÅÖÃ£ºÎÞÎïÀí + ×Ô¶¯µæ¸ß ¡ª¡ª 
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ + ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 
     Vector3 ComputeApproxPlacePoint(float horizontalDistance)
     {
-        Transform src = Camera.main ? Camera.main.transform : transform;
+        Transform src = _cachedCamera ? _cachedCamera.transform : transform;
         Vector3 fwd = Vector3.ProjectOnPlane(src.forward, Vector3.up).normalized;
         if (fwd.sqrMagnitude < 1e-4f) fwd = transform.forward;
 

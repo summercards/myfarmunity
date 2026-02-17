@@ -7,28 +7,28 @@ public class PlayerPlanter : MonoBehaviour
 {
     [Header("Config")]
     public SeedPlantDataSO plantDB;
-    [Tooltip("¿ÉÖÖÖ²µÄµØÃæ²ã£¨ÉäÏßÃüÖÐ²ã£©")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½Ö²ï¿½Äµï¿½ï¿½ï¿½ã£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð²ã£©")]
     public LayerMask plantableLayers;
-    [Tooltip("×î´óÖÖÖ²¾àÀë")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½")]
     public float maxDistance = 8f;
-    [Tooltip("ÖÖÖ²¼ü")]
+    [Tooltip("ï¿½ï¿½Ö²ï¿½ï¿½")]
     public KeyCode plantKey = KeyCode.F;
-    [Tooltip("Ê¹ÓÃÏà»úÖÐÐÄÉäÏß")]
+    [Tooltip("Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")]
     public bool useCameraRay = true;
 
-    [Header("·ÅÖÃÐ£Ñé£¨·ÀÖØµþ/±»×èµ²£©")]
-    [Tooltip("ÓëÆäËü×÷ÎïµÄ×îÐ¡¼ä¾à£¨Ã×£©")]
+    [Header("ï¿½ï¿½ï¿½ï¿½Ð£ï¿½é£¨ï¿½ï¿½ï¿½Øµï¿½/ï¿½ï¿½ï¿½èµ²ï¿½ï¿½")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½à£¨ï¿½×£ï¿½")]
     public float minSpacing = 1.2f;
-    [Tooltip("´ÓµØÃæÏòÉÏÐèÒªµÄ¾»¿Õ¸ß¶È£¨Ã×£©")]
+    [Tooltip("ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ä¾ï¿½ï¿½Õ¸ß¶È£ï¿½ï¿½×£ï¿½")]
     public float clearanceHeight = 1.6f;
-    [Tooltip("¾»¿Õ°ë¾¶£¨Ã×£©¡ª ½üËÆÖ²Öê°ë¾¶")]
+    [Tooltip("ï¿½ï¿½ï¿½Õ°ë¾¶ï¿½ï¿½ï¿½×£ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ë¾¶")]
     public float clearanceRadius = 0.45f;
-    [Tooltip("×èµ²²ã£¨Ê÷/Ê¯Í·/½¨Öþ/µÀ¾ßµÈ£©¡ª ²»Òª¹´µØÃæ²ã£¡")]
+    [Tooltip("ï¿½èµ²ï¿½ã£¨ï¿½ï¿½/Ê¯Í·/ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ßµÈ£ï¿½ï¿½ï¿½ ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¡")]
     public LayerMask blockLayers;
 
-    [Header("Marker (µØÃæÖ¸Ê¾»·)")]
+    [Header("Marker (ï¿½ï¿½ï¿½ï¿½Ö¸Ê¾ï¿½ï¿½)")]
     public bool showMarker = true;
-    [Tooltip("Ö»ÔÚ¿ÉÖÖµØÃæÏÔÊ¾ºìÈ¦")]
+    [Tooltip("Ö»ï¿½Ú¿ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½È¦")]
     public bool markerOnlyOnPlantable = true;
     public float markerRadius = 0.35f;
     public float markerWidth = 0.02f;
@@ -38,23 +38,23 @@ public class PlayerPlanter : MonoBehaviour
     public Color badColor = new Color(1f, 0f, 0f, 0.95f);
 
     [Header("Rotation Control (Yaw)")]
-    public bool enableYawControl = true;          // ¿ª¹Ø
-    [Tooltip("Q/E °´×¡Ðý×ªµÄ½ÇËÙ¶È£¨¶È/Ãë£©")]
+    public bool enableYawControl = true;          // ï¿½ï¿½ï¿½ï¿½
+    [Tooltip("Q/E ï¿½ï¿½×¡ï¿½ï¿½×ªï¿½Ä½ï¿½ï¿½Ù¶È£ï¿½ï¿½ï¿½/ï¿½ë£©")]
     public float rotateSpeed = 120f;
-    [Tooltip("×óÐý¼ü")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")]
     public KeyCode yawLeftKey = KeyCode.Q;
-    [Tooltip("ÓÒÐý¼ü")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")]
     public KeyCode yawRightKey = KeyCode.E;
-    [Tooltip("¹öÂÖ¿Éµ÷½Ç¶È£¨Ã¿¸ñ¶ÈÊý£©")]
+    [Tooltip("ï¿½ï¿½ï¿½Ö¿Éµï¿½ï¿½Ç¶È£ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")]
     public float wheelStep = 10f;
     public bool useMouseWheel = true;
-    [Tooltip("½Ç¶ÈÎü¸½£¨¿ªÆôºó°´ snapStep È¡Õû£©")]
+    [Tooltip("ï¿½Ç¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ snapStep È¡ï¿½ï¿½ï¿½ï¿½")]
     public bool snapYaw = true;
-    [Tooltip("Îü¸½²½³¤£¨¶È£©ÀýÈç 15/30/45/90")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½ 15/30/45/90")]
     public float snapStep = 15f;
-    [Tooltip("Ëæ»ú³¯Ïò£¨Ã¿´ÎÖÖÖ²¶¼Ëæ»úÒ»¸ö yaw £©")]
+    [Tooltip("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ yaw ï¿½ï¿½")]
     public bool randomYawOnPlant = false;
-    [Tooltip("R ¼ü»Ö¸´Îª 0 ¶È")]
+    [Tooltip("R ï¿½ï¿½ï¿½Ö¸ï¿½Îª 0 ï¿½ï¿½")]
     public KeyCode resetYawKey = KeyCode.R;
 
     [Header("Debug")]
@@ -64,51 +64,65 @@ public class PlayerPlanter : MonoBehaviour
     PlayerInventoryHolder _inv;
     ActiveItemController _active;
     float _cooldown = 0f;
+    Camera _cachedCamera;
+    InventoryUI _cachedInventoryUI;
+    CropPlant[] _cachedCrops;
+    bool _cropsDirty = true;
 
     // marker
     LineRenderer _markerLR;
     bool _hasValidPoint = false;
     Vector3 _cachedPoint, _cachedNormal;
 
-    // ºöÂÔÍæ¼Ò×ÔÉí£¨·ÀÖ¹¶¥¿Õ¼ì²éÎóÅÐ£©
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½
     HashSet<Collider> _selfCols = new HashSet<Collider>();
 
-    // ¡ª¡ª µ±Ç°ÒªÓ¦ÓÃµÄ Yaw£¨ÈÆ·¨Ïß·½ÏòµÄ½Ç¶È£¬¶È£©¡ª¡ª
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç°ÒªÓ¦ï¿½Ãµï¿½ Yawï¿½ï¿½ï¿½Æ·ï¿½ï¿½ß·ï¿½ï¿½ï¿½Ä½Ç¶È£ï¿½ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½
     float _currentYaw = 0f;
 
     void Awake()
     {
         _inv = GetComponent<PlayerInventoryHolder>();
         _active = GetComponent<ActiveItemController>();
+        _cachedCamera = Camera.main;  // ç¼“å­˜ç›¸æœºå¼•ç”¨
+        _cachedInventoryUI = FindObjectOfType<InventoryUI>();  // ç¼“å­˜UIå¼•ç”¨
 
         foreach (var c in GetComponentsInChildren<Collider>())
             _selfCols.Add(c);
 
         CreateMarker();
+
+        // ç¼“å­˜æ‰€æœ‰ä½œç‰©å¼•ç”¨
+        _cachedCrops = FindObjectsOfType<CropPlant>();
+    }
+
+    void OnSceneLoaded(CropPlant newCrop)
+    {
+        _cropsDirty = true;
     }
 
     void Update()
     {
         if (_cooldown > 0f) _cooldown -= Time.deltaTime;
 
-        HandleYawInput();       // <== ÐÂÔö£º´¦Àí³¯ÏòÊäÈë
+        HandleYawInput();       // <== ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         UpdateMarker();
 
         if (Input.GetKeyDown(plantKey)) TryPlant();
     }
 
-    // =============== ³¯ÏòÊäÈë ===============
+    // =============== ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ===============
     void HandleYawInput()
     {
         if (!enableYawControl) return;
 
         float delta = 0f;
 
-        // Q / E °´×¡Ðý×ª
+        // Q / E ï¿½ï¿½×¡ï¿½ï¿½×ª
         if (Input.GetKey(yawLeftKey)) delta -= rotateSpeed * Time.deltaTime;
         if (Input.GetKey(yawRightKey)) delta += rotateSpeed * Time.deltaTime;
 
-        // ¹öÂÖ£¨Ã¿¸ñ¹Ì¶¨²½½ø£©
+        // ï¿½ï¿½ï¿½Ö£ï¿½Ã¿ï¿½ï¿½Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         if (useMouseWheel)
         {
             float w = Input.GetAxis("Mouse ScrollWheel");
@@ -122,11 +136,11 @@ public class PlayerPlanter : MonoBehaviour
                 _currentYaw = Mathf.Round(_currentYaw / snapStep) * snapStep;
         }
 
-        // ÖØÖÃ
+        // ï¿½ï¿½ï¿½ï¿½
         if (Input.GetKeyDown(resetYawKey)) _currentYaw = 0f;
     }
 
-    // ================== Ö¸Ê¾»· ==================
+    // ================== Ö¸Ê¾ï¿½ï¿½ ==================
     void CreateMarker()
     {
         if (!showMarker) return;
@@ -209,17 +223,17 @@ public class PlayerPlanter : MonoBehaviour
         }
     }
 
-    // ================== ÖÖÖ² ==================
+    // ================== ï¿½ï¿½Ö² ==================
     void TryPlant()
     {
         if (_inv == null || _active == null || plantDB == null) return;
         if (_cooldown > 0f) return;
 
         string id = _active.ActiveId;
-        if (string.IsNullOrEmpty(id)) { Log("ActiveId Îª¿Õ"); return; }
+        if (string.IsNullOrEmpty(id)) { Log("ActiveId Îªï¿½ï¿½"); return; }
 
         var entry = plantDB.GetByPlantItemId(id);
-        if (entry == null || entry.cropPrefab == null) { Log("SeedDB Î´ÅäÖÃ»òÎÞ CropPrefab"); return; }
+        if (entry == null || entry.cropPrefab == null) { Log("SeedDB Î´ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ CropPrefab"); return; }
 
         Vector3 pos, normal;
         if (_hasValidPoint)
@@ -233,7 +247,7 @@ public class PlayerPlanter : MonoBehaviour
             pos += normal * markerYOffset;
         }
 
-        // ¡ª¡ª ¼ÆËã×îÖÕ³¯Ïò£ºÏÈ¶ÔÆë·¨Ïß£¬ÔÙÈÆ·¨Ïß¼ÓÉÏÄãµ÷µÄ yaw£¨¿ÉÑ¡Ëæ»ú£©¡ª¡ª
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½ï¿½È¶ï¿½ï¿½ë·¨ï¿½ß£ï¿½ï¿½ï¿½ï¿½Æ·ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ yawï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         float yaw = _currentYaw;
         if (randomYawOnPlant) yaw += Random.Range(0f, 360f);
 
@@ -247,15 +261,14 @@ public class PlayerPlanter : MonoBehaviour
         crop.Init(entry);
 
 
-        // ¡ï¡ï ÐÂÔö£ºÈ·±£ÓÐ CropPersistence£¬²¢°Ñ entryId Ð´½øÈ¥£¨ÓÃÄãÖÖÏÂÈ¥µÄÄÇ¸öÖÖ×Ó/×÷Îï id£©
+        // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ CropPersistenceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ entryId Ð´ï¿½ï¿½È¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¥ï¿½ï¿½ï¿½Ç¸ï¿½ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ idï¿½ï¿½
         var cp = cropObj.GetComponent<CropPersistence>();
         if (cp == null) cp = cropObj.AddComponent<CropPersistence>();
-        cp.entryId = id;   // ÕâÀïµÄ id ¾ÍÊÇÄãµ±Ç°ÖÖÏÂµÄÉÌµê/±³°üÀïµÄ¡°×÷Îï ItemId¡±
+        cp.entryId = id;   // ï¿½ï¿½ï¿½ï¿½ï¿½ id ï¿½ï¿½ï¿½ï¿½ï¿½ãµ±Ç°ï¿½ï¿½ï¿½Âµï¿½ï¿½Ìµï¿½/ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½ï¿½ ItemIdï¿½ï¿½
 
         string keepId = id;
         _inv.RemoveItem(id, 1);
-        var ui = FindObjectOfType<InventoryUI>();
-        if (ui) ui.RefreshAll();
+        if (_cachedInventoryUI) _cachedInventoryUI.RefreshAll();
         if (StillHasItem(keepId)) { try { _active.SetActive(keepId, true); } catch { } }
 
         _cooldown = Mathf.Max(0.05f, entry.plantCooldown);
@@ -274,14 +287,14 @@ public class PlayerPlanter : MonoBehaviour
         outPos = Vector3.zero; outNormal = Vector3.up;
 
         if (!RaycastPlantPoint(out Vector3 hitPos, out Vector3 hitNormal, out RaycastHit hit))
-        { Log("Raycast Î´ÃüÖÐ plantableLayers"); return false; }
+        { Log("Raycast Î´ï¿½ï¿½ï¿½ï¿½ plantableLayers"); return false; }
 
         var surf = hit.collider ? hit.collider.GetComponentInParent<PlantableSurface>() : null;
-        if (requirePlantableSurface && !surf) { Log("Ã»ÓÐ PlantableSurface"); return false; }
+        if (requirePlantableSurface && !surf) { Log("Ã»ï¿½ï¿½ PlantableSurface"); return false; }
         if (surf != null)
         {
-            if (!surf.IsItemAllowed(itemId)) { Log($"ÎïÆ· {itemId} Î´±»ÔÊÐí"); return false; }
-            if (!surf.IsSlopeOK(hitNormal)) { Log("ÆÂ¶È¹ý´ó"); return false; }
+            if (!surf.IsItemAllowed(itemId)) { Log($"ï¿½ï¿½Æ· {itemId} Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½"); return false; }
+            if (!surf.IsSlopeOK(hitNormal)) { Log("ï¿½Â¶È¹ï¿½ï¿½ï¿½"); return false; }
             outPos = surf.SnapPosition(hitPos);
         }
         else
@@ -291,10 +304,10 @@ public class PlayerPlanter : MonoBehaviour
         outNormal = hitNormal;
 
         if (minSpacing > 0f && IsTooCloseToOtherCrops(outPos, minSpacing))
-        { Log("¾àÀëÆäËü×÷ÎïÌ«½ü"); return false; }
+        { Log("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì«ï¿½ï¿½"); return false; }
 
         if (IsTopBlocked(outPos, outNormal))
-        { Log("Í·¶¥¿Õ¼ä±»×èµ²"); return false; }
+        { Log("Í·ï¿½ï¿½ï¿½Õ¼ä±»ï¿½èµ²"); return false; }
 
         return true;
     }
@@ -311,7 +324,7 @@ public class PlayerPlanter : MonoBehaviour
         foreach (var c in cols)
         {
             if (!c) continue;
-            if (_selfCols.Contains(c)) continue; // ºöÂÔÍæ¼Ò×ÔÉí
+            if (_selfCols.Contains(c)) continue; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             return true;
         }
         return false;
@@ -325,10 +338,21 @@ public class PlayerPlanter : MonoBehaviour
             var cp = c ? c.GetComponentInParent<CropPlant>() : null;
             if (cp != null) return true;
         }
-        foreach (var cp in FindObjectsOfType<CropPlant>())
+
+        // ä½¿ç”¨ç¼“å­˜çš„ä½œç‰©å¼•ç”¨
+        if (_cropsDirty || _cachedCrops == null)
         {
-            if (!cp) continue;
-            if (Vector3.Distance(cp.transform.position, pos) < radius) return true;
+            _cachedCrops = FindObjectsOfType<CropPlant>();
+            _cropsDirty = false;
+        }
+
+        if (_cachedCrops != null)
+        {
+            foreach (var cp in _cachedCrops)
+            {
+                if (!cp) continue;
+                if (Vector3.Distance(cp.transform.position, pos) < radius) return true;
+            }
         }
         return false;
     }
@@ -336,8 +360,8 @@ public class PlayerPlanter : MonoBehaviour
     bool RaycastPlantPoint(out Vector3 point, out Vector3 normal, out RaycastHit hit)
     {
         Ray ray;
-        if (useCameraRay && Camera.main)
-            ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
+        if (useCameraRay && _cachedCamera)
+            ray = _cachedCamera.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
         else
             ray = new Ray(transform.position + Vector3.up * 1.2f, transform.forward);
 

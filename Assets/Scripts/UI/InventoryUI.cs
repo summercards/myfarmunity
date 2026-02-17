@@ -97,7 +97,7 @@ public class InventoryUI : MonoBehaviour
             playerInv = PlayerInventoryHolder.Instance;
             if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
 
-            if (prevInv != playerInv && playerInv != null)
+            if (playerInv != null && prevInv != playerInv)
             {
                 Debug.Log($"[InventoryUI] 重新绑定 PlayerInventoryHolder");
                 changed = true;

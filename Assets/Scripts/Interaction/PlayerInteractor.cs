@@ -52,6 +52,7 @@ public class PlayerInteractor : MonoBehaviour
 
     // Phase 4 修复：缓存的 UI 引用
     private NPCDialogUI _cachedDialogUI;
+    private NPCDialogWorldBridge _cachedWorldBridge;
 
     void Awake()
     {
@@ -73,100 +74,102 @@ public class PlayerInteractor : MonoBehaviour
                 Debug.LogWarning("[PlayerInteractor] 场景中找不到 NPCDialogUI，交互功能将不可用");
             }
         }
+
+        // 缓存 WorldBridge 引用
+        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
     }
 
     void Update()
     {
-        // Phase 4 修复：检查 UI 缓存
-        if (_cachedDialogUI == null)
-        {
-            return;
-        }
+        if (_cachedDialogUI == null) return;
 
-        // 对话打开时：优先处理"离开距离自动关闭"
-        if (_cachedDialogUI.IsOpen && autoCloseWhenFar)
+        // 对话打开时处理
+        if (_cachedDialogUI.IsOpen)
+        {
+            HandleOpenDialog();
+        }
+        else
+        {
+            HandleNormalSearch();
+        }
+    }
+
+    /// <summary>
+    /// 处理对话打开时的逻辑（自动关闭 + 就近切换）
+    /// </summary>
+    private void HandleOpenDialog()
+    {
+        // 处理离开距离自动关闭
+        if (autoCloseWhenFar)
         {
             var subject = _cachedDialogUI.CurrentNPC;
             if (subject != null)
             {
-                // Phase 8: 使用 IDialogSubject.SubjectTransform（新旧系统通用）
                 float d = Vector3.Distance(transform.position, subject.SubjectTransform.position);
                 if (d > closeDistance)
                 {
                     _cachedDialogUI.Close();
-                    // 关键：走远自动关闭时，也把世界气泡一并关掉
-                    var bridge = FindObjectOfType<NPCDialogWorldBridge>();
-                    if (bridge != null) bridge.EndStandalone();
-                    // 不 return；允许继续逻辑，可能立刻切换到新的 NPC
+                    if (_cachedWorldBridge != null) _cachedWorldBridge.EndStandalone();
                 }
             }
         }
 
-        // —— 对话期间允许"就近切换" —— //
-        if (_cachedDialogUI.IsOpen)
+        // 处理就近切换
+        HandleConversationSwitch();
+    }
+
+    /// <summary>
+    /// 处理对话期间的NPC切换
+    /// </summary>
+    private void HandleConversationSwitch()
+    {
+        var currSubject = _cachedDialogUI.CurrentNPC;
+        Transform currTrans = currSubject?.SubjectTransform;
+
+        // 检查是否靠近另一个NPC
+        bool tooFar = autoCloseWhenFar && currTrans != null &&
+            Vector3.Distance(transform.position, currTrans.position) > closeDistance;
+        if (tooFar) return;
+
+        var nearest = FindClosestInteractable();
+        bool isAnother = nearest != null && (currTrans == null || nearest.GetTransform() != currTrans);
+
+        if (isAnother)
         {
-            var currSubject = _cachedDialogUI.CurrentNPC;
-            // Phase 8: 比较 Transform 引用来判断是否是同一个人
-            // （注意：currSubject 可能为 null，防御性编程）
-            Transform currTrans = currSubject?.SubjectTransform;
+            if (nearest is IDialogSubject sub)
+                ShowHint($"按 E 对话：{sub.Name}");
+            else
+                ShowHint("按 E 交互");
 
-            // 1) 若未超距，则检查是否靠近另一个 NPC
-            if (!(autoCloseWhenFar && currTrans != null && Vector3.Distance(transform.position, currTrans.position) > closeDistance))
+            if (PressedInteractKey() && _switchCo == null && _pendingSwitch != nearest)
             {
-                var nearest = FindClosestInteractable();
-
-                // 判断是否是"另一个人"
-                // 只要 nearest 存在，且它的 Transform 不等于当前正在对话者的 Transform
-                bool isAnother = nearest != null && (currTrans == null || nearest.GetTransform() != currTrans);
-
-                if (isAnother)
-                {
-                    // Phase 8: 优先使用 IDialogSubject.Name
-                    if (nearest is IDialogSubject sub)
-                        ShowHint($"按 E 对话：{sub.Name}");
-                    else
-                        ShowHint("按 E 交互");
-
-                    // 使用协程进行"安全切换"（不要直接 Close()+Interact()）
-                    if (PressedInteractKey() && _switchCo == null)
-                    {
-                        if (_pendingSwitch != nearest)
-                            _switchCo = StartCoroutine(SwitchConversation(nearest));
-                    }
-                    return; // 本帧结束
-                }
-
-                // 最近的仍是当前 NPC：隐藏提示并早退
-                HideHint();
-                return;
+                _switchCo = StartCoroutine(SwitchConversation(nearest));
             }
-
-            // 2) 已在上面关掉对话（超距），继续往下走，允许重新搜索并与新 NPC 交互
+            return;
         }
 
-        // —— 正常（对话未开启）流程 —— //
+        HideHint();
+    }
 
-        // 1) 查找最近的 IInteractable
+    /// <summary>
+    /// 处理正常搜索流程（对话未开启）
+    /// </summary>
+    private void HandleNormalSearch()
+    {
         _current = FindClosestInteractable();
 
-        // 2) 显示提示（Phase 4 修复：只在提示变化时显示）
         if (_current != null)
         {
             string tip = _current.GetInteractPrompt();
-            if (!string.IsNullOrEmpty(tip))
+            if (!string.IsNullOrEmpty(tip) && tip != _lastHintText)
             {
-                // Phase 4 修复：只在提示变化时才显示
-                if (tip != _lastHintText)
-                {
-                    Debug.Log($"[PlayerInteractor] ShowHint: {tip}");
-                    ShowHint(tip);
-                    _lastHintText = tip;
-                }
+                Debug.Log($"[PlayerInteractor] ShowHint: {tip}");
+                ShowHint(tip);
+                _lastHintText = tip;
             }
         }
         else
         {
-            // Phase 4 修复：清除提示文本，避免下次重复显示
             if (!string.IsNullOrEmpty(_lastHintText))
             {
                 HideHint();
@@ -174,12 +177,10 @@ public class PlayerInteractor : MonoBehaviour
             }
         }
 
-        // 3) 按键触发（统一走"安全切换"协程）
-        if (_current != null && PressedInteractKey() && _switchCo == null)
+        if (_current != null && PressedInteractKey() && _switchCo == null && _pendingSwitch != _current)
         {
             Debug.Log("[PlayerInteractor] E pressed! Starting switch...");
-            if (_pendingSwitch != _current)
-                _switchCo = StartCoroutine(SwitchConversation(_current));
+            _switchCo = StartCoroutine(SwitchConversation(_current));
         }
     }
 
@@ -308,25 +309,24 @@ public class PlayerInteractor : MonoBehaviour
         }
 
         // Phase 8: 绑定世界气泡到当前 NPC
-        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
-        if (bridge != null)
+        if (_cachedWorldBridge != null)
         {
             if (dialogSubject != null)
             {
-                bridge.BindToSubject(dialogSubject);
+                _cachedWorldBridge.BindToSubject(dialogSubject);
             }
             else if (targetGameObject != null)
             {
                 // Phase 8: 如果是旧版 NPC，尝试绑定（保留兼容性）
                 var oldNpc = targetGameObject.GetComponent<NPCInteractable>();
                 if (oldNpc != null)
-                    bridge.BindToNPC(oldNpc);
+                    _cachedWorldBridge.BindToNPC(oldNpc);
             }
             else
             {
                 // Phase 8: 简单的 Transform 绑定
                 Transform anchor = target.GetTransform();
-                bridge.Bind(anchor);
+                _cachedWorldBridge.Bind(anchor);
             }
         }
 
