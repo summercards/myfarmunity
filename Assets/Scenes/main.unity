@@ -376,7 +376,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainGameSceneName: cloudcity
   titleText: {fileID: 0}
-  startGameButton: {fileID: 0}
+  startGameButton: {fileID: 160654289}
 --- !u!114 &1170362724
 MonoBehaviour:
   m_ObjectHideFlags: 0
