@@ -27,6 +27,9 @@ public class CameraModeManager : MonoBehaviour
 
     public static CameraModeManager instance { get; private set; }
 
+    // 当前活动的相机引用（供 TPSCharacter 使用，避免依赖 Camera.main）
+    public Camera activeCamera { get; private set; }
+
     private void Awake()
     {
         if (instance == null)
@@ -89,14 +92,14 @@ public class CameraModeManager : MonoBehaviour
             }
         }
 
-        // 重新应用当前模式
+        // 查找完成后应用当前模式
         SetCameraMode(currentMode);
     }
 
     private void Start()
     {
-        // 默认激活固定视角
-        SetCameraMode(currentMode);
+        // 启动时自动查找引用
+        StartCoroutine(ReBindReferences());
     }
 
     private void Update()
@@ -122,6 +125,7 @@ public class CameraModeManager : MonoBehaviour
                 if (tpsCamera != null)
                 {
                     tpsCamera.enabled = true;
+                    activeCamera = tpsCamera;
                     Debug.Log("[CameraMode] 切换到 TPS 第三人称视角");
                 }
                 // 切换到相机相对移动
@@ -137,12 +141,15 @@ public class CameraModeManager : MonoBehaviour
                 if (fixedCamera != null)
                 {
                     fixedCamera.enabled = true;
+                    activeCamera = fixedCamera;
                     Debug.Log("[CameraMode] 切换到 固定45度视角");
                 }
                 // 切换到世界相对移动
                 if (playerCharacter != null)
                 {
                     playerCharacter.movementMode = TPSCharacter.MovementMode.WorldRelative;
+                    // 强制刷新相机的缓存引用
+                    playerCharacter.RefreshCachedCamera();
                 }
                 break;
         }

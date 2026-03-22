@@ -84,7 +84,15 @@ public class TPSCharacter : MonoBehaviour
     /// </summary>
     public void RefreshCachedCamera()
     {
-        _cachedMainCamera = Camera.main;
+        // 优先使用 CameraModeManager 的当前活动相机
+        if (CameraModeManager.instance != null && CameraModeManager.instance.activeCamera != null)
+        {
+            _cachedMainCamera = CameraModeManager.instance.activeCamera;
+        }
+        else
+        {
+            _cachedMainCamera = Camera.main;
+        }
         Debug.Log($"[TPSCharacter] 刷新相机缓存: {_cachedMainCamera?.name ?? "null"}");
     }
 
