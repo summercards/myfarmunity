@@ -39,7 +39,7 @@ public class TPSOrbitCamera : MonoBehaviour
     public LayerMask collisionMask = ~0; // 默认检测所有层
     public float collisionRadius = 0.2f;
     [Tooltip("如果勾选，则只检测 collisionMask 指定的层，否则检测所有层")]
-    public bool useSpecificLayers = false;
+    public bool useSpecificLayers = true;  // 默认启用碰撞检测
 
     [Header("Mouse Look Gate")]
     public bool requireRightMouseHold = true;
