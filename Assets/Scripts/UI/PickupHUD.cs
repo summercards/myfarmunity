@@ -1,8 +1,9 @@
 // Assets/Scripts/UI/PickupHUD.cs
 using UnityEngine;
 using TMPro;
+using FarmGame.Core.Contracts;
 
-public class PickupHUD : MonoBehaviour
+public class PickupHUD : MonoBehaviour, IHintHUD
 {
     public TextMeshProUGUI label;
 

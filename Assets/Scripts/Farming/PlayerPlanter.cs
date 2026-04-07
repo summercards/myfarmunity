@@ -65,9 +65,6 @@ public class PlayerPlanter : MonoBehaviour
     ActiveItemController _active;
     float _cooldown = 0f;
     Camera _cachedCamera;
-    InventoryUI _cachedInventoryUI;
-    CropPlant[] _cachedCrops;
-    bool _cropsDirty = true;
 
     // marker
     LineRenderer _markerLR;
@@ -84,25 +81,18 @@ public class PlayerPlanter : MonoBehaviour
     {
         _inv = GetComponent<PlayerInventoryHolder>();
         _active = GetComponent<ActiveItemController>();
-        _cachedCamera = Camera.main;  // 缓存相机引用
-        _cachedInventoryUI = FindObjectOfType<InventoryUI>();  // 缓存UI引用
+        _cachedCamera = ResolveCamera();
 
         foreach (var c in GetComponentsInChildren<Collider>())
             _selfCols.Add(c);
 
         CreateMarker();
-
-        // 缓存所有作物引用
-        _cachedCrops = FindObjectsOfType<CropPlant>();
-    }
-
-    void OnSceneLoaded(CropPlant newCrop)
-    {
-        _cropsDirty = true;
     }
 
     void Update()
     {
+        RefreshRuntimeRefs();
+
         if (_cooldown > 0f) _cooldown -= Time.deltaTime;
 
         HandleYawInput();       // <== ������������������
@@ -268,7 +258,6 @@ public class PlayerPlanter : MonoBehaviour
 
         string keepId = id;
         _inv.RemoveItem(id, 1);
-        if (_cachedInventoryUI) _cachedInventoryUI.RefreshAll();
         if (StillHasItem(keepId)) { try { _active.SetActive(keepId, true); } catch { } }
 
         _cooldown = Mathf.Max(0.05f, entry.plantCooldown);
@@ -339,20 +328,10 @@ public class PlayerPlanter : MonoBehaviour
             if (cp != null) return true;
         }
 
-        // 使用缓存的作物引用
-        if (_cropsDirty || _cachedCrops == null)
+        foreach (var cp in RuntimeRefs.CropPlants)
         {
-            _cachedCrops = FindObjectsOfType<CropPlant>();
-            _cropsDirty = false;
-        }
-
-        if (_cachedCrops != null)
-        {
-            foreach (var cp in _cachedCrops)
-            {
-                if (!cp) continue;
-                if (Vector3.Distance(cp.transform.position, pos) < radius) return true;
-            }
+            if (!cp) continue;
+            if (Vector3.Distance(cp.transform.position, pos) < radius) return true;
         }
         return false;
     }
@@ -379,5 +358,29 @@ public class PlayerPlanter : MonoBehaviour
     void Log(string msg)
     {
         if (debugPlantCheck) Debug.Log($"[PlayerPlanter] {msg}");
+    }
+
+    Camera ResolveCamera()
+    {
+        if (CameraModeManager.instance != null && CameraModeManager.instance.activeCamera != null)
+        {
+            return CameraModeManager.instance.activeCamera;
+        }
+
+        if (RuntimeRefs.TpsCamera != null)
+        {
+            return RuntimeRefs.TpsCamera;
+        }
+
+        return RuntimeRefs.FixedCamera;
+    }
+
+    void RefreshRuntimeRefs()
+    {
+        var resolvedCamera = ResolveCamera();
+        if (resolvedCamera != null)
+        {
+            _cachedCamera = resolvedCamera;
+        }
     }
 }

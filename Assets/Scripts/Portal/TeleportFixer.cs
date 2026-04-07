@@ -30,7 +30,7 @@ public class TeleportFixer : MonoBehaviour
         if (isFixing) return;
 
         // 检查是否有Player
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
         if (player == null)
         {
             if (debugMode)
@@ -118,7 +118,7 @@ public class TeleportFixer : MonoBehaviour
     [ContextMenu("手动修复Player")]
     public void ManualFixPlayer()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
 
         if (player == null)
         {
@@ -216,7 +216,7 @@ public class TeleportFixer : MonoBehaviour
     [ContextMenu("显示Player状态")]
     public void ShowPlayerStatus()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
 
         if (player == null)
         {

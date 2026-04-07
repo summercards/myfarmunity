@@ -6,6 +6,21 @@ using UnityEngine;
 /// </summary>
 public class SetupTimeSystemReferences : MonoBehaviour
 {
+    [Header("Behavior")]
+    [Tooltip("自动从当前对象/父子层级补齐 TimeController/DayNightCycle/TimeUI（不做全场景扫描）。")]
+    public bool autoBindFromLocalHierarchy = true;
+    [Tooltip("缺少可选引用时是否打印 Warning。")]
+    public bool warnWhenOptionalReferenceMissing = false;
+    [Tooltip("配置完成后是否自动移除该脚本。")]
+    public bool destroyAfterSetup = true;
+
+    [Header("Optional Refs")]
+    public TimeController controller;
+    public DayNightCycle dayNightCycle;
+    public Light directionalLight;
+    public TimeUI timeUI;
+    public Transform timePanelRoot;
+
     void Start()
     {
         SetupTimeSystem();
@@ -14,6 +29,13 @@ public class SetupTimeSystemReferences : MonoBehaviour
     [ContextMenu("设置时间系统引用")]
     public void SetupTimeSystem()
     {
+        if (autoBindFromLocalHierarchy)
+        {
+            controller = ResolveFromLocalHierarchy(controller);
+            dayNightCycle = ResolveFromLocalHierarchy(dayNightCycle);
+            timeUI = ResolveFromLocalHierarchy(timeUI);
+        }
+
         // 1. 加载 GameTimeSystem 资源
         GameTimeSystem timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
         
@@ -24,7 +46,6 @@ public class SetupTimeSystemReferences : MonoBehaviour
         }
 
         // 2. 配置 TimeController
-        TimeController controller = FindObjectOfType<TimeController>();
         if (controller != null)
         {
             controller.timeSystem = timeSystem;
@@ -32,37 +53,31 @@ public class SetupTimeSystemReferences : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("[Setup] 未找到 TimeController");
+            LogOptionalMissing("TimeController");
         }
 
         // 3. 配置 DayNightCycle
-        DayNightCycle dayNightCycle = FindObjectOfType<DayNightCycle>();
         if (dayNightCycle != null)
         {
             dayNightCycle.timeSystem = timeSystem;
             if (dayNightCycle.directionalLight == null)
             {
-                dayNightCycle.directionalLight = FindObjectOfType<Light>();
+                dayNightCycle.directionalLight = directionalLight != null ? directionalLight : RenderSettings.sun;
             }
             Debug.Log("[Setup] DayNightCycle 已配置");
         }
         else
         {
-            Debug.LogWarning("[Setup] 未找到 DayNightCycle");
+            LogOptionalMissing("DayNightCycle");
         }
 
         // 4. 配置 TimeUI
-        TimeUI timeUI = FindObjectOfType<TimeUI>();
         if (timeUI != null)
         {
             timeUI.timeSystem = timeSystem;
             
             // 查找并设置文本引用
-            Transform panel = transform.Find("TimePanel");
-            if (panel == null)
-            {
-                panel = GameObject.Find("TimePanel")?.transform;
-            }
+            Transform panel = timePanelRoot != null ? timePanelRoot : transform.Find("TimePanel");
             
             if (panel != null)
             {
@@ -75,17 +90,50 @@ public class SetupTimeSystemReferences : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("[Setup] 未找到 TimePanel");
+                LogOptionalMissing("TimePanel");
             }
         }
         else
         {
-            Debug.LogWarning("[Setup] 未找到 TimeUI");
+            LogOptionalMissing("TimeUI");
         }
 
         Debug.Log("[Setup] 时间系统引用配置完成！");
 
         // 删除此脚本，避免重复执行
-        Destroy(this);
+        if (destroyAfterSetup)
+        {
+            Destroy(this);
+        }
+    }
+
+    private void LogOptionalMissing(string name)
+    {
+        if (warnWhenOptionalReferenceMissing)
+        {
+            Debug.LogWarning($"[Setup] 未找到 {name}");
+        }
+    }
+
+    private T ResolveFromLocalHierarchy<T>(T current) where T : Component
+    {
+        if (current != null)
+        {
+            return current;
+        }
+
+        if (TryGetComponent(out T onSelf))
+        {
+            return onSelf;
+        }
+
+        T inChildren = GetComponentInChildren<T>(true);
+        if (inChildren != null)
+        {
+            return inChildren;
+        }
+
+        T inParents = GetComponentInParent<T>(true);
+        return inParents;
     }
 }

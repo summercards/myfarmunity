@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
-using FarmGame.UI; // For IDialogSubject
-using FarmGame.NPCSystem; // For NPCFunction
+using FarmGame.Core.Contracts;
 
 namespace FarmGame.ActorSystem
 {
@@ -41,10 +40,7 @@ namespace FarmGame.ActorSystem
             _giftModule = GetComponent<GiftModule>();
             _dialogueModule = GetComponent<DialogueModule>();
 
-            if (_shopModule == null) Debug.LogWarning($"[Actor] {name} 未找到 ShopModule 组件");
-            if (_questModule == null) Debug.LogWarning($"[Actor] {name} 未找到 QuestModule 组件");
-            if (_giftModule == null) Debug.LogWarning($"[Actor] {name} 未找到 GiftModule 组件");
-            if (_dialogueModule == null) Debug.LogWarning($"[Actor] {name} 未找到 DialogueModule 组件");
+            ValidateModulesForCurrentFunction();
         }
 
         // IDialogSubject Implementation
@@ -75,7 +71,7 @@ namespace FarmGame.ActorSystem
             // Phase 7: 根据 Identity.Function 类型，通过 ActorModules 调用相应功能
             switch (Identity.Function)
             {
-                case NPCFunction.OpenShop:
+                case ActorFunction.OpenShop:
                     if (_shopModule != null)
                     {
                         _shopModule.OpenShop();
@@ -87,7 +83,7 @@ namespace FarmGame.ActorSystem
                     }
                     break;
 
-                case NPCFunction.Quest:
+                case ActorFunction.Quest:
                     if (_questModule != null)
                     {
                         _questModule.StartQuest("default");
@@ -99,7 +95,7 @@ namespace FarmGame.ActorSystem
                     }
                     break;
 
-                case NPCFunction.Gift:
+                case ActorFunction.Gift:
                     if (_giftModule != null)
                     {
                         _giftModule.ReceiveGift("Common", "礼物", 1);
@@ -111,14 +107,48 @@ namespace FarmGame.ActorSystem
                     }
                     break;
 
-                case NPCFunction.Talk:
+                case ActorFunction.Talk:
                     // 对话功能由 NPCDialogUI 处理，这里不需要额外操作
                     Debug.Log($"[Actor] {Name} 的对话功能触发");
                     break;
 
-                case NPCFunction.None:
+                case ActorFunction.None:
                 default:
                     Debug.LogWarning($"[Actor] {Name} 的功能 {Identity.Function} 未实现");
+                    break;
+            }
+        }
+
+        private void ValidateModulesForCurrentFunction()
+        {
+            if (Identity == null)
+            {
+                return;
+            }
+
+            switch (Identity.Function)
+            {
+                case ActorFunction.OpenShop:
+                    if (_shopModule == null)
+                    {
+                        Debug.LogWarning($"[Actor] {name} 未找到 ShopModule 组件");
+                    }
+                    break;
+                case ActorFunction.Quest:
+                    if (_questModule == null)
+                    {
+                        Debug.LogWarning($"[Actor] {name} 未找到 QuestModule 组件");
+                    }
+                    break;
+                case ActorFunction.Gift:
+                    if (_giftModule == null)
+                    {
+                        Debug.LogWarning($"[Actor] {name} 未找到 GiftModule 组件");
+                    }
+                    break;
+                case ActorFunction.Talk:
+                case ActorFunction.None:
+                default:
                     break;
             }
         }

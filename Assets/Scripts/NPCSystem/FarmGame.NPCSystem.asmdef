@@ -1,0 +1,17 @@
+{
+  "name": "FarmGame.NPCSystem",
+  "rootNamespace": "FarmGame.NPCSystem",
+  "references": [
+    "FarmGame.Core",
+    "FarmGame.Gameplay"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

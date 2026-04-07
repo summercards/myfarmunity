@@ -4,54 +4,80 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// ÇáÁ¿´æµµ£º°Ñ Inventory µÄÃ¿¸ö·Ç¿Õ²ÛÎ»(index,id,count,durability) ´æµ½ PlayerPrefs
-/// - ½öÓÃÓÚÑİÊ¾/µ¥»ú£¬±¾µØ¿ª·¢£»ÉÏÏßÇëÌæ»»Îª¸ü¿É¿¿µÄ´æµµ·½°¸¡£
+/// èƒŒåŒ…æŒä¹…åŒ–ç»„ä»¶ï¼š
+/// - æœ‰ SaveManagerï¼šç”±ç»Ÿä¸€å­˜æ¡£æµç¨‹è´Ÿè´£ä¿å­˜/æ¢å¤
+/// - æ—  SaveManagerï¼šå›é€€åˆ° PlayerPrefsï¼Œæ”¯æŒç‹¬ç«‹åœºæ™¯è¿è¡Œ
 /// </summary>
 [DisallowMultipleComponent]
-public class InventoryPersistence : MonoBehaviour
+public class InventoryPersistence : MonoBehaviour, ISaveParticipant, IInventorySaveable
 {
     public PlayerInventoryHolder holder;
-    [Tooltip("PlayerPrefs ¼üÃû£»Í¬Ò»Íæ¼Ò/´æµµÎ»ÒªÎ¨Ò»")]
+    [Tooltip("PlayerPrefs é”®åï¼›åŒä¸€ç©å®¶/å­˜æ¡£ä½å»ºè®®å”¯ä¸€")]
     public string saveKey = "save.inventory";
 
     [Header("Lifecycle")]
     public bool loadOnAwake = true;
     public bool saveOnChange = true;
     public bool saveOnQuit = true;
+    public bool useStandalonePrefsWhenNoSaveManager = true;
 
     [Serializable] class SlotSave { public int index; public string id; public int count; public int durability; }
     [Serializable] class SaveData { public int capacity; public List<SlotSave> slots = new(); }
+
+    public SaveSection Section => SaveSection.Inventory;
+    public UnityEngine.Object Owner => this;
+    public string ParticipantName => GetType().Name;
+    private bool UseCentralSave => RuntimeRefs.SaveService != null;
+    private bool _localLoadAttempted;
 
     void Reset() { holder = GetComponent<PlayerInventoryHolder>(); }
 
     void Awake()
     {
         if (!holder) holder = GetComponent<PlayerInventoryHolder>();
-        if (loadOnAwake) Load();
-        if (saveOnChange && holder) holder.OnInventoryChanged += Save;
+        if (saveOnChange && holder) holder.OnInventoryChanged += HandleInventoryChanged;
+    }
+
+    void Start()
+    {
+        InitializeLocalPersistenceIfNeeded();
+    }
+
+    void OnEnable()
+    {
+        RuntimeRefs.SaveServiceChanged += HandleSaveServiceChanged;
+        RegisterToSaveService();
+        InitializeLocalPersistenceIfNeeded();
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.SaveServiceChanged -= HandleSaveServiceChanged;
+        UnregisterFromSaveService();
     }
 
     void OnDestroy()
     {
-        if (saveOnChange && holder) holder.OnInventoryChanged -= Save;
+        if (saveOnChange && holder) holder.OnInventoryChanged -= HandleInventoryChanged;
     }
 
     void OnApplicationQuit()
     {
-        if (saveOnQuit) Save();
+        if (saveOnQuit && ShouldUseLocalPrefsPersistence()) Save();
+    }
+
+    private void HandleInventoryChanged()
+    {
+        if (ShouldUseLocalPrefsPersistence())
+        {
+            Save();
+        }
     }
 
     public void Save()
     {
-        if (!holder || holder.Inventory == null || holder.Inventory.slots == null) return;
-
-        var data = new SaveData { capacity = holder.Inventory.slots.Length };
-        for (int i = 0; i < holder.Inventory.slots.Length; i++)
-        {
-            var s = holder.Inventory.slots[i];
-            if (s == null || string.IsNullOrEmpty(s.id) || s.count <= 0) continue;
-            data.slots.Add(new SlotSave { index = i, id = s.id, count = s.count, durability = s.durability });
-        }
+        var data = BuildSaveDataSnapshot();
+        if (data == null) return;
         string json = JsonUtility.ToJson(data);
         PlayerPrefs.SetString(saveKey, json);
         PlayerPrefs.Save();
@@ -67,19 +93,95 @@ public class InventoryPersistence : MonoBehaviour
         if (string.IsNullOrEmpty(json)) return;
 
         var data = JsonUtility.FromJson<SaveData>(json);
-        if (data == null) return;
+        ApplySaveDataSnapshot(data);
+#if UNITY_EDITOR
+        Debug.Log($"[InventoryPersistence] Loaded {(data != null ? data.slots.Count : 0)} stacks from {saveKey}");
+#endif
+    }
 
-        // ÖØ½¨±³°ü
+    private SaveData BuildSaveDataSnapshot()
+    {
+        if (!holder || holder.Inventory == null || holder.Inventory.slots == null) return null;
+
+        var data = new SaveData { capacity = holder.Inventory.slots.Length };
+        for (int i = 0; i < holder.Inventory.slots.Length; i++)
+        {
+            var s = holder.Inventory.slots[i];
+            if (s == null || string.IsNullOrEmpty(s.id) || s.count <= 0) continue;
+            data.slots.Add(new SlotSave { index = i, id = s.id, count = s.count, durability = s.durability });
+        }
+
+        return data;
+    }
+
+    private void ApplySaveDataSnapshot(SaveData data)
+    {
+        if (data == null || !holder) return;
+
         holder.Inventory = new Inventory(data.capacity);
+        holder.ApplyStackRuleResolver();
         foreach (var s in data.slots)
         {
             if (s.index >= 0 && s.index < holder.Inventory.slots.Length)
                 holder.Inventory.slots[s.index] = new ItemStack(s.id, s.count, s.durability);
         }
         holder.RaiseInventoryChanged();
-#if UNITY_EDITOR
-        Debug.Log($"[InventoryPersistence] Loaded {data.slots.Count} stacks from {saveKey}");
-#endif
+    }
+
+    public object CaptureSaveData()
+    {
+        return BuildSaveDataSnapshot();
+    }
+
+    public void RestoreSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        if (string.IsNullOrEmpty(jsonData)) return;
+        ApplySaveDataSnapshot(JsonUtility.FromJson<SaveData>(jsonData));
+    }
+
+    public object GetSaveData()
+    {
+        return CaptureSaveData();
+    }
+
+    public void LoadSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        RestoreSaveData(jsonData, timeSystem);
+    }
+
+    private bool ShouldUseLocalPrefsPersistence()
+    {
+        return useStandalonePrefsWhenNoSaveManager && !UseCentralSave;
+    }
+
+    private void HandleSaveServiceChanged(ISaveService _)
+    {
+        RegisterToSaveService();
+        InitializeLocalPersistenceIfNeeded();
+    }
+
+    private void RegisterToSaveService()
+    {
+        RuntimeRefs.SaveService?.RegisterParticipant(this);
+    }
+
+    private void UnregisterFromSaveService()
+    {
+        RuntimeRefs.SaveService?.UnregisterParticipant(this);
+    }
+
+    private void InitializeLocalPersistenceIfNeeded()
+    {
+        if (_localLoadAttempted)
+        {
+            return;
+        }
+
+        if (loadOnAwake && ShouldUseLocalPrefsPersistence())
+        {
+            _localLoadAttempted = true;
+            Load();
+        }
     }
 
     [ContextMenu("Clear Save")]

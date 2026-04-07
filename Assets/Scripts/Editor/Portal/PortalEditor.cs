@@ -5,19 +5,21 @@ using UnityEditor;
 /// <summary>
 /// 传送门编辑器 - 提供便捷的创建和管理功能
 /// </summary>
-public class PortalEditor : EditorWindow
+namespace FarmGame.Editor.PortalTools
 {
-    private string newPortalName = "传送门";
-    private string targetScene = "";
-    private string targetSpawnID = "";
-    private float portalRadius = 1f;
-    private Color portalColor = new Color(0f, 0.8f, 1f, 0.5f);
-
-    [MenuItem("Tools/传送门/创建传送门 %#p")]
-    public static void ShowWindow()
+    public class PortalEditor : EditorWindow
     {
-        GetWindow<PortalEditor>("传送门编辑器");
-    }
+        private string newPortalName = "传送门";
+        private string targetScene = "";
+        private string targetSpawnID = "";
+        private float portalRadius = 1f;
+        private Color portalColor = new Color(0f, 0.8f, 1f, 0.5f);
+
+        [MenuItem("Tools/传送门/创建传送门 %#p")]
+        public static void ShowWindow()
+        {
+            GetWindow<PortalEditor>("传送门编辑器");
+        }
 
     private void OnGUI()
     {
@@ -260,5 +262,6 @@ public class PortalEditor : EditorWindow
         Selection.activeGameObject = portalObj;
 
         Debug.Log($"[PortalEditor] 已创建传送门: {name} -> {targetScene} (SpawnID: {spawnID})");
+    }
     }
 }

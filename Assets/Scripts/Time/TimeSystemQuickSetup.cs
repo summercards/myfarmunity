@@ -1,6 +1,8 @@
 // Assets/Scripts/Time/TimeSystemQuickSetup.cs
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -13,8 +15,8 @@ using UnityEditor;
 public class TimeSystemQuickSetup : MonoBehaviour
 {
     [Header("自动配置")]
-    [Tooltip("在 Awake 时自动配置")]
-    public bool autoSetupOnAwake = true;
+    [Tooltip("在 Awake 时自动配置（阶段5建议默认关闭，仅工具场景手动开启）")]
+    public bool autoSetupOnAwake = false;
 
     [Tooltip("如果组件已存在则跳过")]
     public bool skipIfExists = true;
@@ -87,8 +89,8 @@ public class TimeSystemQuickSetup : MonoBehaviour
     /// </summary>
     private TimeController SetupTimeController(GameTimeSystem timeSystem)
     {
-        // 查找现有的
-        TimeController controller = FindObjectOfType<TimeController>();
+        // 查找现有的（优先当前场景中已存在的）
+        TimeController controller = FindFirstInActiveScene<TimeController>();
 
         if (controller != null)
         {
@@ -126,8 +128,12 @@ public class TimeSystemQuickSetup : MonoBehaviour
     /// </summary>
     private void SetupDayNightCycle(GameTimeSystem timeSystem)
     {
-        // 查找 Directional Light
-        Light directionalLight = FindObjectOfType<Light>();
+        // 查找 Directional Light（优先使用 RenderSettings.sun）
+        Light directionalLight = RenderSettings.sun;
+        if (directionalLight == null || directionalLight.type != LightType.Directional)
+        {
+            directionalLight = FindDirectionalLightInActiveScene();
+        }
 
         if (directionalLight == null)
         {
@@ -163,7 +169,7 @@ public class TimeSystemQuickSetup : MonoBehaviour
     private void SetupTimeUI(GameTimeSystem timeSystem)
     {
         // 查找现有的
-        TimeUI existingUI = FindObjectOfType<TimeUI>();
+        TimeUI existingUI = FindFirstInActiveScene<TimeUI>();
 
         if (existingUI != null)
         {
@@ -180,7 +186,7 @@ public class TimeSystemQuickSetup : MonoBehaviour
         }
 
         // 查找或创建 Canvas
-        Canvas canvas = FindObjectOfType<Canvas>();
+        Canvas canvas = FindFirstInActiveScene<Canvas>();
 
         if (canvas == null)
         {
@@ -265,21 +271,21 @@ public class TimeSystemQuickSetup : MonoBehaviour
         Debug.Log("[时间系统] 清除所有时间系统对象...");
 
         // 清除 TimeManager
-        TimeController controller = FindObjectOfType<TimeController>();
+        TimeController controller = FindFirstInActiveScene<TimeController>();
         if (controller != null)
         {
             DestroyImmediate(controller.gameObject);
         }
 
         // 清除 DayNightCycle
-        DayNightCycle[] dayNightCycles = FindObjectsOfType<DayNightCycle>();
+        List<DayNightCycle> dayNightCycles = FindAllInActiveScene<DayNightCycle>();
         foreach (var dnc in dayNightCycles)
         {
             DestroyImmediate(dnc);
         }
 
         // 清除 TimeUI
-        TimeUI[] timeUIs = FindObjectsOfType<TimeUI>();
+        List<TimeUI> timeUIs = FindAllInActiveScene<TimeUI>();
         foreach (var ui in timeUIs)
         {
             if (ui.gameObject.name.Contains("Canvas") || ui.gameObject.name.Contains("Panel"))
@@ -299,6 +305,72 @@ public class TimeSystemQuickSetup : MonoBehaviour
         }
 
         Debug.Log("[时间系统] 清除完成");
+    }
+
+    private static T FindFirstInActiveScene<T>() where T : Component
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            T found = roots[i].GetComponentInChildren<T>(true);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<T> FindAllInActiveScene<T>() where T : Component
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        List<T> result = new List<T>();
+        if (!activeScene.IsValid())
+        {
+            return result;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            T[] found = roots[i].GetComponentsInChildren<T>(true);
+            if (found == null || found.Length == 0)
+            {
+                continue;
+            }
+
+            for (int j = 0; j < found.Length; j++)
+            {
+                if (found[j] != null)
+                {
+                    result.Add(found[j]);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static Light FindDirectionalLightInActiveScene()
+    {
+        List<Light> lights = FindAllInActiveScene<Light>();
+        for (int i = 0; i < lights.Count; i++)
+        {
+            Light light = lights[i];
+            if (light != null && light.type == LightType.Directional)
+            {
+                return light;
+            }
+        }
+
+        return null;
     }
 }
 

@@ -1,10 +1,11 @@
 // Assets/Scripts/Time/TimeSystemAccessor.cs
 using UnityEngine;
+using FarmGame.Core;
 
 /// <summary>
 /// 时间系统接入器
 /// 提供简化的全局访问接口，方便其他系统快速接入时间系统
-/// 支持两种模式：单例模式（推荐用于全局场景）和场景内查找模式
+/// 支持两种模式：单例模式（推荐用于全局场景）和资源引用模式
 /// </summary>
 public class TimeSystemAccessor : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class TimeSystemAccessor : MonoBehaviour
     private static bool useGlobalInstance = false;
 
     [Header("模式选择")]
-    [Tooltip("是否使用全局单例模式（DontDestroyOnLoad）。如果为false，则在当前场景中查找TimeSystem。")]
+    [Tooltip("是否使用全局单例模式（DontDestroyOnLoad）。如果为false，则使用已注册或资源引用的 TimeSystem。")]
     public bool useSingleton = true;
 
     [Header("时间系统引用（仅在非单例模式下使用）")]
@@ -32,37 +33,30 @@ public class TimeSystemAccessor : MonoBehaviour
                 return cachedTimeSystem;
             }
 
-            // 1. 优先从 Resources 加载
-            cachedTimeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
+            // 1. 优先使用运行时注册的实例
+            cachedTimeSystem = RuntimeRefs.TimeSystem;
             if (cachedTimeSystem != null)
             {
                 return cachedTimeSystem;
             }
 
-            // 2. 尝试查找场景中的 ScriptableObject 实例
-            GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
-            if (instances.Length > 0)
-            {
-                cachedTimeSystem = instances[0];
-                return cachedTimeSystem;
-            }
-
-            // 3. 单例模式：从全局实例获取
+            // 2. 单例模式：从全局实例获取
             if (useGlobalInstance || (instance != null && instance.useSingleton))
             {
                 if (instance != null && instance.timeSystem != null)
                 {
                     cachedTimeSystem = instance.timeSystem;
+                    RuntimeRefs.RegisterTimeSystem(cachedTimeSystem);
                     return cachedTimeSystem;
                 }
             }
 
-            // 4. 场景查找模式：在当前场景中查找 MonoBehaviour 引用
-            cachedTimeSystem = FindObjectOfType<GameTimeSystem>();
-
-            if (cachedTimeSystem == null)
+            // 3. 优先从 Resources 加载
+            cachedTimeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
+            if (cachedTimeSystem != null)
             {
-                // 移除警告，避免销毁时输出
+                RuntimeRefs.RegisterTimeSystem(cachedTimeSystem);
+                return cachedTimeSystem;
             }
 
             return cachedTimeSystem;
@@ -78,17 +72,20 @@ public class TimeSystemAccessor : MonoBehaviour
     {
         if (useSingleton)
         {
-            if (instance == null)
+            if (!RuntimeService.TryClaimSingleton(this, instance, nameof(TimeSystemAccessor)))
             {
-                instance = this;
-                DontDestroyOnLoad(gameObject);
-                useGlobalInstance = true;
-                Debug.Log("[TimeSystemAccessor] 全局单例模式已启用");
+                return;
             }
-            else if (instance != this)
-            {
-                Destroy(gameObject);
-            }
+
+            instance = this;
+            useGlobalInstance = true;
+            Debug.Log("[TimeSystemAccessor] 全局单例模式已启用");
+        }
+
+        if (timeSystem != null)
+        {
+            cachedTimeSystem = timeSystem;
+            RuntimeRefs.RegisterTimeSystem(timeSystem);
         }
     }
 

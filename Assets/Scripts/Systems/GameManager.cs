@@ -1,6 +1,7 @@
 // Assets/Scripts/Systems/GameManager.cs
 using UnityEngine;
 using System.Collections;
+using FarmGame.Core;
 
 /// <summary>
 /// 游戏启动管理器
@@ -27,6 +28,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("如果不存在存档，是否初始化时间系统")]
     public bool initializeTimeSystemIfNoSave = true;
 
+    [Header("存档管理配置")]
+    [Tooltip("当场景中没有 SaveManager 时，是否允许以独立模式继续运行（不加载存档）")]
+    public bool allowStandaloneModeWithoutSaveManager = true;
+
     [Header("调试选项")]
     [Tooltip("显示启动日志")]
     public bool showStartupLog = true;
@@ -43,16 +48,20 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
-        if (instance == null)
+        if (!RuntimeService.TryClaimSingleton(this, instance, nameof(GameManager), showStartupLog))
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-            if (showStartupLog) Debug.Log("[GameManager] 游戏管理器已初始化");
+            return;
         }
-        else if (instance != this)
+
+        instance = this;
+        if (showStartupLog) Debug.Log("[GameManager] 游戏管理器已初始化");
+    }
+
+    void OnDestroy()
+    {
+        if (instance == this)
         {
-            if (showStartupLog) Debug.Log("[GameManager] 已有游戏管理器实例，销毁此对象");
-            Destroy(gameObject);
+            instance = null;
         }
     }
 
@@ -82,13 +91,19 @@ public class GameManager : MonoBehaviour
             waitTime += COMPONENT_CHECK_INTERVAL;
         }
 
-        if (SaveManager.Instance == null)
+        bool hasSaveManager = SaveManager.Instance != null;
+        if (!hasSaveManager && !allowStandaloneModeWithoutSaveManager)
         {
             InitializationFailed("SaveManager 不存在！请确保场景中有 SaveManager");
             yield break;
         }
 
-        if (showStartupLog) Debug.Log("[GameManager] SaveManager 已就绪");
+        if (showStartupLog)
+        {
+            Debug.Log(hasSaveManager
+                ? "[GameManager] SaveManager 已就绪"
+                : "[GameManager] 未检测到 SaveManager，进入独立模式（不加载存档）");
+        }
 
         // 等待时间系统（等待 TimeController 初始化完成）
         waitTime = 0f;
@@ -137,22 +152,27 @@ public class GameManager : MonoBehaviour
 
         yield return new WaitForSeconds(EXTRA_INIT_DELAY); // 额外等待确保所有 Start 执行完成
 
-        // 尝试加载存档
-        if (autoLoadLatestSave)
+        // 尝试加载存档（仅在 SaveManager 可用时）
+        bool hasSaveManager = SaveManager.Instance != null;
+        if (hasSaveManager)
         {
-            LoadLatestSave();
-        }
-        else if (!string.IsNullOrEmpty(defaultSaveName))
-        {
-            LoadSpecificSave(defaultSaveName);
-        }
-        else
-        {
-            // 不自动加载，确保时间系统已初始化
-            if (initializeTimeSystemIfNoSave)
+            if (autoLoadLatestSave)
             {
+                LoadLatestSave();
+            }
+            else if (!string.IsNullOrEmpty(defaultSaveName))
+            {
+                LoadSpecificSave(defaultSaveName);
+            }
+            else if (initializeTimeSystemIfNoSave)
+            {
+                // 不自动加载，确保时间系统已初始化
                 InitializeTimeSystem();
             }
+        }
+        else if (initializeTimeSystemIfNoSave)
+        {
+            InitializeTimeSystem();
         }
 
         isInitialized = true;
@@ -188,6 +208,13 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void LoadLatestSave()
     {
+        if (SaveManager.Instance == null)
+        {
+            if (showStartupLog) Debug.LogWarning("[GameManager] SaveManager 不可用，跳过加载最新存档");
+            if (initializeTimeSystemIfNoSave) InitializeTimeSystem();
+            return;
+        }
+
         var saveList = SaveManager.Instance.GetSaveList();
 
         if (saveList.Count > 0)
@@ -207,6 +234,13 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void LoadSpecificSave(string saveName)
     {
+        if (SaveManager.Instance == null)
+        {
+            if (showStartupLog) Debug.LogWarning("[GameManager] SaveManager 不可用，跳过加载并初始化新游戏");
+            if (initializeTimeSystemIfNoSave) InitializeTimeSystem();
+            return;
+        }
+
         if (SaveManager.Instance.SaveExists(saveName))
         {
             if (showStartupLog) Debug.Log($"[GameManager] 正在加载存档: {saveName}");
@@ -224,6 +258,12 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void InitializeTimeSystem()
     {
+        if (TimeSystemAccessor.TimeSystem == null)
+        {
+            Debug.LogError("[GameManager] TimeSystemAccessor.TimeSystem 为 null，无法初始化时间系统");
+            return;
+        }
+
         // 检查时间系统是否已初始化
         if (TimeSystemAccessor.TimeSystem != null && TimeSystemAccessor.Hour > 0)
         {
@@ -261,6 +301,11 @@ public class GameManager : MonoBehaviour
     public void SaveGame(string saveName = "autosave")
     {
         if (!ValidateInitialization()) return;
+        if (SaveManager.Instance == null)
+        {
+            Debug.LogWarning("[GameManager] SaveManager 不可用，当前模式下不支持存档保存");
+            return;
+        }
 
         if (showStartupLog) Debug.Log($"[GameManager] 保存游戏: {saveName}");
         SaveManager.Instance.SaveGame(saveName);

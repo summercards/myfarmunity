@@ -1,6 +1,7 @@
 // Assets/Scripts/Portal/AutoTeleportFixer.cs
 using UnityEngine;
 using System.Collections;
+using FarmGame.Core;
 
 /// <summary>
 /// 自动传送修复器
@@ -26,16 +27,12 @@ public class AutoTeleportFixer : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null)
+        if (!RuntimeService.TryClaimSingleton(this, Instance, nameof(AutoTeleportFixer), debugMode))
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
             return;
         }
+
+        Instance = this;
 
         if (debugMode)
             Debug.Log("[AutoTeleportFixer] 已初始化");
@@ -47,6 +44,11 @@ public class AutoTeleportFixer : MonoBehaviour
     void OnDestroy()
     {
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     void Start()
@@ -100,7 +102,7 @@ public class AutoTeleportFixer : MonoBehaviour
             Debug.Log("[AutoTeleportFixer] 开始自动修复...");
 
         // 查找Player
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
 
         if (player == null)
         {
@@ -129,7 +131,7 @@ public class AutoTeleportFixer : MonoBehaviour
         // 防止频繁检查
         yield return new WaitForSeconds(1f);
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
 
         if (player == null)
         {
@@ -253,7 +255,7 @@ public class AutoTeleportFixer : MonoBehaviour
     [ContextMenu("手动修复Player")]
     public void ManualFixPlayer()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
 
         if (player == null)
         {
@@ -296,7 +298,7 @@ public class AutoTeleportFixer : MonoBehaviour
     [ContextMenu("显示状态")]
     public void ShowStatus()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = RuntimeRefs.PlayerTransform ? RuntimeRefs.PlayerTransform.gameObject : null;
 
         if (player == null)
         {

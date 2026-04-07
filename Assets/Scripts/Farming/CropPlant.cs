@@ -73,6 +73,19 @@ public class CropPlant : MonoBehaviour
         return m;
     }
 
+    void OnEnable()
+    {
+        RuntimeRefs.RegisterCropPlant(this);
+        RuntimeRefs.InventoryHolderChanged += HandleInventoryHolderChanged;
+        HandleInventoryHolderChanged(RuntimeRefs.InventoryHolder);
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.InventoryHolderChanged -= HandleInventoryHolderChanged;
+        RuntimeRefs.UnregisterCropPlant(this);
+    }
+
 
 
     // 计算当前可见模型的世界包围盒（排除进度条自身）
@@ -101,6 +114,8 @@ public class CropPlant : MonoBehaviour
     void UpdateBarTransform()
     {
         if (!_barRoot) return;
+
+        RefreshRuntimeRefs();
 
         Vector3 pos;
         if (barAutoFollowRendererTop && TryGetVisualWorldBounds(out var wb))
@@ -167,26 +182,63 @@ public class CropPlant : MonoBehaviour
     void FaceCamera()
     {
         if (_barRoot == null) return;
+        RefreshRuntimeRefs();
         if (!_cachedCamera) return;
         _barRoot.rotation = Quaternion.LookRotation(_barRoot.position - _cachedCamera.transform.position);
+    }
+
+    void HandleInventoryHolderChanged(PlayerInventoryHolder holder)
+    {
+        _player = holder;
+    }
+
+    Camera ResolveCamera()
+    {
+        if (CameraModeManager.instance != null && CameraModeManager.instance.activeCamera != null)
+        {
+            return CameraModeManager.instance.activeCamera;
+        }
+
+        if (RuntimeRefs.TpsCamera != null)
+        {
+            return RuntimeRefs.TpsCamera;
+        }
+
+        return RuntimeRefs.FixedCamera;
+    }
+
+    void RefreshRuntimeRefs()
+    {
+        var resolvedCamera = ResolveCamera();
+        if (resolvedCamera != null)
+        {
+            _cachedCamera = resolvedCamera;
+        }
+
+        if (_player == null)
+        {
+            _player = RuntimeRefs.InventoryHolder;
+        }
     }
 
     // ===== 生命周期 =====
     public void Init(SeedPlantDataSO.Entry cfg)
     {
         _cfg = cfg;
-        _cachedCamera = Camera.main;  // 缓存相机引用
+        _cachedCamera = ResolveCamera();
         BuildStageDurations();
         SetupStageVisuals();
         BuildBar();
         ApplyStage(0);
-        _player = FindObjectOfType<PlayerInventoryHolder>();
+        _player = RuntimeRefs.InventoryHolder;
         UpdateBar(0f);
         _inited = true;
     }
 
     void Update()
     {
+        RefreshRuntimeRefs();
+
         // 防守
         if (!_inited)
         {

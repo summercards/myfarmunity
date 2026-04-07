@@ -6,14 +6,14 @@ using UnityEngine;
 
 /// <summary>
 /// 尝试“自动适配”你项目里的背包：
-/// - 在场景中查找名为 PlayerInventoryHolder 的组件（或手动拖到 holderOverride）
+/// - 优先使用 holderOverride，其次通过 RuntimeRefs 获取 PlayerInventoryHolder
 /// - 通过反射寻找 inventory 字段/属性与 Add/Remove/GetCount 等方法（常见命名都尝试）
 /// - 若无法直接调用背包API，则在购买时用 pickupPrefab 兜底生成到玩家脚边（玩家自行拾取）
 /// </summary>
 public class InventoryBridge : MonoBehaviour
 {
     [Header("定位背包对象")]
-    [Tooltip("优先使用这里指定的背包持有者；为空则自动 FindObjectOfType(\"PlayerInventoryHolder\").")]
+    [Tooltip("优先使用这里指定的背包持有者；为空则通过 RuntimeRefs.InventoryHolder 获取。")]
     public MonoBehaviour holderOverride;
 
     [Tooltip("优先尝试从持有者上名为 inventory / Inventory 的字段或属性取背包对象。为空会自动尝试常见名称。")]
@@ -36,22 +36,21 @@ public class InventoryBridge : MonoBehaviour
 
     void Awake()
     {
+        RuntimeRefs.RegisterInventoryBridge(this);
+
         // 1) 找 holder
         if (holderOverride) _holder = holderOverride;
         if (_holder == null)
         {
-            // 尝试按类型名查找
-            var t = FindTypeByName("PlayerInventoryHolder");
-            if (t != null)
+            var runtimeHolder = RuntimeRefs.InventoryHolder;
+            if (runtimeHolder != null)
             {
-                // ✅ 改名后的精确类型查找，避免与 UnityEngine.Object.FindObjectOfType 重名
-                var comp = FindComponentExactType(t) as Component;
-                if (comp) _holder = comp;
+                _holder = runtimeHolder;
             }
         }
         if (_holder == null)
         {
-            Debug.LogWarning("[InventoryBridge] 未找到 PlayerInventoryHolder（可在 holderOverride 手动指定）。将使用拾取物体生成作为兜底。");
+            Debug.LogWarning("[InventoryBridge] 未找到 PlayerInventoryHolder（可在 holderOverride 手动指定，或确保 RuntimeRefs 已注册）。将使用拾取物体生成作为兜底。");
             return;
         }
 
@@ -65,6 +64,36 @@ public class InventoryBridge : MonoBehaviour
 
         // 3) 绑定方法
         BindMethods();
+    }
+
+    void OnEnable()
+    {
+        RuntimeRefs.InventoryHolderChanged += HandleInventoryHolderChanged;
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.InventoryHolderChanged -= HandleInventoryHolderChanged;
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterInventoryBridge(this);
+    }
+
+    void HandleInventoryHolderChanged(PlayerInventoryHolder holder)
+    {
+        if (holderOverride != null || holder == null || ReferenceEquals(_holder, holder))
+        {
+            return;
+        }
+
+        _holder = holder;
+        _inventory = ResolveInventoryObject(_holder);
+        if (_inventory != null)
+        {
+            BindMethods();
+        }
     }
 
     public int GetCount(string itemId)
@@ -222,23 +251,4 @@ public class InventoryBridge : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// 精确类型查找：只返回 **类型完全匹配** 的组件，避免与 Unity 的同名 API 混淆。
-    /// </summary>
-    private Component FindComponentExactType(Type type)
-    {
-        var arr = UnityEngine.Object.FindObjectsOfType<Component>();
-        foreach (var c in arr) if (c && c.GetType() == type) return c;
-        return null;
-    }
-
-    Type FindTypeByName(string typeName)
-    {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            var t = asm.GetType(typeName);
-            if (t != null) return t;
-        }
-        return null;
-    }
 }

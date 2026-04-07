@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections.Generic;
+using FarmGame.Core;
 
 namespace FarmGame.ActorSystem
 {
@@ -23,10 +23,11 @@ namespace FarmGame.ActorSystem
 
         // 内部状态
         private bool _isTyping;
-        private Coroutine _typewriterCoroutine;
         private int _currentTypewriterIndex;
         private string _fullText = "";
         private System.Action _onDialogueComplete;
+        private TaskManager.ITaskHandle _typewriterTask;
+        private TaskManager.ITaskHandle _autoCloseTask;
 
         /// <summary>
         /// Phase 7: 启用打字机效果
@@ -39,57 +40,93 @@ namespace FarmGame.ActorSystem
                 return;
             }
 
-            _fullText = text;
-            _isTyping = enableTypewriter;
-            _onDialogueComplete = onComplete;
+            CancelScheduledTasks();
 
-            if (_typewriterCoroutine != null)
-            {
-                StopCoroutine(_typewriterCoroutine);
-            }
+            _fullText = text;
+            _onDialogueComplete = onComplete;
+            _isTyping = enableTypewriter;
 
             if (enableTypewriter)
             {
-                _typewriterCoroutine = StartCoroutine(TypewriterEffect());
+                StartTypewriter();
             }
             else
             {
                 // 直接显示完整文本
                 UpdateDialogueText(text);
+                CompleteDialogueInternal();
             }
 
             // Phase 7: 通知 UI 对话更新
             NotifyDialogueUpdate();
         }
 
-        /// <summary>
-        /// Phase 7: 打字机效果协程
-        /// </summary>
-        private System.Collections.IEnumerator TypewriterEffect()
+        private void StartTypewriter()
         {
             _currentTypewriterIndex = 0;
             UpdateDialogueText("");
 
-            while (_currentTypewriterIndex < _fullText.Length)
+            TaskManager mgr = TaskManager.Instance;
+            if (mgr == null)
             {
-                _currentTypewriterIndex++;
-                string currentText = _fullText.Substring(0, _currentTypewriterIndex);
-                UpdateDialogueText(currentText);
-                yield return new WaitForSeconds(typewriterSpeed);
+                // 极端情况下（退出/关机流程）兜底：直接展示全文
+                UpdateDialogueText(_fullText);
+                CompleteDialogueInternal();
+                return;
             }
 
-            // 打字完成
-            _isTyping = false;
+            _typewriterTask = mgr.ScheduleRepeating(
+                intervalSeconds: Mathf.Max(0.001f, typewriterSpeed),
+                callback: StepTypewriter,
+                useUnscaledTime: false,
+                initialDelaySeconds: Mathf.Max(0.001f, typewriterSpeed)
+            );
+        }
 
-            // Phase 7: 触发完成回调
+        private void StepTypewriter()
+        {
+            if (!_isTyping)
+            {
+                _typewriterTask?.Cancel();
+                _typewriterTask = null;
+                return;
+            }
+
+            if (_currentTypewriterIndex >= _fullText.Length)
+            {
+                _typewriterTask?.Cancel();
+                _typewriterTask = null;
+                _isTyping = false;
+                CompleteDialogueInternal();
+                return;
+            }
+
+            _currentTypewriterIndex++;
+            string currentText = _fullText.Substring(0, _currentTypewriterIndex);
+            UpdateDialogueText(currentText);
+        }
+
+        private void CompleteDialogueInternal()
+        {
+            _isTyping = false;
             _onDialogueComplete?.Invoke();
 
-            // 自动关闭
-            if (autoCloseAfterDialogue)
+            if (!autoCloseAfterDialogue)
             {
-                yield return new WaitForSeconds(autoCloseDelay);
-                CloseDialogue();
+                return;
             }
+
+            TaskManager mgr = TaskManager.Instance;
+            if (mgr == null)
+            {
+                return;
+            }
+
+            _autoCloseTask = mgr.ScheduleOnce(
+                delaySeconds: Mathf.Max(0f, autoCloseDelay),
+                callback: CloseDialogue,
+                useUnscaledTime: false
+            );
         }
 
         /// <summary>
@@ -112,15 +149,10 @@ namespace FarmGame.ActorSystem
         /// </summary>
         public void SkipTypewriter()
         {
-            if (_typewriterCoroutine != null)
-            {
-                StopCoroutine(_typewriterCoroutine);
-                _typewriterCoroutine = null;
-            }
+            CancelScheduledTasks();
 
-            _isTyping = false;
             UpdateDialogueText(_fullText);
-            _onDialogueComplete?.Invoke();
+            CompleteDialogueInternal();
 
             Debug.Log("[DialogueModule] 打字机已跳过");
         }
@@ -157,17 +189,18 @@ namespace FarmGame.ActorSystem
         {
             base.OnDisabled();
 
-            // 停止打字机
-            if (_typewriterCoroutine != null)
-            {
-                StopCoroutine(_typewriterCoroutine);
-                _typewriterCoroutine = null;
-            }
-
-            _isTyping = false;
-            _typewriterCoroutine = null;
+            CancelScheduledTasks();
 
             Debug.Log("[DialogueModule] 已禁用");
+        }
+
+        private void CancelScheduledTasks()
+        {
+            _typewriterTask?.Cancel();
+            _typewriterTask = null;
+            _autoCloseTask?.Cancel();
+            _autoCloseTask = null;
+            _isTyping = false;
         }
 
         /// <summary>

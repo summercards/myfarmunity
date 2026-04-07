@@ -1,14 +1,7 @@
-using System.Collections.Generic;
-using UnityEngine;
-
 namespace FarmGame.UI
 {
-    public interface IDialogSubject
+    [System.Obsolete("Use FarmGame.Core.Contracts.IDialogSubject instead.")]
+    public interface IDialogSubject : FarmGame.Core.Contracts.IDialogSubject
     {
-        string Name { get; }
-        List<string> DialogLines { get; }
-        string FunctionButtonText { get; }
-        void InvokeFunction();
-        Transform SubjectTransform { get; } // For distance check
     }
 }

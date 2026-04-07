@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Reflection;
+using UnityEngine.Serialization;
 
 namespace FarmGame.ActorSystem
 {
@@ -17,6 +18,14 @@ namespace FarmGame.ActorSystem
         [Header("Options")]
         [Tooltip("打开商店后是否自动关闭对话框")]
         public bool closeDialogAfterShop = true;
+
+        [Header("UI Refs (Optional)")]
+        [Tooltip("优先使用商店 UI（可选，未填写时会走 RuntimeRefs）。")]
+        [FormerlySerializedAs("simpleShopUI")]
+        public MonoBehaviour primaryShopUI;
+        [Tooltip("作为回退使用的商店 UI（可选，未填写时会走 RuntimeRefs）。")]
+        [FormerlySerializedAs("miniShopUI")]
+        public MonoBehaviour fallbackShopUI;
 
         [Header("Debug")]
         [Tooltip("显示调试日志")]
@@ -51,24 +60,9 @@ namespace FarmGame.ActorSystem
         {
             if (showDebugLogs) Debug.Log("[ShopModule] OpenShop() 被调用");
 
-            // 动态查找商店 UI
-            if (_shopUI == null)
+            if (!TryResolveShopUI())
             {
-                var shopUIs = GameObject.FindObjectsOfType<MonoBehaviour>();
-                foreach (var ui in shopUIs)
-                {
-                    if (ui.gameObject.name.Contains("Shop") || ui.GetType().Name.Contains("Shop"))
-                    {
-                        _shopUI = ui;
-                        if (showDebugLogs) Debug.Log($"[ShopModule] 运行时找到商店 UI：{ui.GetType().Name}");
-                        break;
-                    }
-                }
-            }
-
-            if (_shopUI == null)
-            {
-                Debug.LogWarning("[ShopModule] 运行时未找到商店 UI，无法打开商店");
+                Debug.LogWarning("[ShopModule] 未绑定商店 UI，无法打开商店");
                 return;
             }
 
@@ -105,7 +99,7 @@ namespace FarmGame.ActorSystem
             // 关闭对话框（如果需要）
             if (closeDialogAfterShop)
             {
-                var dialogUI = GameObject.FindObjectOfType<NPCDialogUI>();
+                var dialogUI = RuntimeRefs.DialogUIContract;
                 if (dialogUI != null && dialogUI.IsOpen)
                 {
                     dialogUI.Close();
@@ -116,6 +110,75 @@ namespace FarmGame.ActorSystem
             _isShopOpen = true;
 
             if (showDebugLogs) Debug.Log("[ShopModule] 商店已打开");
+        }
+
+        private bool TryResolveShopUI()
+        {
+            if (_shopUI != null)
+            {
+                if (IsRuntimeSceneBehaviour(_shopUI))
+                {
+                    return true;
+                }
+
+                if (showDebugLogs)
+                {
+                    Debug.LogWarning("[ShopModule] 缓存的商店 UI 指向 Prefab 资源，已忽略并重新解析。");
+                }
+
+                _shopUI = null;
+            }
+
+            if (primaryShopUI != null && !IsRuntimeSceneBehaviour(primaryShopUI))
+            {
+                if (showDebugLogs)
+                {
+                    Debug.LogWarning("[ShopModule] primaryShopUI 指向 Prefab 资源，运行时将改用场景实例。");
+                }
+
+                primaryShopUI = null;
+            }
+
+            if (primaryShopUI == null)
+            {
+                primaryShopUI = RuntimeRefs.SimpleShopUI;
+            }
+
+            if (primaryShopUI != null)
+            {
+                _shopUI = primaryShopUI;
+                if (showDebugLogs) Debug.Log($"[ShopModule] 使用主商店 UI: {_shopUI.GetType().Name}");
+                return true;
+            }
+
+            if (fallbackShopUI != null && !IsRuntimeSceneBehaviour(fallbackShopUI))
+            {
+                if (showDebugLogs)
+                {
+                    Debug.LogWarning("[ShopModule] fallbackShopUI 指向 Prefab 资源，运行时将改用场景实例。");
+                }
+
+                fallbackShopUI = null;
+            }
+
+            if (fallbackShopUI == null)
+            {
+                fallbackShopUI = RuntimeRefs.MiniShopUI;
+            }
+
+            if (fallbackShopUI != null)
+            {
+                _shopUI = fallbackShopUI;
+                if (showDebugLogs) Debug.Log($"[ShopModule] 使用回退商店 UI: {_shopUI.GetType().Name}");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsRuntimeSceneBehaviour(MonoBehaviour behaviour)
+        {
+            return behaviour != null && behaviour.gameObject.scene.IsValid();
         }
 
         /// <summary>

@@ -2,10 +2,10 @@ using UnityEngine;
 using TMPro;
 using System.Reflection;
 using UnityEngine.UI;
-using FarmGame.UI; // Phase 2: 支持 IDialogSubject
+using FarmGame.Core.Contracts;
 
 [DisallowMultipleComponent]
-public class NPCDialogWorldBridge : MonoBehaviour
+public class NPCDialogWorldBridge : MonoBehaviour, IDialogWorldBridge
 {
     [Header("References")]
     public NPCDialogUI ui;
@@ -35,8 +35,6 @@ public class NPCDialogWorldBridge : MonoBehaviour
     string _lastLineText = "";
     TextMeshProUGUI _lineTextTMP;
     Text _lineTextUGUI;
-    PropertyInfo _propCurrentSubject; // Phase 2: 重命名
-    FieldInfo _fieldCurrentSubject; // Phase 2: 重命名
     Transform _player;
     Camera _cachedCamera;
 
@@ -47,31 +45,31 @@ public class NPCDialogWorldBridge : MonoBehaviour
     void Awake()
     {
         if (!ui) ui = GetComponent<NPCDialogUI>();
+        if (!ui) ui = RuntimeRefs.DialogUI;
+        RuntimeRefs.RegisterDialogWorldBridge(this);
         CacheLineText();
-
-        // Phase 2: 获取 NPCDialogUI 的 CurrentNPC（IDialogSubject 类型）
-        _propCurrentSubject = typeof(NPCDialogUI).GetProperty("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
-        _fieldCurrentSubject = typeof(NPCDialogUI).GetField("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
-
-        _cachedCamera = Camera.main;  // 缓存相机引用
-
-        if (!string.IsNullOrEmpty(playerTag))
-        {
-            var go = GameObject.FindGameObjectWithTag(playerTag);
-            if (go) _player = go.transform;
-        }
-        if (!_player && _cachedCamera) _player = _cachedCamera.transform;
+        _cachedCamera = ResolveBubbleCamera();
+        _player = RuntimeRefs.PlayerTransform;
     }
 
     void OnEnable()
     {
         // 商店打开时关闭独立气泡 -> 返回主对话气泡
         MiniShop.OnActiveChanged += OnShopActiveChanged;
+        RuntimeRefs.PlayerTransformChanged += HandlePlayerTransformChanged;
+        RuntimeRefs.DialogUIChanged += HandleDialogUIChanged;
     }
 
     void OnDisable()
     {
         MiniShop.OnActiveChanged -= OnShopActiveChanged;
+        RuntimeRefs.PlayerTransformChanged -= HandlePlayerTransformChanged;
+        RuntimeRefs.DialogUIChanged -= HandleDialogUIChanged;
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterDialogWorldBridge(this);
     }
 
     void OnShopActiveChanged(bool active)
@@ -79,10 +77,25 @@ public class NPCDialogWorldBridge : MonoBehaviour
         if (!active) EndStandalone();
     }
 
+    void HandlePlayerTransformChanged(Transform playerTransform)
+    {
+        _player = playerTransform;
+    }
+
+    void HandleDialogUIChanged(NPCDialogUI dialogUI)
+    {
+        if (ui == null)
+        {
+            ui = dialogUI;
+            CacheLineText();
+        }
+    }
+
     void CacheLineText()
     {
         if (lineTextOverrideTMP) { _lineTextTMP = lineTextOverrideTMP; _lineTextUGUI = null; return; }
         if (lineTextOverrideUGUI) { _lineTextUGUI = lineTextOverrideUGUI; _lineTextTMP = null; return; }
+        if (ui == null) return;
 
         var t = typeof(NPCDialogUI);
         var f1 = t.GetField("lineText", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -119,15 +132,12 @@ public class NPCDialogWorldBridge : MonoBehaviour
     void Update()
     {
         if (!enableWorldBubble) return;
+        if (!ui) ui = RuntimeRefs.DialogUI;
+        if (_player == null) _player = RuntimeRefs.PlayerTransform;
+        _cachedCamera = ResolveBubbleCamera();
 
-        bool isOpen = false;
-        GameObject rootGO = null;
-        var fRoot = typeof(NPCDialogUI).GetField("root", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        if (fRoot != null)
-        {
-            rootGO = fRoot.GetValue(ui) as GameObject;
-            isOpen = rootGO && rootGO.activeInHierarchy;
-        }
+        bool isOpen = ui != null && ui.IsOpen;
+        GameObject rootGO = ui != null ? ui.root : null;
 
         // 距离检测：如果过远则隐藏独立气泡/关闭UI对话框
         if (enableAutoHideByDistance && _player && (_anchor || _standaloneNPC))
@@ -155,6 +165,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
                 _anchor = ResolveAnchor(_standaloneNPC);
                 EnsureBubble();
                 _bubble.transform.SetParent(null, true);
+                _cachedCamera = ResolveBubbleCamera();
                 _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
                 _bubble.SetText(_standaloneLine);
                 MakeUILineTransparent();
@@ -177,6 +188,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
             _anchor = ResolveAnchor(_currentSubject.SubjectTransform);
             EnsureBubble();
             _bubble.transform.SetParent(null, true);
+            _cachedCamera = ResolveBubbleCamera();
             _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
             _bubble.SetText(line);
             MakeUILineTransparent();
@@ -204,6 +216,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         _anchor = ResolveAnchor(_standaloneNPC);
         EnsureBubble();
         _bubble.transform.SetParent(null, true);
+        _cachedCamera = ResolveBubbleCamera();
         _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
         _bubble.SetText(_standaloneLine);
         MakeUILineTransparent();
@@ -225,6 +238,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         // 如果气泡已存在，立即更新位置（避免在NPC对话框打开时看不到气泡）
         if (_bubble != null)
         {
+            _cachedCamera = ResolveBubbleCamera();
             _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
         }
 
@@ -247,6 +261,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
         // 如果气泡已存在，立即更新位置
         if (_bubble != null)
         {
+            _cachedCamera = ResolveBubbleCamera();
             _bubble.Init(_anchor, _cachedCamera, bubbleMaxWidth, bubbleOffset);
         }
 
@@ -298,9 +313,7 @@ public class NPCDialogWorldBridge : MonoBehaviour
 
     IDialogSubject GetCurrentSubject()
     {
-        if (_propCurrentSubject != null) return _propCurrentSubject.GetValue(ui) as IDialogSubject;
-        if (_fieldCurrentSubject != null) return _fieldCurrentSubject.GetValue(ui) as IDialogSubject;
-        return null;
+        return ui != null ? ui.CurrentNPC : null;
     }
 
     Transform ResolveAnchor(Transform npcTransform)
@@ -342,6 +355,26 @@ public class NPCDialogWorldBridge : MonoBehaviour
         if (_bubble == null)
             _bubble = bubblePrefab ? Instantiate(bubblePrefab)
                                    : new GameObject("SpeechBubble3D").AddComponent<SpeechBubble3D>();
+    }
+
+    Camera ResolveBubbleCamera()
+    {
+        if (CameraModeManager.instance != null && CameraModeManager.instance.activeCamera != null)
+        {
+            return CameraModeManager.instance.activeCamera;
+        }
+
+        if (RuntimeRefs.TpsCamera != null)
+        {
+            return RuntimeRefs.TpsCamera;
+        }
+
+        if (RuntimeRefs.FixedCamera != null)
+        {
+            return RuntimeRefs.FixedCamera;
+        }
+
+        return Camera.main;
     }
 
     void MakeUILineTransparent()

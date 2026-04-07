@@ -1,13 +1,22 @@
 // Assets/Scripts/Time/TestTimeSetup.cs
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 测试脚本：在运行时设置时间系统
 /// </summary>
 public class TestTimeSetup : MonoBehaviour
 {
+    [Tooltip("是否在 Start 自动执行（阶段5建议仅调试时开启）")]
+    public bool runOnStart = false;
+
     void Start()
     {
+        if (!runOnStart)
+        {
+            return;
+        }
+
         Debug.Log("开始测试时间系统设置...");
 
         // 创建或加载 GameTimeSystem
@@ -34,7 +43,7 @@ public class TestTimeSetup : MonoBehaviour
         }
 
         // 创建 TimeManager
-        GameObject timeManager = GameObject.Find("TimeManager");
+        GameObject timeManager = FindRootObjectByName("TimeManager");
         if (timeManager == null)
         {
             timeManager = new GameObject("TimeManager");
@@ -55,7 +64,11 @@ public class TestTimeSetup : MonoBehaviour
         Debug.Log("TimeManager 设置完成");
 
         // 配置 DayNightCycle
-        Light directionalLight = FindObjectOfType<Light>();
+        Light directionalLight = RenderSettings.sun;
+        if (directionalLight == null || directionalLight.type != LightType.Directional)
+        {
+            directionalLight = FindDirectionalLightInScene();
+        }
         if (directionalLight != null)
         {
             DayNightCycle dayNightCycle = directionalLight.GetComponent<DayNightCycle>();
@@ -76,5 +89,49 @@ public class TestTimeSetup : MonoBehaviour
         }
 
         Debug.Log("时间系统设置完成！");
+    }
+
+    private static GameObject FindRootObjectByName(string objectName)
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && roots[i].name == objectName)
+            {
+                return roots[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static Light FindDirectionalLightInScene()
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            Light[] lights = roots[i].GetComponentsInChildren<Light>(true);
+            for (int j = 0; j < lights.Length; j++)
+            {
+                if (lights[j] != null && lights[j].type == LightType.Directional)
+                {
+                    return lights[j];
+                }
+            }
+        }
+
+        return null;
     }
 }

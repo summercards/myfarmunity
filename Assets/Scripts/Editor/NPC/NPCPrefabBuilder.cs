@@ -144,96 +144,107 @@ namespace FarmGame.Editor.NPC
             }
 
             // ==========================================
-            // 2. 架构分流：新 Actor 系统
+            // 2. 架构收口：统一走 Actor 系统
             // ==========================================
-
-            if (def.useActorSystem)
+            if (!def.useActorSystem)
             {
-                // --- 新架构 Actor ---
-                
-                // Phase 8 修复：确保所有 Actor 组件都正确添加
-                EnsureOrReplace<Actor>(root);
+                Debug.LogWarning($"[NPCPrefabBuilder] {def.npcId} 的 useActorSystem=false 已过时，构建器将强制使用 ActorSystem。");
+            }
 
-                // Phase 3: 使用 Initialize 方法
-                var identity = EnsureOrReplace<ActorIdentity>(root);
-                identity.Initialize(def);
+            int removedLegacyCount = RemoveLegacyNpcInteractables(root);
+            if (removedLegacyCount > 0)
+            {
+                Debug.Log($"[NPCPrefabBuilder] {def.npcId} 已移除 {removedLegacyCount} 个旧版 NPCInteractable 组件。");
+            }
 
-                EnsureOrReplace<ActorMemory>(root);
-                EnsureOrReplace<ActorBrain>(root);
-                EnsureOrReplace<ActorDialogue>(root);
-                EnsureOrReplace<DialogueResolver>(root);
+            // --- 新架构 Actor ---
+            
+            // Phase 8 修复：确保所有 Actor 组件都正确添加
+            EnsureOrReplace<Actor>(root);
 
-                // 交互组件
-                if (def.enableInteraction)
-                {
-                    EnsureOrReplace<ActorInteraction>(root);
-                }
-                else
-                {
-                    RemoveIfExists<ActorInteraction>(root);
-                }
+            // Phase 3: 使用 Initialize 方法
+            var identity = EnsureOrReplace<ActorIdentity>(root);
+            identity.Initialize(BuildIdentitySeed(def));
 
-                // 模块化系统
-                switch (def.function)
-                {
-                    case NPCFunction.OpenShop:
-                        {
-                            var shopModule = EnsureOrReplace<ShopModule>(root);
-                            // Phase 7 修复：配置商店目录
-                            var catalogField = shopModule.GetType().GetField("shopCatalog", BindingFlags.Public | BindingFlags.Instance);
-                            if (catalogField != null)
-                            {
-                                catalogField.SetValue(shopModule, def.defaultShopCatalog);
-                                Debug.Log($"[NPCPrefabBuilder] 已配置商店目录到 ShopModule");
-                            }
-                            else
-                            {
-                                Debug.LogWarning("[NPCPrefabBuilder] ShopModule 没有 shopCatalog 字段");
-                            }
-                            break;
-                        }
+            EnsureOrReplace<ActorMemory>(root);
+            EnsureOrReplace<ActorBrain>(root);
+            EnsureOrReplace<ActorDialogue>(root);
+            EnsureOrReplace<DialogueResolver>(root);
 
-                    case NPCFunction.Talk:
-                        EnsureOrReplace<DialogueModule>(root);
-                        break;
-
-                    case NPCFunction.Quest:
-                        EnsureOrReplace<QuestModule>(root);
-                        break;
-
-                    case NPCFunction.Gift:
-                        EnsureOrReplace<GiftModule>(root);
-                        break;
-
-                    case NPCFunction.None:
-                    default:
-                        // 不添加任何模块
-                        break;
-                }
-
-                // 視觉组件
-                if (def.enableVisuals)
-                {
-                    var animator = EnsureOrReplace<Animator>(root);
-                    animator.runtimeAnimatorController = def.animatorController;
-
-                    var view = EnsureOrReplace<ActorView>(root);
-                    view.Animator = animator;
-                    view.ModelRoot = visual;
-                }
-                else
-                {
-                    RemoveIfExists<Animator>(root);
-                    RemoveIfExists<ActorView>(root);
-                }
+            // 交互组件
+            if (def.enableInteraction)
+            {
+                EnsureOrReplace<ActorInteraction>(root);
             }
             else
             {
-                // Phase 8: 保留向后兼容，但不添加旧系统组件
-                // 只添加必要的标记，让 Editor 知道这是旧版 NPC
-                
-                // 不添加任何 NPC 前缀组件
-                // 如果用户需要旧版功能，可以从版本历史恢复
+                RemoveIfExists<ActorInteraction>(root);
+            }
+
+            // 模块化系统
+            // 先清理历史残留模块，避免功能切换后同一 NPC 残留多套模块。
+            RemoveIfExists<ShopModule>(root);
+            RemoveIfExists<DialogueModule>(root);
+            RemoveIfExists<QuestModule>(root);
+            RemoveIfExists<GiftModule>(root);
+
+            switch (def.function)
+            {
+                case NPCFunction.OpenShop:
+                    {
+                        if (!def.enableShop)
+                        {
+                            Debug.LogWarning($"[NPCPrefabBuilder] {def.npcId} 功能为 OpenShop，但 enableShop=false，已跳过添加 ShopModule。");
+                            break;
+                        }
+
+                        var shopModule = EnsureOrReplace<ShopModule>(root);
+                        // Phase 7 修复：配置商店目录
+                        var catalogField = shopModule.GetType().GetField("shopCatalog", BindingFlags.Public | BindingFlags.Instance);
+                        if (catalogField != null)
+                        {
+                            catalogField.SetValue(shopModule, def.defaultShopCatalog);
+                            Debug.Log($"[NPCPrefabBuilder] 已配置商店目录到 ShopModule");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[NPCPrefabBuilder] ShopModule 没有 shopCatalog 字段");
+                        }
+                        break;
+                    }
+
+                case NPCFunction.Talk:
+                    EnsureOrReplace<DialogueModule>(root);
+                    break;
+
+                case NPCFunction.Quest:
+                    EnsureOrReplace<QuestModule>(root);
+                    break;
+
+                case NPCFunction.Gift:
+                    EnsureOrReplace<GiftModule>(root);
+                    break;
+
+                case NPCFunction.None:
+                default:
+                    // 不添加任何模块
+                    break;
+            }
+
+            // 視觉组件
+            if (def.enableVisuals)
+            {
+                var animator = EnsureOrReplace<Animator>(root);
+                animator.runtimeAnimatorController = def.animatorController;
+
+                var view = EnsureOrReplace<ActorView>(root);
+                view.Animator = animator;
+                view.ModelRoot = visual;
+            }
+            else
+            {
+                RemoveIfExists<Animator>(root);
+                RemoveIfExists<ActorView>(root);
             }
         }
 
@@ -296,6 +307,64 @@ namespace FarmGame.Editor.NPC
         private static void RemoveIfExists<T>(GameObject go) where T : Component
         {
             RemoveAllComponentsOfType<T>(go);
+        }
+
+        private static int RemoveLegacyNpcInteractables(GameObject root)
+        {
+#pragma warning disable 0618
+            NPCInteractable[] legacyComponents = root.GetComponentsInChildren<NPCInteractable>(true);
+#pragma warning restore 0618
+
+            int removedCount = 0;
+            for (int i = 0; i < legacyComponents.Length; i++)
+            {
+                var legacy = legacyComponents[i];
+                if (legacy == null)
+                {
+                    continue;
+                }
+
+                GameObject.DestroyImmediate(legacy);
+                removedCount++;
+            }
+
+            return removedCount;
+        }
+
+        private static ActorIdentitySeedData BuildIdentitySeed(NPCDefinition def)
+        {
+            return new ActorIdentitySeedData
+            {
+                id = def.npcId,
+                displayName = def.npcName,
+                dialogLines = def.dialogLines,
+                function = MapFunction(def.function),
+                functionButtonText = def.functionButtonText,
+                defaultShopCatalog = def.defaultShopCatalog,
+                animatorController = def.animatorController,
+                modelPrefab = def.modelPrefab,
+                modelLocalPosition = def.modelLocalPosition,
+                modelLocalEuler = def.modelLocalEuler,
+                modelLocalScale = def.modelLocalScale
+            };
+        }
+
+        private static ActorFunction MapFunction(NPCFunction legacyFunction)
+        {
+            switch (legacyFunction)
+            {
+                case NPCFunction.OpenShop:
+                    return ActorFunction.OpenShop;
+                case NPCFunction.Talk:
+                    return ActorFunction.Talk;
+                case NPCFunction.Quest:
+                    return ActorFunction.Quest;
+                case NPCFunction.Gift:
+                    return ActorFunction.Gift;
+                case NPCFunction.None:
+                default:
+                    return ActorFunction.None;
+            }
         }
     }
 }

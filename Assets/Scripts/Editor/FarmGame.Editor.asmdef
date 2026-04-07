@@ -1,0 +1,22 @@
+{
+  "name": "FarmGame.Editor",
+  "rootNamespace": "FarmGame.Editor",
+  "references": [
+    "FarmGame.Core",
+    "FarmGame.Gameplay",
+    "FarmGame.ActorSystem",
+    "FarmGame.NPCSystem",
+    "Unity.TextMeshPro"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

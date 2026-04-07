@@ -20,6 +20,11 @@ public class PlayerStats : MonoBehaviour
     // 事件：当属性改变时触发（供UI更新）
     public event Action OnStatsChanged;
 
+    void Awake()
+    {
+        RuntimeRefs.RegisterPlayerStats(this);
+    }
+
     void Start()
     {
         currentHealth = maxHealth;
@@ -58,5 +63,10 @@ public class PlayerStats : MonoBehaviour
         currentStamina -= amount;
         if (currentStamina < 0) currentStamina = 0;
         OnStatsChanged?.Invoke();
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterPlayerStats(this);
     }
 }

@@ -1,6 +1,7 @@
 // Assets/Scripts/Inventory/PlayerInventoryHolder.cs
 using UnityEngine;
 using System;
+using FarmGame.Core;
 
 /// <summary>
 /// 玩家背包持有者 - 单例模式
@@ -21,30 +22,46 @@ public class PlayerInventoryHolder : MonoBehaviour
 
     void Awake()
     {
-        // 单例模式 + DontDestroyOnLoad
-        if (instance == null)
+        if (!RuntimeService.TryClaimSingleton(this, instance, nameof(PlayerInventoryHolder)))
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-
-            // 初始化背包
-            if (Inventory == null) Inventory = new Inventory(Mathf.Max(1, capacity));
-
-            // 设置每种类目的堆叠上限
-            Inventory.GetMaxStackForId = (id) =>
-            {
-                if (itemDB == null) return 99;
-                var def = itemDB.Get(id);
-                return def ? Mathf.Max(1, def.maxStack) : 99;
-            };
-
-            Debug.Log("[PlayerInventoryHolder] 背包系统已初始化（DontDestroyOnLoad）");
-        }
-        else
-        {
-            // 已有实例，销毁新创建的
             Debug.Log("[PlayerInventoryHolder] 检测到已存在的背包实例，销毁重复对象");
-            Destroy(gameObject);
+            return;
+        }
+
+        instance = this;
+        RuntimeRefs.RegisterInventoryHolder(this);
+
+        // 初始化背包
+        if (Inventory == null) Inventory = new Inventory(Mathf.Max(1, capacity));
+
+        // 设置每种类目的堆叠上限
+        ApplyStackRuleResolver();
+
+        Debug.Log("[PlayerInventoryHolder] 背包系统已初始化（统一 AppRoot 生命周期）");
+    }
+
+    public void ApplyStackRuleResolver()
+    {
+        if (Inventory == null)
+        {
+            return;
+        }
+
+        Inventory.GetMaxStackForId = (id) =>
+        {
+            if (itemDB == null) return 99;
+            var def = itemDB.Get(id);
+            return def ? Mathf.Max(1, def.maxStack) : 99;
+        };
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterInventoryHolder(this);
+
+        if (instance == this)
+        {
+            instance = null;
         }
     }
 
@@ -68,5 +85,5 @@ public class PlayerInventoryHolder : MonoBehaviour
         return removed;
     }
 
-    public int GetCount(string id) => Inventory.GetItemCount(id);
+    public int GetCount(string id) => Inventory != null ? Inventory.GetItemCount(id) : 0;
 }

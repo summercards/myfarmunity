@@ -1,0 +1,17 @@
+{
+  "name": "FarmGame.ActorSystem",
+  "rootNamespace": "FarmGame.ActorSystem",
+  "references": [
+    "FarmGame.Core",
+    "FarmGame.Gameplay"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -1,98 +1,190 @@
+using System;
 using UnityEngine;
-using TMPro;
-using UnityEngine.UI;
 
 /// <summary>
-/// 把玩家金币持久化到 PlayerPrefs：
-/// - 启动时读取；若未存档则用 Inspector 当前值（或 initialCoinsIfNoSave）并立刻写入；
-/// - 每次金币变化时自动保存；
-/// - 提供重置与手动保存接口；
-/// 用法：挂在含有 PlayerWallet 的对象（或任意物体），把 PlayerWallet 拖进来。
+/// Wallet persistence:
+/// - If SaveManager exists, wallet data is captured/restored by unified save flow.
+/// - If SaveManager is absent, fallback to PlayerPrefs for standalone scenes.
 /// </summary>
-public class WalletPersistence : MonoBehaviour
+public class WalletPersistence : MonoBehaviour, ISaveParticipant, IPlayerSaveable
 {
+    [Serializable]
+    private class WalletSaveData
+    {
+        public int coins;
+    }
+
     [Header("Refs")]
-    public PlayerWallet wallet;          // 建议与 PlayerWallet 在同一个物体；为空会自动 GetComponent
+    public PlayerWallet wallet;
 
     [Header("Save Slot")]
-    [Tooltip("同一设备上可用不同存档槽。默认 default。")]
     public string saveSlot = "default";
 
     [Header("First Run")]
-    [Tooltip("首次没有存档时的初始金币（留空则使用 wallet.coins 的 Inspector 值）。")]
     public bool overrideInitial = false;
     public int initialCoinsIfNoSave = 0;
 
-    string Key => $"Wallet.Coins.{saveSlot}";
+    [Header("Local Fallback")]
+    public bool loadOnAwake = true;
+    public bool saveOnCoinsChanged = true;
+    public bool saveOnQuit = true;
+    public bool useStandalonePrefsWhenNoSaveManager = true;
+
+    public SaveSection Section => SaveSection.Player;
+    public UnityEngine.Object Owner => this;
+    public string ParticipantName => GetType().Name;
+
+    private string Key => $"Wallet.Coins.{saveSlot}";
+    private bool UseCentralSave => RuntimeRefs.SaveService != null;
+    private bool _localLoadAttempted;
 
     void Awake()
     {
         if (!wallet) wallet = GetComponent<PlayerWallet>();
         if (!wallet)
         {
-            Debug.LogError("[WalletPersistence] 未找到 PlayerWallet 引用。请在 Inspector 里把 PlayerWallet 拖进来。");
+            Debug.LogError("[WalletPersistence] Missing PlayerWallet reference.");
             return;
         }
+    }
 
-        // 读取或初始化
-        if (PlayerPrefs.HasKey(Key))
-        {
-            int saved = PlayerPrefs.GetInt(Key, 0);
-            SetCoinsAndNotify(saved);
-            // Debug.Log($"[WalletPersistence] Loaded coins = {saved}");
-        }
-        else
-        {
-            int init = overrideInitial ? initialCoinsIfNoSave : wallet.coins;
-            PlayerPrefs.SetInt(Key, init);
-            PlayerPrefs.Save();
-            SetCoinsAndNotify(init); // 通知 UI 初次值
-            // Debug.Log($"[WalletPersistence] First run, init coins = {init}");
-        }
+    void Start()
+    {
+        InitializeLocalPersistenceIfNeeded();
     }
 
     void OnEnable()
     {
         if (wallet) wallet.onCoinsChanged.AddListener(OnCoinsChanged);
+        RuntimeRefs.SaveServiceChanged += HandleSaveServiceChanged;
+        RegisterToSaveService();
+        InitializeLocalPersistenceIfNeeded();
     }
 
     void OnDisable()
+    {
+        if (wallet) wallet.onCoinsChanged.RemoveListener(OnCoinsChanged);
+        RuntimeRefs.SaveServiceChanged -= HandleSaveServiceChanged;
+        UnregisterFromSaveService();
+    }
+
+    void OnDestroy()
     {
         if (wallet) wallet.onCoinsChanged.RemoveListener(OnCoinsChanged);
     }
 
     void OnApplicationQuit()
     {
-        // 再保险一次
-        if (wallet)
+        if (saveOnQuit && wallet && ShouldUseLocalPrefsPersistence())
         {
-            PlayerPrefs.SetInt(Key, wallet.coins);
-            PlayerPrefs.Save();
+            WriteToPlayerPrefs(wallet.coins);
         }
     }
 
-    void OnCoinsChanged(int v)
+    void OnCoinsChanged(int coins)
     {
-        PlayerPrefs.SetInt(Key, v);
+        if (saveOnCoinsChanged && ShouldUseLocalPrefsPersistence())
+        {
+            WriteToPlayerPrefs(coins);
+        }
+    }
+
+    private void LoadFromPlayerPrefsOrInit()
+    {
+        if (PlayerPrefs.HasKey(Key))
+        {
+            SetCoinsAndNotify(PlayerPrefs.GetInt(Key, 0));
+            return;
+        }
+
+        int initial = overrideInitial ? initialCoinsIfNoSave : wallet.coins;
+        WriteToPlayerPrefs(initial);
+        SetCoinsAndNotify(initial);
+    }
+
+    private void WriteToPlayerPrefs(int coins)
+    {
+        PlayerPrefs.SetInt(Key, coins);
         PlayerPrefs.Save();
-        // Debug.Log($"[WalletPersistence] Saved coins = {v}");
     }
 
-    void SetCoinsAndNotify(int v)
+    private void SetCoinsAndNotify(int coins)
     {
-        wallet.coins = v;
-        // 触发 UI 刷新（UnityEvent 在未绑定监听时也安全）
-        if (wallet.onCoinsChanged != null) wallet.onCoinsChanged.Invoke(v);
+        wallet.coins = coins;
+        wallet.onCoinsChanged?.Invoke(coins);
     }
 
-    // ===== 手动工具 =====
+    private bool ShouldUseLocalPrefsPersistence()
+    {
+        return useStandalonePrefsWhenNoSaveManager && !UseCentralSave;
+    }
+
+    private void HandleSaveServiceChanged(ISaveService _)
+    {
+        RegisterToSaveService();
+        InitializeLocalPersistenceIfNeeded();
+    }
+
+    private void RegisterToSaveService()
+    {
+        RuntimeRefs.SaveService?.RegisterParticipant(this);
+    }
+
+    private void UnregisterFromSaveService()
+    {
+        RuntimeRefs.SaveService?.UnregisterParticipant(this);
+    }
+
+    private void InitializeLocalPersistenceIfNeeded()
+    {
+        if (_localLoadAttempted)
+        {
+            return;
+        }
+
+        if (loadOnAwake && ShouldUseLocalPrefsPersistence())
+        {
+            _localLoadAttempted = true;
+            LoadFromPlayerPrefsOrInit();
+        }
+    }
+
+    public object CaptureSaveData()
+    {
+        return wallet == null ? null : new WalletSaveData { coins = wallet.coins };
+    }
+
+    public void RestoreSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        if (wallet == null || string.IsNullOrEmpty(jsonData))
+        {
+            return;
+        }
+
+        WalletSaveData data = JsonUtility.FromJson<WalletSaveData>(jsonData);
+        if (data == null)
+        {
+            return;
+        }
+
+        SetCoinsAndNotify(data.coins);
+    }
+
+    public object GetSaveData()
+    {
+        return CaptureSaveData();
+    }
+
+    public void LoadSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        RestoreSaveData(jsonData, timeSystem);
+    }
 
     [ContextMenu("Save Now")]
     public void SaveNow()
     {
         if (!wallet) return;
-        PlayerPrefs.SetInt(Key, wallet.coins);
-        PlayerPrefs.Save();
+        WriteToPlayerPrefs(wallet.coins);
         Debug.Log("[WalletPersistence] SaveNow()");
     }
 

@@ -32,7 +32,6 @@ namespace FarmGame.ActorSystem
 
         // 状态计时
         private float _stateStartTime;
-        private float _talkingDuration;
 
         void Awake()
         {
@@ -49,6 +48,8 @@ namespace FarmGame.ActorSystem
             if (CurrentState == newState) return;
 
             State oldState = CurrentState;
+            float oldStateDuration = Time.time - _stateStartTime;
+
             CurrentState = newState;
             _stateStartTime = Time.time;
 
@@ -60,10 +61,7 @@ namespace FarmGame.ActorSystem
                 switch (newState)
                 {
                     case State.Talking:
-                        if (oldState != State.Talking)
-                        {
-                            _talkingDuration = 0f;
-                        }
+                        // 进入对话：此处无需逐帧计时，离开时用 stateStartTime 差值计算即可
                         break;
 
                     case State.Idle:
@@ -72,8 +70,7 @@ namespace FarmGame.ActorSystem
                         // 记录状态结束时间
                         if (oldState == State.Talking)
                         {
-                            float duration = Time.time - _stateStartTime;
-                            Debug.Log($"[ActorBrain] 对话持续时间：{duration:F2}秒");
+                            Debug.Log($"[ActorBrain] 对话持续时间：{oldStateDuration:F2}秒");
                         }
                         break;
                 }
@@ -97,7 +94,6 @@ namespace FarmGame.ActorSystem
         public void StartTalking()
         {
             ChangeState(State.Talking);
-            _talkingDuration = 0f;
         }
 
         /// <summary>
@@ -108,8 +104,6 @@ namespace FarmGame.ActorSystem
             if (CurrentState == State.Talking)
             {
                 ChangeState(State.Idle);
-                float duration = Time.time - _stateStartTime;
-                Debug.Log($"[ActorBrain] 对话结束，持续时间：{duration:F2}秒");
             }
         }
 
@@ -164,22 +158,6 @@ namespace FarmGame.ActorSystem
         public bool CanInteract()
         {
             return CurrentState == State.Idle;
-        }
-
-        void Update()
-        {
-            // Phase 6: 持续更新对话计时
-            if (CurrentState == State.Talking)
-            {
-                _talkingDuration += Time.deltaTime;
-            }
-
-            // 示例：如果超过 10 分钟还在对话，可以自动触发事件
-            // const float MAX_TALKING_DURATION = 600f; // 10 分钟
-            // if (_talkingDuration > MAX_TALKING_DURATION)
-            // {
-            //     Debug.LogWarning($"[ActorBrain] 对话时间过长（{_talkingDuration:F2}秒），可能需要自动结束");
-            // }
         }
     }
 }

@@ -1,5 +1,6 @@
 // Assets/Scripts/RuntimeSceneSetup.cs
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 运行时场景自动配置脚本
@@ -17,6 +18,9 @@ public class RuntimeSceneSetup : MonoBehaviour
 
     [Tooltip("配置完成后是否自动删除此脚本")]
     public bool deleteAfterSetup = true;
+
+    [Tooltip("是否允许使用场景遍历作为兜底查找（阶段5建议关闭，仅工具排障时打开）")]
+    public bool allowSceneSearchFallback = false;
 
     private bool hasSetup = false;
 
@@ -41,6 +45,11 @@ public class RuntimeSceneSetup : MonoBehaviour
         }
 
         if (showDebugInfo) Debug.Log("=== 开始运行时场景配置 ===");
+
+        if (allowSceneSearchFallback && showDebugInfo)
+        {
+            Debug.LogWarning("[RuntimeSetup] 已启用场景遍历兜底查找（工具模式）。阶段5建议仅在排障时临时开启。");
+        }
 
         // 1. 创建或获取 GameTimeSystem 资源
         GameTimeSystem timeSystem = GetOrCreateTimeSystem();
@@ -99,14 +108,6 @@ public class RuntimeSceneSetup : MonoBehaviour
             return timeSystem;
         }
 
-        // 如果没有，在场景中查找 ScriptableObject 实例
-        GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
-        if (instances.Length > 0)
-        {
-            if (showDebugInfo) Debug.Log("[RuntimeSetup] 已找到 GameTimeSystem 实例");
-            return instances[0];
-        }
-
         // 创建临时实例
         if (showDebugInfo) Debug.LogWarning("[RuntimeSetup] 未找到 GameTimeSystem，创建临时实例");
         timeSystem = ScriptableObject.CreateInstance<GameTimeSystem>();
@@ -125,7 +126,9 @@ public class RuntimeSceneSetup : MonoBehaviour
     /// </summary>
     private void CreateGameManager()
     {
-        GameObject gameManager = GameObject.Find("GameManager");
+        GameObject gameManager = GameManager.Instance != null
+            ? GameManager.Instance.gameObject
+            : ResolveRootObjectByName("GameManager");
         if (gameManager == null)
         {
             gameManager = new GameObject("GameManager");
@@ -151,7 +154,9 @@ public class RuntimeSceneSetup : MonoBehaviour
     /// </summary>
     private void CreateSaveManager(GameTimeSystem timeSystem)
     {
-        GameObject saveManager = GameObject.Find("SaveManager");
+        GameObject saveManager = SaveManager.Instance != null
+            ? SaveManager.Instance.gameObject
+            : ResolveRootObjectByName("SaveManager");
         if (saveManager == null)
         {
             saveManager = new GameObject("SaveManager");
@@ -178,7 +183,10 @@ public class RuntimeSceneSetup : MonoBehaviour
     /// </summary>
     private void CreateTimeManager(GameTimeSystem timeSystem)
     {
-        GameObject timeManager = GameObject.Find("TimeManager");
+        TimeController existingController = ResolveFirstComponentInScene<TimeController>();
+        GameObject timeManager = existingController != null
+            ? existingController.gameObject
+            : ResolveRootObjectByName("TimeManager");
         if (timeManager == null)
         {
             timeManager = new GameObject("TimeManager");
@@ -205,7 +213,7 @@ public class RuntimeSceneSetup : MonoBehaviour
     /// </summary>
     private void CreateDayNightLight(GameTimeSystem timeSystem)
     {
-        Light directionalLight = Object.FindObjectOfType<Light>();
+        Light directionalLight = RenderSettings.sun;
 
         // 检查是否已有合适的 Directional Light
         if (directionalLight != null && directionalLight.type == LightType.Directional)
@@ -219,6 +227,7 @@ public class RuntimeSceneSetup : MonoBehaviour
             directionalLight = lightObj.AddComponent<Light>();
             directionalLight.type = LightType.Directional;
             lightObj.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            RenderSettings.sun = directionalLight;
 
             if (showDebugInfo) Debug.Log("[RuntimeSetup] 创建了 Directional Light");
         }
@@ -247,7 +256,10 @@ public class RuntimeSceneSetup : MonoBehaviour
     /// </summary>
     private void CreateTimeUI(GameTimeSystem timeSystem)
     {
-        GameObject timeUI = GameObject.Find("TimeUI");
+        TimeUI existingUi = ResolveFirstComponentInScene<TimeUI>();
+        GameObject timeUI = existingUi != null
+            ? existingUi.gameObject
+            : ResolveRootObjectByName("TimeUI");
         if (timeUI == null)
         {
             timeUI = new GameObject("TimeUI");
@@ -278,7 +290,10 @@ public class RuntimeSceneSetup : MonoBehaviour
     /// </summary>
     private void CreateExampleFarmSystem()
     {
-        GameObject farmSystem = GameObject.Find("ExampleFarmSystem");
+        ExampleFarmSystem existingSystem = ResolveFirstComponentInScene<ExampleFarmSystem>();
+        GameObject farmSystem = existingSystem != null
+            ? existingSystem.gameObject
+            : ResolveRootObjectByName("ExampleFarmSystem");
         if (farmSystem == null)
         {
             farmSystem = new GameObject("ExampleFarmSystem");
@@ -291,5 +306,72 @@ public class RuntimeSceneSetup : MonoBehaviour
             system = farmSystem.AddComponent<ExampleFarmSystem>();
             if (showDebugInfo) Debug.Log("[RuntimeSetup] 添加了 ExampleFarmSystem 组件");
         }
+    }
+
+    private GameObject ResolveRootObjectByName(string objectName)
+    {
+        if (!allowSceneSearchFallback)
+        {
+            return null;
+        }
+
+        return FindRootObjectByName(objectName);
+    }
+
+    private T ResolveFirstComponentInScene<T>() where T : Component
+    {
+        if (!allowSceneSearchFallback)
+        {
+            return null;
+        }
+
+        return FindFirstComponentInScene<T>();
+    }
+
+    private static GameObject FindRootObjectByName(string objectName)
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && roots[i].name == objectName)
+            {
+                return roots[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static T FindFirstComponentInScene<T>() where T : Component
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            GameObject root = roots[i];
+            if (root == null)
+            {
+                continue;
+            }
+
+            T component = root.GetComponentInChildren<T>(true);
+            if (component != null)
+            {
+                return component;
+            }
+        }
+
+        return null;
     }
 }

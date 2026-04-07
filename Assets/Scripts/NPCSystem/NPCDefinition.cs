@@ -29,15 +29,15 @@ namespace FarmGame.NPCSystem
     public class NPCDefinition : ScriptableObject
     {
         [Header("架构切换 (重构)")]
-        [Tooltip("是否使用新的 Actor 系统架构")]
-        public bool useActorSystem = false;
+        [Tooltip("历史兼容字段：当前项目默认统一使用 Actor 系统架构。")]
+        public bool useActorSystem = true;
 
         [Header("模块开关 (用于单独测试)")]
         [Tooltip("是否生成 Visual 子物体（模型与动画）")]
         public bool enableVisuals = true;
         [Tooltip("是否添加碰撞体和刚体")]
         public bool enableCollider = true;
-        [Tooltip("是否添加交互组件 (NPCInteractable)")]
+        [Tooltip("是否添加交互组件 (ActorInteraction)")]
         public bool enableInteraction = true;
         [Tooltip("是否启用商店组件 (SimpleShopOpener)")]
         public bool enableShop = true;

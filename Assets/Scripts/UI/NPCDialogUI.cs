@@ -1,9 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using FarmGame.NPCSystem;
-using FarmGame.UI; // IDialogSubject
-using FarmGame.ActorSystem; // Phase 4: 引入 Actor 命名空间
+using FarmGame.Core.Contracts;
 
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
 using UnityEngine.InputSystem;
@@ -14,7 +12,7 @@ using UnityEngine.InputSystem;
 /// - 兼容功能按钮文字：TextMeshProUGUI 与 UGUI Text；若未手动绑定，会在 BtnFunc 下自动查找。
 /// - 暴露 CurrentNPC，便于 PlayerInteractor 做“离开距离自动关闭”。
 /// </summary>
-public class NPCDialogUI : MonoBehaviour
+public class NPCDialogUI : MonoBehaviour, IDialogUI
 {
     [Header("Bind In Inspector")]
     public GameObject root;                  // 面板根节点（启用/隐藏）
@@ -38,6 +36,7 @@ public class NPCDialogUI : MonoBehaviour
     public bool IsOpen { get; private set; }
 
     /// <summary> 当前正在对话的 NPC（供外部读取） </summary>
+    public IDialogSubject CurrentSubject => _curr;
     public IDialogSubject CurrentNPC => _curr;
 
     private IDialogSubject _curr;
@@ -45,8 +44,14 @@ public class NPCDialogUI : MonoBehaviour
 
     void Awake()
     {
+        RuntimeRefs.RegisterDialogUI(this);
         WireButtons();
         HideImmediate();
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterDialogUI(this);
     }
 
     void Update()
@@ -99,18 +104,12 @@ public class NPCDialogUI : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
         }
 
-        // Phase 4: 如果是 Actor，通知对话事件到 ActorDialogue
-        if (npc is Actor actor)
-        {
-            var dialogue = actor.GetComponent<ActorDialogue>();
-            if (dialogue != null)
-            {
-                dialogue.OnDialogueStarted();
-            }
-        }
-
         // 通知世界气泡 Bridge (Phase 2: 支持IDialogSubject)
-        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
+        var bridge = GetComponent<NPCDialogWorldBridge>();
+        if (bridge == null)
+        {
+            bridge = RuntimeRefs.DialogWorldBridge;
+        }
         if (bridge != null)
         {
             // Phase 2: 使用新的 BindToSubject 方法，同时支持 Actor 和 NPC
@@ -129,7 +128,11 @@ public class NPCDialogUI : MonoBehaviour
         _index = 0;
         _curr = null;
 
-        var bridge = FindObjectOfType<NPCDialogWorldBridge>();
+        var bridge = GetComponent<NPCDialogWorldBridge>();
+        if (bridge == null)
+        {
+            bridge = RuntimeRefs.DialogWorldBridge;
+        }
         if (bridge != null) bridge.EndStandalone();
     }
 

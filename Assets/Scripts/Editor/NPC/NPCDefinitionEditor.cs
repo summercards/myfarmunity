@@ -17,13 +17,18 @@ namespace FarmGame.Editor.NPC
                 var style = new GUIStyle(EditorStyles.boldLabel);
                 style.normal.textColor = new Color(0.2f, 0.7f, 1f); // 醒目的蓝色
                 EditorGUILayout.LabelField("【重构阶段】架构设置", style);
-                DrawProp("useActorSystem", "使用 Actor 系统 (新架构)");
-                
-                // 移除误导性提示
-                // if (serializedObject.FindProperty("useActorSystem").boolValue)
-                // {
-                //     EditorGUILayout.HelpBox("当前使用 Actor 架构构建。旧的交互组件将被移除，暂时无法对话是正常的。", MessageType.Info);
-                // }
+
+                SerializedProperty actorSystemProp = serializedObject.FindProperty("useActorSystem");
+                if (actorSystemProp != null)
+                {
+                    actorSystemProp.boolValue = true;
+                }
+
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.Toggle(new GUIContent("使用 Actor 系统 (固定)"), true);
+                }
+                EditorGUILayout.HelpBox("NPC 主线已收口到 ActorSystem，旧架构开关仅保留历史兼容。", MessageType.Info);
             }
             EditorGUILayout.Space();
 
@@ -60,6 +65,12 @@ namespace FarmGame.Editor.NPC
                 var funcProp = serializedObject.FindProperty("function");
                 if ((NPCFunction)funcProp.enumValueIndex == NPCFunction.OpenShop)
                 {
+                    var enableShopProp = serializedObject.FindProperty("enableShop");
+                    if (enableShopProp != null && !enableShopProp.boolValue)
+                    {
+                        EditorGUILayout.HelpBox("当前功能为 OpenShop，但“启用商店”已关闭。构建时将不会挂载 ShopModule。", MessageType.Warning);
+                    }
+
                     DrawProp("defaultShopCatalog", "商店商品配置");
                 }
                 

@@ -1,12 +1,27 @@
 using UnityEngine;
 using System.Collections.Generic;
-using FarmGame.NPCSystem;
 
 namespace FarmGame.ActorSystem
 {
+    [System.Serializable]
+    public sealed class ActorIdentitySeedData
+    {
+        public string id;
+        public string displayName;
+        public List<string> dialogLines;
+        public ActorFunction function;
+        public string functionButtonText;
+        public ShopCatalogSO defaultShopCatalog;
+        public RuntimeAnimatorController animatorController;
+        public GameObject modelPrefab;
+        public Vector3 modelLocalPosition;
+        public Vector3 modelLocalEuler;
+        public Vector3 modelLocalScale = Vector3.one;
+    }
+
     /// <summary>
     /// ActorIdentity: 负责"我是谁"，存储角色的静态身份数据。
-    /// Phase 3: 从 NPCDefinition 初始化，之后独立运行。
+    /// Phase 4: 通过 ActorIdentitySeedData 初始化，避免运行时直接依赖旧 NPCSystem。
     /// </summary>
     [DisallowMultipleComponent]
     public class ActorIdentity : MonoBehaviour
@@ -15,7 +30,7 @@ namespace FarmGame.ActorSystem
         [SerializeField] private string _id;
         [SerializeField] private string _name;
         [SerializeField] private List<string> _dialogLines;
-        [SerializeField] private NPCFunction _function;
+        [SerializeField] private ActorFunction _function;
         [SerializeField] private string _functionButtonText;
         [SerializeField] private ShopCatalogSO _defaultShopCatalog;
         
@@ -33,7 +48,7 @@ namespace FarmGame.ActorSystem
         public string Id => _id;
         public string Name => _name;
         public List<string> DialogLines => _dialogLines ?? new List<string>();
-        public NPCFunction Function => _function;
+        public ActorFunction Function => _function;
         public string FunctionButtonText => _functionButtonText;
         public ShopCatalogSO DefaultShopCatalog => _defaultShopCatalog;
         public RuntimeAnimatorController AnimatorController => _animatorController;
@@ -44,33 +59,34 @@ namespace FarmGame.ActorSystem
         public bool IsInitialized => _isInitialized;
 
         /// <summary>
-        /// Phase 3: 在构建或加载时调用，从 NPCDefinition 初始化身份数据。
-        /// 初始化后，ActorIdentity 完全独立运行，不再依赖 NPCDefinition。
+        /// 在构建或加载时调用，使用 ActorSystem 自有 seed 初始化身份数据。
         /// </summary>
-        public void Initialize(NPCDefinition def)
+        public void Initialize(ActorIdentitySeedData seed)
         {
-            if (def == null)
+            if (seed == null)
             {
-                Debug.LogError("[ActorIdentity] 初始化失败：NPCDefinition 为空。");
+                Debug.LogError("[ActorIdentity] 初始化失败：ActorIdentitySeedData 为空。");
                 return;
             }
 
-            _id = def.npcId;
-            _name = def.npcName;
-            _dialogLines = new List<string>(def.dialogLines); // 复制一份，避免直接引用 Definition
-            _function = def.function;
-            _functionButtonText = def.functionButtonText;
-            _defaultShopCatalog = def.defaultShopCatalog;
-            
-            _animatorController = def.animatorController;
-            _modelPrefab = def.modelPrefab;
-            _modelLocalPosition = def.modelLocalPosition;
-            _modelLocalEuler = def.modelLocalEuler;
-            _modelLocalScale = def.modelLocalScale;
+            _id = string.IsNullOrWhiteSpace(seed.id) ? gameObject.name : seed.id;
+            _name = string.IsNullOrWhiteSpace(seed.displayName) ? _id : seed.displayName;
+            _dialogLines = seed.dialogLines != null
+                ? new List<string>(seed.dialogLines)
+                : new List<string>();
+            _function = seed.function;
+            _functionButtonText = seed.functionButtonText;
+            _defaultShopCatalog = seed.defaultShopCatalog;
+
+            _animatorController = seed.animatorController;
+            _modelPrefab = seed.modelPrefab;
+            _modelLocalPosition = seed.modelLocalPosition;
+            _modelLocalEuler = seed.modelLocalEuler;
+            _modelLocalScale = seed.modelLocalScale == Vector3.zero ? Vector3.one : seed.modelLocalScale;
 
             _isInitialized = true;
 
-            Debug.Log($"[ActorIdentity] {_name} 初始化完成（从 {def.npcId}）。");
+            Debug.Log($"[ActorIdentity] {_name} 初始化完成（seed: {_id}）。");
         }
 
         /// <summary>

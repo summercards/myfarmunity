@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using FarmGame.Core;
 
 /// <summary>
 /// 相机模式管理器 - 控制第三人称和固定视角之间的切换
@@ -32,74 +33,93 @@ public class CameraModeManager : MonoBehaviour
 
     private void Awake()
     {
-        if (instance == null)
+        if (!RuntimeService.TryClaimSingleton(this, instance, nameof(CameraModeManager)))
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);  // 跨场景保持
-            SceneManager.sceneLoaded += OnSceneLoaded;
+            return;
         }
-        else
-        {
-            // 场景切换后，新的CameraManager对象如果存在就销毁
-            Destroy(gameObject);
-        }
+
+        instance = this;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // 场景加载后，重新绑定相机引用
-        StartCoroutine(ReBindReferences());
-    }
-
-    System.Collections.IEnumerator ReBindReferences()
-    {
-        yield return null;  // 等待一帧
-
-        // 尝试找到TPS相机（在新场景中）
-        if (tpsCamera == null)
-        {
-            Camera[] cameras = FindObjectsOfType<Camera>();
-            foreach (var cam in cameras)
-            {
-                if (cam.gameObject.GetComponent<TPSOrbitCamera>() != null)
-                {
-                    tpsCamera = cam;
-                    Debug.Log("[CameraMode] 在新场景中找到 TPS相机");
-                    break;
-                }
-            }
-        }
-
-        // 尝试找到Fixed相机
-        if (fixedCamera == null)
-        {
-            FixedCameraSystem fcs = FindObjectOfType<FixedCameraSystem>();
-            if (fcs != null)
-            {
-                fixedCamera = fcs.GetComponent<Camera>();
-                Debug.Log("[CameraMode] 在新场景中找到 Fixed相机");
-            }
-        }
-
-        // 尝试找到Player
-        if (playerCharacter == null)
-        {
-            TPSCharacter[] tpsChars = FindObjectsOfType<TPSCharacter>();
-            if (tpsChars.Length > 0)
-            {
-                playerCharacter = tpsChars[0];
-                Debug.Log("[CameraMode] 在新场景中找到 Player");
-            }
-        }
-
-        // 查找完成后应用当前模式
+        RefreshReferencesFromRuntime();
         SetCameraMode(currentMode);
     }
 
-    private void Start()
+    void OnEnable()
     {
-        // 启动时自动查找引用
-        StartCoroutine(ReBindReferences());
+        RuntimeRefs.TpsOrbitCameraChanged += HandleTpsOrbitCameraChanged;
+        RuntimeRefs.FixedCameraSystemChanged += HandleFixedCameraSystemChanged;
+        RuntimeRefs.PlayerCharacterChanged += HandlePlayerCharacterChanged;
+    }
+
+    void Start()
+    {
+        RefreshReferencesFromRuntime();
+        SetCameraMode(currentMode);
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.TpsOrbitCameraChanged -= HandleTpsOrbitCameraChanged;
+        RuntimeRefs.FixedCameraSystemChanged -= HandleFixedCameraSystemChanged;
+        RuntimeRefs.PlayerCharacterChanged -= HandlePlayerCharacterChanged;
+    }
+
+    void OnDestroy()
+    {
+        if (instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            instance = null;
+        }
+    }
+
+    void RefreshReferencesFromRuntime()
+    {
+        if (RuntimeRefs.TpsCamera != null)
+        {
+            tpsCamera = RuntimeRefs.TpsCamera;
+        }
+
+        if (RuntimeRefs.FixedCamera != null)
+        {
+            fixedCamera = RuntimeRefs.FixedCamera;
+        }
+
+        if (RuntimeRefs.PlayerCharacter != null)
+        {
+            playerCharacter = RuntimeRefs.PlayerCharacter;
+        }
+    }
+
+    void HandleTpsOrbitCameraChanged(TPSOrbitCamera orbitCamera)
+    {
+        tpsCamera = orbitCamera ? orbitCamera.GetComponent<Camera>() : null;
+        if (currentMode == CameraMode.TPS)
+        {
+            SetCameraMode(currentMode);
+        }
+    }
+
+    void HandleFixedCameraSystemChanged(FixedCameraSystem cameraSystem)
+    {
+        fixedCamera = cameraSystem ? cameraSystem.GetComponent<Camera>() : null;
+        if (currentMode == CameraMode.Fixed45Degree)
+        {
+            SetCameraMode(currentMode);
+        }
+    }
+
+    void HandlePlayerCharacterChanged(TPSCharacter character)
+    {
+        playerCharacter = character;
+        if (playerCharacter != null)
+        {
+            playerCharacter.RefreshCachedCamera();
+        }
     }
 
     private void Update()
@@ -113,6 +133,7 @@ public class CameraModeManager : MonoBehaviour
     public void SetCameraMode(CameraMode mode)
     {
         currentMode = mode;
+        activeCamera = null;
 
         // 关闭所有相机
         if (tpsCamera != null) tpsCamera.enabled = false;

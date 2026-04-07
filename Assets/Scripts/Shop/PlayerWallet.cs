@@ -3,11 +3,16 @@ using UnityEngine.Events;
 
 public class PlayerWallet : MonoBehaviour
 {
-    [Tooltip("³õÊ¼½ğ±Ò")]
+    [Tooltip("åˆå§‹é‡‘å¸")]
     public int coins = 0;
 
     [System.Serializable] public class IntEvent : UnityEvent<int> { }
     public IntEvent onCoinsChanged;
+
+    void Awake()
+    {
+        RuntimeRefs.RegisterPlayerWallet(this);
+    }
 
     public bool CanAfford(int cost) => coins >= cost;
 
@@ -23,5 +28,10 @@ public class PlayerWallet : MonoBehaviour
     {
         coins += amount;
         onCoinsChanged?.Invoke(coins);
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterPlayerWallet(this);
     }
 }

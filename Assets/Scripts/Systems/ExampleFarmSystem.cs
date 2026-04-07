@@ -8,7 +8,7 @@ using System.Linq;
 /// 示例农场系统
 /// 演示如何创建一个时间相关的、可存档的游戏系统
 /// </summary>
-public class ExampleFarmSystem : MonoBehaviour, IFarmSaveable
+public class ExampleFarmSystem : MonoBehaviour, IFarmSaveable, ISaveParticipant
 {
     [Header("作物配置")]
     public List<CropData> cropDatabase = new List<CropData>();
@@ -20,10 +20,26 @@ public class ExampleFarmSystem : MonoBehaviour, IFarmSaveable
     // 运行时数据
     private Dictionary<Vector2Int, Plot> plots = new Dictionary<Vector2Int, Plot>();
 
+    public SaveSection Section => SaveSection.Farm;
+    public UnityEngine.Object Owner => this;
+    public string ParticipantName => GetType().Name;
+
+    void OnEnable()
+    {
+        RuntimeRefs.SaveServiceChanged += HandleSaveServiceChanged;
+        RegisterToSaveService();
+    }
+
     void Start()
     {
         InitializePlots();
         SubscribeToTimeEvents();
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.SaveServiceChanged -= HandleSaveServiceChanged;
+        UnregisterFromSaveService();
     }
 
     void OnDestroy()
@@ -70,6 +86,21 @@ public class ExampleFarmSystem : MonoBehaviour, IFarmSaveable
             TimeSystemAccessor.UnsubscribeFromLoadComplete(OnTimeLoaded);
             TimeSystemAccessor.UnsubscribeFromSeasonChange(OnSeasonChanged);
         }
+    }
+
+    private void HandleSaveServiceChanged(ISaveService _)
+    {
+        RegisterToSaveService();
+    }
+
+    private void RegisterToSaveService()
+    {
+        RuntimeRefs.SaveService?.RegisterParticipant(this);
+    }
+
+    private void UnregisterFromSaveService()
+    {
+        RuntimeRefs.SaveService?.UnregisterParticipant(this);
     }
 
     // === 时间事件处理 ===
@@ -290,6 +321,16 @@ public class ExampleFarmSystem : MonoBehaviour, IFarmSaveable
         {
             Debug.LogError($"[FarmSystem] 加载存档失败: {e.Message}");
         }
+    }
+
+    public object CaptureSaveData()
+    {
+        return GetSaveData();
+    }
+
+    public void RestoreSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        LoadSaveData(jsonData, timeSystem);
     }
 }
 

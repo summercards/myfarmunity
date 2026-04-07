@@ -7,12 +7,19 @@ public class TimeSystemFix : MonoBehaviour
 {
     [Header("调试信息")]
     public bool showDebugInfo = true;
+    [Tooltip("可选：手动指定 DayNightCycle，避免场景扫描")]
+    public DayNightCycle dayNightCycle;
 
     void Update()
     {
         if (!showDebugInfo) return;
-        
-        GameTimeSystem timeSystem = FindObjectOfType<GameTimeSystem>();
+
+        GameTimeSystem timeSystem = RuntimeRefs.TimeSystem;
+        if (timeSystem == null)
+        {
+            timeSystem = TimeSystemAccessor.TimeSystem;
+        }
+
         if (timeSystem == null) return;
 
         Debug.Log($"[时间调试] 现实时间: {Time.time:F2}s | 游戏时间: {timeSystem.Hour:D2}:{timeSystem.Minute:D2}");
@@ -33,8 +40,13 @@ public class TimeSystemFix : MonoBehaviour
     {
         Debug.Log("=== 时间系统配置检查 ===");
 
-        GameTimeSystem timeSystem = FindObjectOfType<GameTimeSystem>();
-        DayNightCycle dayNightCycle = FindObjectOfType<DayNightCycle>();
+        GameTimeSystem timeSystem = RuntimeRefs.TimeSystem;
+        if (timeSystem == null)
+        {
+            timeSystem = TimeSystemAccessor.TimeSystem;
+        }
+
+        DayNightCycle resolvedDayNightCycle = ResolveDayNightCycle();
 
         if (timeSystem != null)
         {
@@ -57,26 +69,42 @@ public class TimeSystemFix : MonoBehaviour
             Debug.Log($"  - 深夜(Midnight): 0:00 - 5:00");
         }
 
-        if (dayNightCycle != null)
+        if (resolvedDayNightCycle != null)
         {
-            Debug.Log($"[DayNightCycle] 日出: {dayNightCycle.sunriseHour}:00");
-            Debug.Log($"[DayNightCycle] 正午: {dayNightCycle.noonHour}:00");
-            Debug.Log($"[DayNightCycle] 日落: {dayNightCycle.sunsetHour}:00");
-            Debug.Log($"[DayNightCycle] 光照强度范围: {dayNightCycle.minLightIntensity} - {dayNightCycle.maxLightIntensity}");
+            Debug.Log($"[DayNightCycle] 日出: {resolvedDayNightCycle.sunriseHour}:00");
+            Debug.Log($"[DayNightCycle] 正午: {resolvedDayNightCycle.noonHour}:00");
+            Debug.Log($"[DayNightCycle] 日落: {resolvedDayNightCycle.sunsetHour}:00");
+            Debug.Log($"[DayNightCycle] 光照强度范围: {resolvedDayNightCycle.minLightIntensity} - {resolvedDayNightCycle.maxLightIntensity}");
         }
 
         // 检查一致性问题
         Debug.Log("\n=== 一致性问题 ===");
-        if (timeSystem != null && dayNightCycle != null)
+        if (timeSystem != null && resolvedDayNightCycle != null)
         {
-            bool timeConsistent = (dayNightCycle.sunriseHour == 5 || dayNightCycle.sunriseHour == 6);
-            Debug.Log($"[问题1] 日出时间与黎明段起始一致? {(dayNightCycle.sunriseHour == 5 ? "✓" : "✗ (黎明从5:00开始，日出从" + dayNightCycle.sunriseHour + ":00开始)")}");
-            Debug.Log($"[问题2] 昼夜判断与光强变化一致? {(dayNightCycle.sunriseHour == 6 && dayNightCycle.sunsetHour == 18 ? "✓" : "✗")}");
+            bool timeConsistent = (resolvedDayNightCycle.sunriseHour == 5 || resolvedDayNightCycle.sunriseHour == 6);
+            Debug.Log($"[问题1] 日出时间与黎明段起始一致? {(resolvedDayNightCycle.sunriseHour == 5 ? "✓" : "✗ (黎明从5:00开始，日出从" + resolvedDayNightCycle.sunriseHour + ":00开始)")}");
+            Debug.Log($"[问题2] 昼夜判断与光强变化一致? {(resolvedDayNightCycle.sunriseHour == 6 && resolvedDayNightCycle.sunsetHour == 18 ? "✓" : "✗")}");
             
             if (timeSystem.realSecondsPerGameMinute == 1f)
             {
                 Debug.Log($"[问题3] 时间换算: 期望 1秒=1分钟，实际 1秒=1小时 ✗");
             }
         }
+    }
+
+    private DayNightCycle ResolveDayNightCycle()
+    {
+        if (dayNightCycle != null)
+        {
+            return dayNightCycle;
+        }
+
+        Light sun = RenderSettings.sun;
+        if (sun != null)
+        {
+            dayNightCycle = sun.GetComponent<DayNightCycle>();
+        }
+
+        return dayNightCycle;
     }
 }

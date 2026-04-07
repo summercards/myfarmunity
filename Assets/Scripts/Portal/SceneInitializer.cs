@@ -28,7 +28,7 @@ public class SceneInitializer : MonoBehaviour
             Debug.Log($"[SceneInitializer] 场景 '{SceneManager.GetActiveScene().name}' 开始初始化");
 
         // 检查是否已有Player
-        GameObject existingPlayer = GameObject.FindGameObjectWithTag("Player");
+        Transform existingPlayer = RuntimeRefs.PlayerTransform;
 
         if (existingPlayer != null)
         {
@@ -36,14 +36,14 @@ public class SceneInitializer : MonoBehaviour
                 Debug.Log($"[SceneInitializer] 找到现有Player: {existingPlayer.name}");
 
             // 确保Player是启用的
-            if (!existingPlayer.activeInHierarchy)
+            if (!existingPlayer.gameObject.activeInHierarchy)
             {
                 Debug.LogWarning("[SceneInitializer] Player被禁用，正在启用...");
-                existingPlayer.SetActive(true);
+                existingPlayer.gameObject.SetActive(true);
             }
 
             // 检查Player位置是否合理
-            CheckPlayerPosition(existingPlayer);
+            CheckPlayerPosition(existingPlayer.gameObject);
             return;
         }
 
@@ -66,12 +66,12 @@ public class SceneInitializer : MonoBehaviour
         }
 
         // 再次检查是否已有Player（可能在延迟期间被生成）
-        GameObject existingPlayer = GameObject.FindGameObjectWithTag("Player");
+        Transform existingPlayer = RuntimeRefs.PlayerTransform;
         if (existingPlayer != null)
         {
             if (debugMode)
                 Debug.Log($"[SceneInitializer] 在延迟期间找到了Player: {existingPlayer.name}");
-            CheckPlayerPosition(existingPlayer);
+            CheckPlayerPosition(existingPlayer.gameObject);
             yield break;
         }
 
@@ -146,8 +146,7 @@ public class SceneInitializer : MonoBehaviour
     [ContextMenu("手动生成Player")]
     public void ManualSpawnPlayer()
     {
-        GameObject existingPlayer = GameObject.FindGameObjectWithTag("Player");
-        if (existingPlayer != null)
+        if (RuntimeRefs.PlayerTransform != null)
         {
             Debug.LogWarning("[SceneInitializer] 场景中已有Player，无法生成");
             return;

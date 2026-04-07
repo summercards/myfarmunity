@@ -1,6 +1,8 @@
 // Assets/Scripts/Portal/PortalVisualGenerator.cs
 using UnityEngine;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 /// <summary>
 /// 传送门视觉效果生成器

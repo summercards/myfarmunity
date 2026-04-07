@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using FarmGame.Core;
 
 [DisallowMultipleComponent]
-public class BuildSaveManager : MonoBehaviour
+public class BuildSaveManager : MonoBehaviour, ISaveParticipant, IBuildSaveable
 {
     [Serializable]
     private class Record
@@ -35,15 +36,38 @@ public class BuildSaveManager : MonoBehaviour
 
     readonly List<PlacedObject> _live = new List<PlacedObject>();
 
+    public SaveSection Section => SaveSection.Build;
+    public UnityEngine.Object Owner => this;
+    public string ParticipantName => GetType().Name;
+    private bool UseCentralSave => RuntimeRefs.SaveService != null;
+
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (!RuntimeService.TryClaimSingleton(this, Instance, nameof(BuildSaveManager), false))
+        {
+            return;
+        }
+
         Instance = this;
-        DontDestroyOnLoad(gameObject);
         SavePaths.EnsureDir();
     }
 
-    void Start() { if (autoLoadOnStart) Load(); }
+    void OnEnable()
+    {
+        RuntimeRefs.SaveServiceChanged += HandleSaveServiceChanged;
+        RegisterToSaveService();
+    }
+
+    void Start()
+    {
+        if (autoLoadOnStart && !UseCentralSave) Load();
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.SaveServiceChanged -= HandleSaveServiceChanged;
+        UnregisterFromSaveService();
+    }
 
     public void Register(PlacedObject po) { if (po && !_live.Contains(po)) _live.Add(po); }
     public void Unregister(PlacedObject po) { if (po) _live.Remove(po); }
@@ -54,18 +78,7 @@ public class BuildSaveManager : MonoBehaviour
     [ContextMenu("Save Now")]
     public void Save()
     {
-        var data = new FileData { savedUtc = DateTime.UtcNow.ToString("o") };
-        foreach (var po in _live)
-        {
-            if (!po) continue;
-            data.objects.Add(new Record
-            {
-                itemId = po.itemId,
-                position = po.transform.position,
-                rotation = po.transform.rotation,
-                scale = po.transform.localScale
-            });
-        }
+        var data = BuildFileDataSnapshot();
 
         var path = PathForWrite();
         File.WriteAllText(path, JsonUtility.ToJson(data, true));
@@ -86,14 +99,37 @@ public class BuildSaveManager : MonoBehaviour
             return;
         }
 
-        if (clearBeforeLoad)
+        var data = JsonUtility.FromJson<FileData>(File.ReadAllText(path));
+        ApplyFileData(data, clearBeforeLoad);
+    }
+
+    private FileData BuildFileDataSnapshot()
+    {
+        var data = new FileData { savedUtc = DateTime.UtcNow.ToString("o") };
+        foreach (var po in _live)
+        {
+            if (!po) continue;
+            data.objects.Add(new Record
+            {
+                itemId = po.itemId,
+                position = po.transform.position,
+                rotation = po.transform.rotation,
+                scale = po.transform.localScale
+            });
+        }
+
+        return data;
+    }
+
+    private void ApplyFileData(FileData data, bool clearCurrent)
+    {
+        if (clearCurrent)
         {
             for (int i = _live.Count - 1; i >= 0; i--)
                 if (_live[i]) Destroy(_live[i].gameObject);
             _live.Clear();
         }
 
-        var data = JsonUtility.FromJson<FileData>(File.ReadAllText(path));
         if (data == null || data.objects == null) return;
 
         int loaded = 0;
@@ -111,11 +147,59 @@ public class BuildSaveManager : MonoBehaviour
             loaded++;
         }
 #if UNITY_EDITOR
-        Debug.Log($"[BuildSave] Loaded {loaded} objects from {path}");
+        Debug.Log($"[BuildSave] Loaded {loaded} objects");
 #endif
     }
 
-    void OnApplicationQuit() { if (saveOnQuitOrPause) Save(); }
-    void OnApplicationPause(bool pause) { if (saveOnQuitOrPause && pause) Save(); }
-    void OnApplicationFocus(bool focus) { if (saveOnQuitOrPause && !focus) Save(); }
+    public object CaptureSaveData()
+    {
+        return BuildFileDataSnapshot();
+    }
+
+    public void RestoreSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        if (string.IsNullOrEmpty(jsonData))
+        {
+            return;
+        }
+
+        ApplyFileData(JsonUtility.FromJson<FileData>(jsonData), clearBeforeLoad);
+    }
+
+    public object GetSaveData()
+    {
+        return CaptureSaveData();
+    }
+
+    public void LoadSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        RestoreSaveData(jsonData, timeSystem);
+    }
+
+    void OnApplicationQuit() { if (saveOnQuitOrPause && !UseCentralSave) Save(); }
+    void OnApplicationPause(bool pause) { if (saveOnQuitOrPause && pause && !UseCentralSave) Save(); }
+    void OnApplicationFocus(bool focus) { if (saveOnQuitOrPause && !focus && !UseCentralSave) Save(); }
+
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    private void HandleSaveServiceChanged(ISaveService _)
+    {
+        RegisterToSaveService();
+    }
+
+    private void RegisterToSaveService()
+    {
+        RuntimeRefs.SaveService?.RegisterParticipant(this);
+    }
+
+    private void UnregisterFromSaveService()
+    {
+        RuntimeRefs.SaveService?.UnregisterParticipant(this);
+    }
 }

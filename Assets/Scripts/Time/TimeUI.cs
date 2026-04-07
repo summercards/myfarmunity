@@ -63,54 +63,22 @@ public class TimeUI : MonoBehaviour
 
     private bool isInitialized = false;
 
-    void Start()
+    void Awake()
     {
-        // 如果没有指定时间系统，尝试查找
-        if (timeSystem == null)
-        {
-            // GameTimeSystem 是 ScriptableObject，需要从 Resources 加载
-            timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
-
-            // 如果 Resources 中没有，尝试查找所有实例
-            if (timeSystem == null)
-            {
-                GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
-                if (instances.Length > 0)
-                {
-                    timeSystem = instances[0];
-                }
-            }
-
-            if (timeSystem != null)
-            {
-                Debug.Log($"[TimeUI] 自动找到时间系统: {timeSystem.name}");
-            }
-            else
-            {
-                Debug.LogWarning("[TimeUI] 未找到时间系统，UI 将不会更新");
-            }
-        }
-
-        // 订阅加载完成事件
-        if (timeSystem != null)
-        {
-            timeSystem.onLoadComplete.AddListener(OnTimeLoaded);
-        }
-
-        // 初始化UI显示
         InitializeUI();
-
-        // 立即更新一次
-        UpdateAllUI();
     }
 
-    void OnDestroy()
+    void OnEnable()
     {
-        // 只有时间系统存在时才取消订阅
-        if (timeSystem != null)
-        {
-            timeSystem.onLoadComplete.RemoveListener(OnTimeLoaded);
-        }
+        RuntimeRefs.TimeSystemChanged += HandleTimeSystemChanged;
+        AttachTimeSystem(ResolveTimeSystem(logWhenMissing: true));
+        ForceUpdate();
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.TimeSystemChanged -= HandleTimeSystemChanged;
+        AttachTimeSystem(null);
     }
 
     /// <summary>
@@ -118,6 +86,12 @@ public class TimeUI : MonoBehaviour
     /// </summary>
     private void OnTimeLoaded()
     {
+        ForceUpdate();
+    }
+
+    private void HandleTimeSystemChanged(GameTimeSystem system)
+    {
+        AttachTimeSystem(system);
         ForceUpdate();
     }
 
@@ -148,6 +122,47 @@ public class TimeUI : MonoBehaviour
         if (timeOfDayIcon) timeOfDayIcon.gameObject.SetActive(showTimeOfDay && showIcons);
 
         isInitialized = true;
+    }
+
+    private GameTimeSystem ResolveTimeSystem(bool logWhenMissing)
+    {
+        if (timeSystem != null)
+        {
+            return timeSystem;
+        }
+
+        GameTimeSystem resolved = RuntimeRefs.TimeSystem;
+        if (resolved == null)
+        {
+            resolved = TimeSystemAccessor.TimeSystem;
+        }
+
+        if (resolved != null)
+        {
+            timeSystem = resolved;
+            RuntimeRefs.RegisterTimeSystem(resolved);
+        }
+        else if (logWhenMissing)
+        {
+            Debug.LogWarning("[TimeUI] 未找到时间系统，UI 将不会更新");
+        }
+
+        return timeSystem;
+    }
+
+    private void AttachTimeSystem(GameTimeSystem system)
+    {
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.RemoveListener(OnTimeLoaded);
+        }
+
+        timeSystem = system;
+
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.AddListener(OnTimeLoaded);
+        }
     }
 
     /// <summary>
@@ -301,12 +316,13 @@ public class TimeUI : MonoBehaviour
     /// </summary>
     public void SetTimeSystem(GameTimeSystem system)
     {
-        timeSystem = system;
         if (system != null)
         {
-            system.onLoadComplete.AddListener(OnTimeLoaded);
+            RuntimeRefs.RegisterTimeSystem(system);
         }
-        UpdateAllUI();
+
+        AttachTimeSystem(system);
+        ForceUpdate();
     }
 
     /// <summary>

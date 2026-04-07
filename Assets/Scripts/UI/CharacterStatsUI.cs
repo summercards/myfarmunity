@@ -35,15 +35,24 @@ public class CharacterStatsUI : MonoBehaviour
         // 自动查找玩家数据
         if (playerStats == null)
         {
-            var player = GameObject.FindGameObjectWithTag("Player");
-            if (player) playerStats = player.GetComponent<PlayerStats>();
-            // 回退查找
-            if (playerStats == null) playerStats = FindObjectOfType<PlayerStats>();
+            playerStats = RuntimeRefs.PlayerStats;
+            if (playerStats == null && RuntimeRefs.PlayerTransform != null)
+                playerStats = RuntimeRefs.PlayerTransform.GetComponent<PlayerStats>();
         }
 
         // 初始设为隐藏
         if (panelRoot != null)
             panelRoot.SetActive(false);
+    }
+
+    void OnEnable()
+    {
+        RuntimeRefs.PlayerStatsChanged += HandlePlayerStatsChanged;
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.PlayerStatsChanged -= HandlePlayerStatsChanged;
     }
 
     void Update()
@@ -77,5 +86,14 @@ public class CharacterStatsUI : MonoBehaviour
         if (healthText) healthText.text = $"Health: {playerStats.currentHealth:0}/{playerStats.maxHealth:0}";
         if (staminaText) staminaText.text = $"Stamina: {playerStats.currentStamina:0}/{playerStats.maxStamina:0}";
         if (levelText) levelText.text = $"Level: {playerStats.level}";
+    }
+
+    void HandlePlayerStatsChanged(PlayerStats stats)
+    {
+        playerStats = stats;
+        if (panelRoot != null && panelRoot.activeSelf)
+        {
+            RefreshStats();
+        }
     }
 }

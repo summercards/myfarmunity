@@ -1,0 +1,19 @@
+{
+  "name": "FarmGame.SceneFixers.Editor",
+  "rootNamespace": "FarmGame.Editor.SceneFixers",
+  "references": [
+    "FarmGame.Core",
+    "FarmGame.Gameplay"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

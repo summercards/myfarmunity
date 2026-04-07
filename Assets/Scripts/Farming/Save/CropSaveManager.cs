@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using FarmGame.Core;
 
-public class CropSaveManager : MonoBehaviour
+public class CropSaveManager : MonoBehaviour, ISaveParticipant, ICropSaveable
 {
     [Serializable]
     private class CropSaveRecord
@@ -34,24 +35,44 @@ public class CropSaveManager : MonoBehaviour
     [Header("Auto Save / Load")]
     public bool autoLoadOnStart = true;
     public bool saveOnPauseOrFocusLoss = true;
+    public bool useStandaloneFilePersistenceWhenNoSaveManager = true;
 
-    [Tooltip("ø™∆Ù◊‘∂Ø±£¥Ê£®Ωˆ‘⁄ºÏ≤‚µΩ±‰∏¸ ±¬‰≈Ã£©")]
+    [Tooltip("ÂêØÁî®Ëá™Âä®‰øùÂ≠òÔºà‰ªÖÂú®Ê£ÄÊµãÂà∞ÂèòÊõ¥Êó∂ËêΩÁõòÔºâ")]
     public bool autoSaveEnabled = true;
-    [Tooltip("◊‘∂Ø±£¥Êº‰∏Ù£®√Î£©")]
+    [Tooltip("Ëá™Âä®‰øùÂ≠òÈó¥ÈöîÔºàÁßíÔºâ")]
     public float autoSaveInterval = 10f;
 
     private readonly List<CropPersistence> _tracked = new List<CropPersistence>();
     private bool _dirty = false;
     private double _offlineSeconds = 0;
+    private bool _localLoadAttempted = false;
+
+    public SaveSection Section => SaveSection.Crop;
+    public UnityEngine.Object Owner => this;
+    public string ParticipantName => GetType().Name;
+    private bool UseCentralSave => RuntimeRefs.SaveService != null;
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (!RuntimeService.TryClaimSingleton(this, Instance, nameof(CropSaveManager), false))
+        {
+            return;
+        }
+
         Instance = this;
-        DontDestroyOnLoad(gameObject);
         SavePaths.EnsureDir();
-        if (autoLoadOnStart) Load();
-        if (autoSaveEnabled) InvokeRepeating(nameof(AutoSaveTick), autoSaveInterval, autoSaveInterval);
+    }
+
+    void Start()
+    {
+        InitializeLocalPersistenceIfNeeded();
+    }
+
+    void OnEnable()
+    {
+        RuntimeRefs.SaveServiceChanged += HandleSaveServiceChanged;
+        RegisterToSaveService();
+        InitializeLocalPersistenceIfNeeded();
     }
 
     void OnDestroy()
@@ -60,9 +81,16 @@ public class CropSaveManager : MonoBehaviour
         CancelInvoke(nameof(AutoSaveTick));
     }
 
+    void OnDisable()
+    {
+        RuntimeRefs.SaveServiceChanged -= HandleSaveServiceChanged;
+        UnregisterFromSaveService();
+        CancelInvoke(nameof(AutoSaveTick));
+    }
+
     void AutoSaveTick()
     {
-        if (!autoSaveEnabled) return;
+        if (!autoSaveEnabled || !ShouldUseLocalFilePersistence()) return;
         if (_dirty) Save();
     }
 
@@ -87,39 +115,7 @@ public class CropSaveManager : MonoBehaviour
     [ContextMenu("Save Now")]
     public void Save()
     {
-        var file = new CropSaveFile { savedUtc = System.DateTime.UtcNow.ToString("o") };
-
-        // µ«º«∂”¡– + ≥°æ∞À˘”–£®∫¨Œ¥º§ªÓ£©∫œ≤¢»•÷ÿ
-        var all = new List<CropPersistence>(_tracked);
-        foreach (var extra in GameObject.FindObjectsOfType<CropPersistence>(true))
-            if (extra != null && !all.Contains(extra)) all.Add(extra);
-
-        foreach (var c in all)
-        {
-            if (c == null) continue;
-            var plant = c.GetComponent<CropPlant>();
-            if (plant == null) continue;
-
-            // °Ô ∂µµ◊ entryId£∫”≈œ»≥÷æ√ªØ◊Èº˛£¨∆‰¥ŒœÚ◊˜ŒÔ“™ plantItemId
-            string entryId = !string.IsNullOrEmpty(c.entryId)
-                ? c.entryId
-                : (plant != null ? plant.GetPlantItemIdForSave() : null);
-
-            if (string.IsNullOrEmpty(entryId)) continue; // »‘»ªƒ√≤ªµΩæÕÃ¯π˝
-
-            var st = plant.GetSaveState();
-            file.crops.Add(new CropSaveRecord
-            {
-                entryId = entryId,
-                position = c.transform.position,
-                rotation = c.transform.rotation,
-                stageIndex = st.stageIndex,
-                stageTimer = st.stageTimer,
-                mature = st.mature,
-                produceTimer = st.produceTimer,
-                storedYield = st.storedYield
-            });
-        }
+        var file = BuildCropSaveSnapshot();
 
         var path = PathForWrite();
         File.WriteAllText(path, JsonUtility.ToJson(file, true));
@@ -143,6 +139,44 @@ public class CropSaveManager : MonoBehaviour
         }
 
         var file = JsonUtility.FromJson<CropSaveFile>(File.ReadAllText(path));
+        ApplyCropSaveSnapshot(file);
+    }
+
+    private CropSaveFile BuildCropSaveSnapshot()
+    {
+        var file = new CropSaveFile { savedUtc = DateTime.UtcNow.ToString("o") };
+
+        foreach (var c in _tracked)
+        {
+            if (c == null) continue;
+            var plant = c.GetComponent<CropPlant>();
+            if (plant == null) continue;
+
+            string entryId = !string.IsNullOrEmpty(c.entryId)
+                ? c.entryId
+                : (plant != null ? plant.GetPlantItemIdForSave() : null);
+
+            if (string.IsNullOrEmpty(entryId)) continue;
+
+            var st = plant.GetSaveState();
+            file.crops.Add(new CropSaveRecord
+            {
+                entryId = entryId,
+                position = c.transform.position,
+                rotation = c.transform.rotation,
+                stageIndex = st.stageIndex,
+                stageTimer = st.stageTimer,
+                mature = st.mature,
+                produceTimer = st.produceTimer,
+                storedYield = st.storedYield
+            });
+        }
+
+        return file;
+    }
+
+    private void ApplyCropSaveSnapshot(CropSaveFile file)
+    {
         if (file == null) return;
 
         _offlineSeconds = 0;
@@ -152,7 +186,6 @@ public class CropSaveManager : MonoBehaviour
             _offlineSeconds = (DateTime.UtcNow - saved.ToUniversalTime()).TotalSeconds;
         }
 
-        // ÷ª«Â¿ÌŒ“√«µ«º«π˝µƒ£®≤ªª·”∞œÏΩ®‘Ï°¢±≥∞¸°¢Ω±“µ»£©
         for (int i = _tracked.Count - 1; i >= 0; i--)
         {
             var c = _tracked[i];
@@ -169,10 +202,10 @@ public class CropSaveManager : MonoBehaviour
                 if (entry == null || entry.cropPrefab == null) continue;
 
                 var go = Instantiate(entry.cropPrefab, r.position, r.rotation);
-                var crop = go.GetComponent<CropPlant>(); if (!crop) crop = go.AddComponent<CropPlant>();
+                var crop = go.GetComponent<CropPlant>();
+                if (!crop) crop = go.AddComponent<CropPlant>();
                 crop.Init(entry);
 
-                // °Ô ∂¡µµ∫Û≤ππ“≥÷æ√ªØ◊Èº˛£¨–¥ªÿ entryId£¨±£÷§∫Û–¯±£¥Ê≤ª‘Ÿ∂™
                 var cp = go.GetComponent<CropPersistence>() ?? go.AddComponent<CropPersistence>();
                 cp.entryId = r.entryId;
 
@@ -190,13 +223,85 @@ public class CropSaveManager : MonoBehaviour
             }
         }
 #if UNITY_EDITOR
-        Debug.Log($"[CropSave] Loaded {loaded} crops. Offline +{_offlineSeconds:F1}s from {path}");
+        Debug.Log($"[CropSave] Loaded {loaded} crops. Offline +{_offlineSeconds:F1}s");
 #endif
 
         _dirty = false;
     }
 
-    void OnApplicationQuit() => Save();
-    void OnApplicationPause(bool pause) { if (saveOnPauseOrFocusLoss && pause) Save(); }
-    void OnApplicationFocus(bool hasFocus) { if (saveOnPauseOrFocusLoss && !hasFocus) Save(); }
+    public object CaptureSaveData()
+    {
+        return BuildCropSaveSnapshot();
+    }
+
+    public void RestoreSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        if (string.IsNullOrEmpty(jsonData))
+        {
+            return;
+        }
+
+        ApplyCropSaveSnapshot(JsonUtility.FromJson<CropSaveFile>(jsonData));
+    }
+
+    public object GetSaveData()
+    {
+        return CaptureSaveData();
+    }
+
+    public void LoadSaveData(string jsonData, GameTimeSystem timeSystem)
+    {
+        RestoreSaveData(jsonData, timeSystem);
+    }
+
+    private bool ShouldUseLocalFilePersistence()
+    {
+        return useStandaloneFilePersistenceWhenNoSaveManager && !UseCentralSave;
+    }
+
+    private void HandleSaveServiceChanged(ISaveService _)
+    {
+        RegisterToSaveService();
+        InitializeLocalPersistenceIfNeeded();
+    }
+
+    private void RegisterToSaveService()
+    {
+        RuntimeRefs.SaveService?.RegisterParticipant(this);
+    }
+
+    private void UnregisterFromSaveService()
+    {
+        RuntimeRefs.SaveService?.UnregisterParticipant(this);
+    }
+
+    private void InitializeLocalPersistenceIfNeeded()
+    {
+        if (!_localLoadAttempted && autoLoadOnStart && ShouldUseLocalFilePersistence())
+        {
+            _localLoadAttempted = true;
+            Load();
+        }
+
+        CancelInvoke(nameof(AutoSaveTick));
+        if (autoSaveEnabled && ShouldUseLocalFilePersistence())
+        {
+            InvokeRepeating(nameof(AutoSaveTick), autoSaveInterval, autoSaveInterval);
+        }
+    }
+
+    void OnApplicationQuit()
+    {
+        if (ShouldUseLocalFilePersistence()) Save();
+    }
+
+    void OnApplicationPause(bool pause)
+    {
+        if (saveOnPauseOrFocusLoss && pause && ShouldUseLocalFilePersistence()) Save();
+    }
+
+    void OnApplicationFocus(bool hasFocus)
+    {
+        if (saveOnPauseOrFocusLoss && !hasFocus && ShouldUseLocalFilePersistence()) Save();
+    }
 }

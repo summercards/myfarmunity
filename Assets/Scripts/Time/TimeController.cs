@@ -44,38 +44,33 @@ public class TimeController : MonoBehaviour
 
     void Awake()
     {
-        // 1. 优先使用手动指定的引用
-        if (timeSystem == null)
+        ResolveTimeSystem();
+
+        if (timeSystem != null)
         {
-            // 2. 尝试从 Resources 加载
-            timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
-            if (timeSystem != null && showDebugInfo)
-            {
-                Debug.Log("[TimeController] 从 Resources 加载了 DefaultTimeSystem");
-            }
+            RuntimeRefs.RegisterTimeSystem(timeSystem);
         }
 
-        // 3. 尝试在场景中查找 ScriptableObject 实例
-        if (timeSystem == null)
-        {
-            GameTimeSystem[] instances = Resources.FindObjectsOfTypeAll<GameTimeSystem>();
-            if (instances.Length > 0)
-            {
-                timeSystem = instances[0];
-                if (showDebugInfo)
-                    Debug.Log("[TimeController] 找到了 GameTimeSystem 实例");
-            }
-        }
-
-        // 4. 仍然没找到，记录警告（但不阻止运行，因为后面可能通过配置脚本设置）
         if (timeSystem == null && showDebugInfo)
         {
             Debug.LogWarning("[TimeController] 未找到 GameTimeSystem，等待配置脚本设置...");
         }
     }
 
+    void OnEnable()
+    {
+        RuntimeRefs.TimeSystemChanged += HandleTimeSystemChanged;
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.TimeSystemChanged -= HandleTimeSystemChanged;
+    }
+
     void Start()
     {
+        ResolveTimeSystem();
+
         if (autoInitialize && timeSystem != null)
         {
             Initialize();
@@ -84,6 +79,37 @@ public class TimeController : MonoBehaviour
         if (autoStart && timeSystem != null)
         {
             Resume();
+        }
+    }
+
+    private void ResolveTimeSystem()
+    {
+        if (timeSystem == null)
+        {
+            timeSystem = RuntimeRefs.TimeSystem;
+        }
+
+        if (timeSystem == null)
+        {
+            timeSystem = Resources.Load<GameTimeSystem>("DefaultTimeSystem");
+            if (timeSystem != null && showDebugInfo)
+            {
+                Debug.Log("[TimeController] 从 Resources 加载了 DefaultTimeSystem");
+            }
+        }
+    }
+
+    private void HandleTimeSystemChanged(GameTimeSystem system)
+    {
+        if (timeSystem != null || system == null)
+        {
+            return;
+        }
+
+        timeSystem = system;
+        if (showDebugInfo)
+        {
+            Debug.Log("[TimeController] 已从 RuntimeRefs 绑定 GameTimeSystem");
         }
     }
 

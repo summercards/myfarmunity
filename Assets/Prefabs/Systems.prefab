@@ -1,61 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:yousandi.cn,2023:
---- !u!1 &956070282651045959
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 7
-  m_Component:
-  - component: {fileID: 2805016860463903961}
-  - component: {fileID: 4333774435382111240}
-  m_Layer: 0
-  m_HasEditorInfo: 1
-  m_Name: ShopEntry
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2805016860463903961
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 956070282651045959}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -438.443, y: 137.30847, z: -980.8612}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 4471739116805231141}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4333774435382111240
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 956070282651045959}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d6c0f6f67cd2a344f8d13c62f9ef53c6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  shopUI: {fileID: 0}
-  defaultCatalog: {fileID: 11400000, guid: 9dec55b4a0fe100408aa7b90a72c2797, type: 2}
-  inventoryBridge: {fileID: 2319979047515347348}
-  wallet: {fileID: 0}
-  dialogUI: {fileID: 0}
-  player: {fileID: 0}
-  overrideNPC: {fileID: 0}
-  findNpcRadius: 5
-  npcMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
 --- !u!1 &3043550372798396315
 GameObject:
   m_ObjectHideFlags: 0
@@ -145,7 +89,6 @@ Transform:
   m_Children:
   - {fileID: 4348442238453619897}
   - {fileID: 7475493009947942056}
-  - {fileID: 2805016860463903961}
   - {fileID: 590623779550675664}
   - {fileID: 8937083726266895721}
   - {fileID: 739938543894129303}

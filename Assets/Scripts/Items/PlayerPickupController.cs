@@ -48,7 +48,7 @@ public class PlayerPickupController : MonoBehaviour
         if (hud)
         {
             if (_candidate)
-                hud.Show($"按 E 拾取：{_candidate.itemId} x{_candidate.amount}");
+                hud.Show($"Press E to pick up: {_candidate.itemId} x{_candidate.amount}");
             else
                 hud.Hide();
         }
@@ -57,13 +57,11 @@ public class PlayerPickupController : MonoBehaviour
 
         if (autoPickup || InteractPressedThisFrame())
         {
-            // —— 拾取：只改背包 —— 
             int got = _candidate.TryPickUp(_inv);
             if (got > 0)
             {
-                // 通知激活物刷新（优先让刚拾到的类型成为激活）
                 _active?.OnInventoryChanged(_candidate.itemId);
-                if (hud) hud.Show($"获得：{_candidate.itemId} x{got}");
+                if (hud) hud.Show($"Picked up: {_candidate.itemId} x{got}");
             }
         }
     }
@@ -80,8 +78,13 @@ public class PlayerPickupController : MonoBehaviour
             if (!it) continue;
 
             float d = (it.transform.position - transform.position).sqrMagnitude;
-            if (d < best) { best = d; bestItem = it; }
+            if (d < best)
+            {
+                best = d;
+                bestItem = it;
+            }
         }
+
         return bestItem;
     }
 
@@ -102,7 +105,6 @@ public class PlayerPickupController : MonoBehaviour
         Gizmos.DrawSphere(transform.position, searchRadius);
     }
 
-    /// 外部调用：阻断拾取若干秒（丢出后用）
     public void BlockFor(float seconds)
     {
         _blockTimer = Mathf.Max(_blockTimer, seconds > 0 ? seconds : defaultBlockSeconds);

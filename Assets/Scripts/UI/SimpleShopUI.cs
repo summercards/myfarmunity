@@ -56,6 +56,8 @@ public class SimpleShopUI : MonoBehaviour
 
     void OnEnable()
     {
+        RuntimeRefs.RegisterSimpleShopUI(this);
+
         // 如果在编辑器场景里手动激活 root，我们也尝试构建（仅在播放时）
         if (Application.isPlaying)
         {
@@ -66,6 +68,11 @@ public class SimpleShopUI : MonoBehaviour
                 BuildItems();
             }
         }
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.UnregisterSimpleShopUI(this);
     }
 
     /// <summary> 打开商店（外部调用） </summary>
@@ -112,6 +119,12 @@ public class SimpleShopUI : MonoBehaviour
     [ContextMenu("RebuildShopItems")]
     public void BuildItems()
     {
+        if (!IsRuntimeSceneGameObject(gameObject))
+        {
+            Debug.LogWarning("[Shop] BuildItems aborted: SimpleShopUI is not a runtime scene instance.");
+            return;
+        }
+
         // 基础校验
         if (catalog == null)
         {
@@ -125,14 +138,22 @@ public class SimpleShopUI : MonoBehaviour
             return;
         }
 
+        if (!IsRuntimeSceneGameObject(contentRect.gameObject))
+        {
+            Debug.LogError("[Shop] BuildItems aborted: contentRect is not a runtime scene object.");
+            return;
+        }
+
         if (itemTemplate == null)
         {
             Debug.LogError("[Shop] BuildItems aborted: itemTemplate is not assigned!");
             return;
         }
 
+        bool templateInScene = IsRuntimeSceneGameObject(itemTemplate);
+
         // 确保模板处于 inactive（避免被当作实际项）
-        if (itemTemplate.activeSelf)
+        if (templateInScene && itemTemplate.activeSelf)
         {
             Debug.LogWarning("[Shop] itemTemplate is active in hierarchy — it should be inactive. Automatically deactivating.");
             itemTemplate.SetActive(false);
@@ -142,7 +163,7 @@ public class SimpleShopUI : MonoBehaviour
         for (int i = contentRect.childCount - 1; i >= 0; i--)
         {
             var child = contentRect.GetChild(i).gameObject;
-            if (child != itemTemplate)
+            if (!templateInScene || child != itemTemplate)
             {
                 // 在编辑器下 DestroyImmediate 比 Destroy 更立即
 #if UNITY_EDITOR
@@ -217,7 +238,7 @@ public class SimpleShopUI : MonoBehaviour
                     btn.onClick.AddListener(() =>
                     {
                         // 找钱包
-                        var wallet = FindObjectOfType<PlayerWallet>();
+                        var wallet = RuntimeRefs.PlayerWallet;
                         if (wallet == null)
                         {
                             Debug.LogError("[Shop] 场景中没有 PlayerWallet");
@@ -239,10 +260,10 @@ public class SimpleShopUI : MonoBehaviour
                         }
 
                         // 找背包桥
-                        var inv = FindObjectOfType<InventoryBridge>();
+                        var inv = RuntimeRefs.InventoryBridge;
 
                         // 找玩家位置（用于掉落兜底）
-                        Transform player = GameObject.FindGameObjectWithTag("Player")?.transform;
+                        Transform player = RuntimeRefs.PlayerTransform;
 
                         bool added = false;
                         if (inv != null)
@@ -283,5 +304,10 @@ public class SimpleShopUI : MonoBehaviour
     {
         built = false;
         BuildItems();
+    }
+
+    private static bool IsRuntimeSceneGameObject(GameObject obj)
+    {
+        return obj != null && obj.scene.IsValid();
     }
 }

@@ -1,7 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Reflection;
-using FarmGame.ActorSystem;
 
 /// <summary>
 /// 从对话按钮打开商店的桥接组件。
@@ -24,23 +22,16 @@ public class ShopFromDialogBridge : MonoBehaviour
     [Header("Shop Line")]
     [TextArea] public string shopOpenLine = "欢迎光临，需要点什么吗？";
 
-    private PropertyInfo _propCurrentNPC;
-    private FieldInfo _fieldCurrentNPC;
-
     void Awake()
     {
         if (!npcDialogUI) npcDialogUI = GetComponent<NPCDialogUI>();
+        if (!npcDialogUI) npcDialogUI = RuntimeRefs.DialogUI;
         if (!dialogWorldBridge) dialogWorldBridge = GetComponent<NPCDialogWorldBridge>();
-
-        var t = typeof(NPCDialogUI);
-        _propCurrentNPC = t.GetProperty("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
-        _fieldCurrentNPC = t.GetField("CurrentNPC", BindingFlags.Public | BindingFlags.Instance);
+        if (!dialogWorldBridge) dialogWorldBridge = RuntimeRefs.DialogWorldBridge;
 
         if (!player)
         {
-            var go = GameObject.FindGameObjectWithTag("Player");
-            if (go) player = go.transform;
-            else if (Camera.main) player = Camera.main.transform;
+            player = RuntimeRefs.PlayerTransform;
         }
 
         if (openShopButton)
@@ -70,7 +61,7 @@ public class ShopFromDialogBridge : MonoBehaviour
             npcDialogUI.Close();
         }
 
-        var bridge = dialogWorldBridge ? dialogWorldBridge : Object.FindObjectOfType<NPCDialogWorldBridge>();
+        var bridge = dialogWorldBridge ? dialogWorldBridge : RuntimeRefs.DialogWorldBridge;
         if (bridge)
         {
             var anchor = npcTr.Find("BubbleAnchor");
@@ -82,13 +73,6 @@ public class ShopFromDialogBridge : MonoBehaviour
 
     Transform ResolveCurrentNPCTransform()
     {
-        object npcObj = null;
-        if (_propCurrentNPC != null) npcObj = _propCurrentNPC.GetValue(npcDialogUI);
-        else if (_fieldCurrentNPC != null) npcObj = _fieldCurrentNPC.GetValue(npcDialogUI);
-        if (npcObj == null) return null;
-
-        var tNpc = npcObj.GetType();
-        var pTr = tNpc.GetProperty("transform", BindingFlags.Public | BindingFlags.Instance);
-        return pTr != null ? pTr.GetValue(npcObj) as Transform : null;
+        return npcDialogUI != null ? npcDialogUI.CurrentNPC?.SubjectTransform : null;
     }
 }

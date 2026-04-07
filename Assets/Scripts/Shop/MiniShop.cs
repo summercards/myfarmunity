@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using FarmGame.NPCSystem;
+using FarmGame.Core.Contracts;
 
 public class MiniShop : MonoBehaviour
 {
@@ -91,15 +91,33 @@ public class MiniShop : MonoBehaviour
         if (root) root.SetActive(false);
         if (closeButton) closeButton.onClick.AddListener(Close);
 
-        // 缓存引用
-        _cachedDialogUI = FindObjectOfType<NPCDialogUI>();
-        _cachedPlayerHolder = FindObjectOfType<PlayerInventoryHolder>();
-        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
+        if (!wallet) wallet = RuntimeRefs.PlayerWallet;
+        if (!inventoryBridge) inventoryBridge = RuntimeRefs.InventoryBridge;
+        _cachedDialogUI = dialogUI ? dialogUI : RuntimeRefs.DialogUI;
+        _cachedPlayerHolder = RuntimeRefs.InventoryHolder;
+        _cachedWorldBridge = RuntimeRefs.DialogWorldBridge;
     }
-    void OnEnable() { if (wallet) wallet.onCoinsChanged.AddListener(OnCoinsChanged); }
+
+    void OnEnable()
+    {
+        RuntimeRefs.RegisterMiniShopUI(this);
+        if (wallet) wallet.onCoinsChanged.AddListener(OnCoinsChanged);
+        RuntimeRefs.DialogUIChanged += HandleDialogUIChanged;
+        RuntimeRefs.InventoryHolderChanged += HandleInventoryHolderChanged;
+        RuntimeRefs.DialogWorldBridgeChanged += HandleDialogWorldBridgeChanged;
+        RuntimeRefs.PlayerWalletChanged += HandlePlayerWalletChanged;
+        RuntimeRefs.InventoryBridgeChanged += HandleInventoryBridgeChanged;
+    }
+
     void OnDisable()
     {
+        RuntimeRefs.UnregisterMiniShopUI(this);
         if (wallet) wallet.onCoinsChanged.RemoveListener(OnCoinsChanged);
+        RuntimeRefs.DialogUIChanged -= HandleDialogUIChanged;
+        RuntimeRefs.InventoryHolderChanged -= HandleInventoryHolderChanged;
+        RuntimeRefs.DialogWorldBridgeChanged -= HandleDialogWorldBridgeChanged;
+        RuntimeRefs.PlayerWalletChanged -= HandlePlayerWalletChanged;
+        RuntimeRefs.InventoryBridgeChanged -= HandleInventoryBridgeChanged;
         // 保险：面板被禁用也要结束气泡（例如切场景/父级隐藏）
         EndShopBubble();
     }
@@ -156,13 +174,10 @@ public class MiniShop : MonoBehaviour
 
         // Player
         var holder = _cachedPlayerHolder;
-        player = holder ? holder.transform :
-                 (GameObject.FindGameObjectWithTag("Player") ?
-                   GameObject.FindGameObjectWithTag("Player").transform :
-                   (Camera.main ? Camera.main.transform : null));
+        player = holder ? holder.transform : RuntimeRefs.PlayerTransform;
 
         // NPC：优先对话中的，没有就近找
-        npc = npcFromDialog ? npcFromDialog : FindClosestNpcWithInteractable(player, 6f);
+        npc = npcFromDialog ? npcFromDialog : FindClosestDialogSubjectTransform(player, 6f);
 
         // **先**切商店台词（在关闭面板前执行）
         ShowShopBubble(shopOpenLine, npc, bridge);
@@ -400,18 +415,51 @@ public class MiniShop : MonoBehaviour
         return t ? t.GetComponent<T>() : null;
     }
 
-    Transform FindClosestNpcWithInteractable(Transform around, float radius)
+    Transform FindClosestDialogSubjectTransform(Transform around, float radius)
     {
         if (!around) return null;
         Collider[] cols = Physics.OverlapSphere(around.position, radius, npcMask, QueryTriggerInteraction.Collide);
         Transform best = null; float bestD = float.MaxValue;
         foreach (var c in cols)
         {
-            var inter = c.GetComponentInParent<NPCInteractable>(); if (!inter) continue;
-            float d = Vector3.Distance(around.position, inter.transform.position);
-            if (d < bestD) { bestD = d; best = inter.transform; }
+            if (!TryGetDialogSubject(c, out IDialogSubject subject))
+            {
+                continue;
+            }
+
+            Transform subjectTransform = subject.SubjectTransform;
+            if (!subjectTransform && subject is Component comp)
+            {
+                subjectTransform = comp.transform;
+            }
+
+            if (!subjectTransform)
+            {
+                continue;
+            }
+
+            float d = Vector3.Distance(around.position, subjectTransform.position);
+            if (d < bestD) { bestD = d; best = subjectTransform; }
         }
         return best;
+    }
+
+    bool TryGetDialogSubject(Component source, out IDialogSubject subject)
+    {
+        subject = null;
+        if (!source) return false;
+
+        MonoBehaviour[] candidates = source.GetComponentsInParent<MonoBehaviour>(true);
+        foreach (MonoBehaviour candidate in candidates)
+        {
+            if (candidate is IDialogSubject dialogSubject)
+            {
+                subject = dialogSubject;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // ====== 气泡台词控制 ======
@@ -428,5 +476,44 @@ public class MiniShop : MonoBehaviour
     void EndShopBubble()
     {
         if (_cachedWorldBridge) _cachedWorldBridge.EndStandalone();
+    }
+
+    void HandleDialogUIChanged(NPCDialogUI dialogUi)
+    {
+        if (!dialogUI)
+        {
+            _cachedDialogUI = dialogUi;
+        }
+    }
+
+    void HandleInventoryHolderChanged(PlayerInventoryHolder holder)
+    {
+        _cachedPlayerHolder = holder;
+    }
+
+    void HandleDialogWorldBridgeChanged(NPCDialogWorldBridge bridge)
+    {
+        _cachedWorldBridge = bridge;
+    }
+
+    void HandlePlayerWalletChanged(PlayerWallet playerWallet)
+    {
+        if (wallet != null)
+        {
+            wallet.onCoinsChanged.RemoveListener(OnCoinsChanged);
+        }
+
+        wallet = playerWallet;
+
+        if (wallet != null && isActiveAndEnabled)
+        {
+            wallet.onCoinsChanged.AddListener(OnCoinsChanged);
+            UpdateWalletText();
+        }
+    }
+
+    void HandleInventoryBridgeChanged(InventoryBridge bridge)
+    {
+        inventoryBridge = bridge;
     }
 }

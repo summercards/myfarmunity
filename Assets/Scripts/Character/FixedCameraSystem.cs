@@ -35,44 +35,48 @@ public class FixedCameraSystem : MonoBehaviour
 
     void Start()
     {
-        // 如果 target 为空，尝试查找 Player
-        if (target == null)
-        {
-            TryFindPlayer();
-        }
+        TryAssignPlayer(RuntimeRefs.PlayerTransform);
 
         // 初始化缩放距离
         currentZoomDistance = cameraOffset.magnitude;
     }
 
-    void TryFindPlayer()
+    void OnEnable()
     {
-        // 方法1：通过tag查找
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        RuntimeRefs.RegisterFixedCameraSystem(this);
+        RuntimeRefs.PlayerTransformChanged += HandlePlayerTransformChanged;
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.PlayerTransformChanged -= HandlePlayerTransformChanged;
+        RuntimeRefs.UnregisterFixedCameraSystem(this);
+    }
+
+    void TryAssignPlayer(Transform playerTransform)
+    {
+        if (target != null || playerTransform == null)
         {
-            target = player.transform;
-            Debug.Log($"[FixedCamera] 绑定Player (by tag): {player.name}");
             return;
         }
 
-        // 方法2：通过TPSCharacter组件查找
-        TPSCharacter tps = FindObjectOfType<TPSCharacter>();
-        if (tps != null)
-        {
-            target = tps.transform;
-            Debug.Log($"[FixedCamera] 绑定Player (by TPSCharacter): {tps.name}");
-            return;
-        }
+        target = playerTransform;
+        Debug.Log($"[FixedCamera] 已绑定 Player: {target.name}");
+    }
 
-        Debug.LogWarning("[FixedCamera] 找不到Player!");
+    void HandlePlayerTransformChanged(Transform playerTransform)
+    {
+        if (target == null || target == playerTransform)
+        {
+            target = playerTransform;
+        }
     }
 
     void LateUpdate()
     {
         if (target == null)
         {
-            TryFindPlayer();
+            TryAssignPlayer(RuntimeRefs.PlayerTransform);
             if (target == null) return;
         }
 

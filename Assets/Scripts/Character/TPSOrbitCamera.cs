@@ -1,4 +1,6 @@
 using UnityEngine;
+using FarmGame.Core;
+using UnityEngine.SceneManagement;
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
 using UnityEngine.InputSystem;   // Input System 1.x
 #endif
@@ -12,18 +14,13 @@ public class TPSOrbitCamera : MonoBehaviour
 
     void Awake()
     {
-        // 单例模式：确保只有一个摄像机实例
-        if (instance == null)
+        if (!RuntimeService.TryClaimSingleton(this, instance, nameof(TPSOrbitCamera)))
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else if (instance != this)
-        {
-            Debug.Log($"[TPSOrbitCamera] 检测到已有摄像机实例，销毁多余的摄像机: {gameObject.name}");
-            Destroy(gameObject);
             return;
         }
+
+        instance = this;
+        RuntimeRefs.RegisterTpsOrbitCamera(this);
     }
 
     [Header("Orbit")]
@@ -66,8 +63,21 @@ public class TPSOrbitCamera : MonoBehaviour
         }
     }
 
-    // 添加场景加载时的回调
-    void OnLevelWasLoaded(int level)
+    void OnEnable()
+    {
+        RuntimeRefs.RegisterTpsOrbitCamera(this);
+        RuntimeRefs.PlayerTransformChanged += HandlePlayerTransformChanged;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+        RuntimeRefs.PlayerTransformChanged -= HandlePlayerTransformChanged;
+        RuntimeRefs.UnregisterTpsOrbitCamera(this);
+    }
+
+    void HandleSceneLoaded(Scene _, LoadSceneMode __)
     {
         RefreshTargetReference();
     }
@@ -78,33 +88,30 @@ public class TPSOrbitCamera : MonoBehaviour
     /// </summary>
     void RefreshTargetReference()
     {
-        if (target == null)
+        Transform player = RuntimeRefs.PlayerTransform;
+        if (player != null)
         {
-            // 查找 Player 对象
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
+            Transform cameraPivot = player.Find("CameraPivot");
+            if (cameraPivot != null)
             {
-                Transform player = playerObj.transform;
-
-                // 优先查找 CameraPivot 子对象
-                Transform cameraPivot = player.Find("CameraPivot");
-                if (cameraPivot != null)
-                {
-                    target = cameraPivot;
-                    Debug.Log($"[TPSOrbitCamera] ✅ 已恢复 target: {cameraPivot.name}");
-                }
-                else
-                {
-                    // 备用方案：直接使用 Player
-                    target = player;
-                    Debug.Log($"[TPSOrbitCamera] ⚠️ CameraPivot 未找到，使用 Player 作为 target: {player.name}");
-                }
+                target = cameraPivot;
+                Debug.Log($"[TPSOrbitCamera] ✅ 已恢复 target: {cameraPivot.name}");
             }
             else
             {
-                Debug.LogWarning("[TPSOrbitCamera] ❌ 无法找到 Player 对象");
+                target = player;
+                Debug.Log($"[TPSOrbitCamera] ⚠️ CameraPivot 未找到，使用 Player 作为 target: {player.name}");
             }
+            return;
         }
+
+        if (target == null)
+            Debug.LogWarning("[TPSOrbitCamera] ❌ 无法找到 Player 对象");
+    }
+
+    void HandlePlayerTransformChanged(Transform _)
+    {
+        RefreshTargetReference();
     }
 
     void LateUpdate()
@@ -189,5 +196,13 @@ public class TPSOrbitCamera : MonoBehaviour
         }
 
         transform.SetPositionAndRotation(desiredPos, rot);
+    }
+
+    void OnDestroy()
+    {
+        if (instance == this)
+        {
+            instance = null;
+        }
     }
 }

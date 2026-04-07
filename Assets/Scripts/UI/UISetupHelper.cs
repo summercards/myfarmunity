@@ -1,6 +1,7 @@
 // Assets/Scripts/UI/UISetupHelper.cs
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// UI设置助手
@@ -11,6 +12,12 @@ public class UISetupHelper : MonoBehaviour
     [Header("自动生成选项")]
     [Tooltip("在Start时自动生成UI（如果场景中没有GUI）")]
     public bool autoGenerateOnStart = true;
+
+    [Tooltip("显式指定场景中的 GUI 根对象（阶段5推荐）")]
+    public GameObject guiRoot;
+
+    [Tooltip("是否允许通过场景根遍历兜底查找 GUI（仅排障时开启）")]
+    public bool allowSceneSearchFallback = false;
 
     [Header("UI组件开关")]
     [Tooltip("生成背包UI")]
@@ -47,18 +54,65 @@ public class UISetupHelper : MonoBehaviour
     /// </summary>
     public void CheckAndGenerateUI()
     {
-        GameObject existingGUI = GameObject.Find("GUI");
+        GameObject existingGUI = ResolveExistingGUIRoot();
 
         if (existingGUI != null)
         {
+            guiRoot = existingGUI;
             Debug.Log("[UISetupHelper] 场景中已有GUI，跳过生成");
             // 确保所有UI组件都存在
             EnsureAllUIComponentsExist(existingGUI);
             return;
         }
 
+        if (!allowSceneSearchFallback)
+        {
+            Debug.LogWarning("[UISetupHelper] 未找到 GUI 引用，且已禁用场景扫描；将直接创建新的 GUI 根对象。");
+        }
+
         Debug.Log("[UISetupHelper] 场景中没有GUI，开始自动生成...");
         GenerateFullUISystem();
+    }
+
+    private GameObject ResolveExistingGUIRoot()
+    {
+        if (guiRoot != null && guiRoot.scene.IsValid())
+        {
+            return guiRoot;
+        }
+
+        GameObject runtimeRoot = ResolveGuiRootFromRuntimeRefs();
+        if (runtimeRoot != null)
+        {
+            return runtimeRoot;
+        }
+
+        if (allowSceneSearchFallback)
+        {
+            return FindRootObjectByName("GUI");
+        }
+
+        return null;
+    }
+
+    private static GameObject FindRootObjectByName(string objectName)
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (!activeScene.IsValid())
+        {
+            return null;
+        }
+
+        GameObject[] roots = activeScene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            if (roots[i] != null && roots[i].name == objectName)
+            {
+                return roots[i];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -102,8 +156,9 @@ public class UISetupHelper : MonoBehaviour
     /// </summary>
     public void GenerateFullUISystem()
     {
-        GameObject guiRoot = new GameObject("GUI");
-        GameObject canvasGO = CreateCanvas(guiRoot);
+        GameObject guiRootObject = new GameObject("GUI");
+        GameObject canvasGO = CreateCanvas(guiRootObject);
+        guiRoot = guiRootObject;
 
         Debug.Log("[UISetupHelper] Canvas已创建");
 
@@ -147,6 +202,56 @@ public class UISetupHelper : MonoBehaviour
 
         // 5秒后销毁自己（不再需要）
         Destroy(gameObject, 5f);
+    }
+
+    private static GameObject ResolveGuiRootFromRuntimeRefs()
+    {
+        GameObject root = GetSceneRoot(RuntimeRefs.DialogUI);
+        if (root != null)
+        {
+            return root;
+        }
+
+        root = GetSceneRoot(RuntimeRefs.SimpleShopUI);
+        if (root != null)
+        {
+            return root;
+        }
+
+        root = GetSceneRoot(RuntimeRefs.MiniShopUI);
+        if (root != null)
+        {
+            return root;
+        }
+
+        root = GetSceneRoot(RuntimeRefs.DialogWorldBridge);
+        if (root != null)
+        {
+            return root;
+        }
+
+        return null;
+    }
+
+    private static GameObject GetSceneRoot(Component component)
+    {
+        if (component == null)
+        {
+            return null;
+        }
+
+        Transform current = component.transform;
+        while (current != null && current.parent != null)
+        {
+            current = current.parent;
+        }
+
+        if (current == null || current.gameObject == null || !current.gameObject.scene.IsValid())
+        {
+            return null;
+        }
+
+        return current.gameObject;
     }
 
     /// <summary>

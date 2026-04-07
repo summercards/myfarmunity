@@ -12,7 +12,7 @@ public class ShopAutoCloseByDistance : MonoBehaviour
 
     void Awake()
     {
-        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
+        _cachedWorldBridge = RuntimeRefs.DialogWorldBridge;
     }
 
     [Header("References")]
@@ -38,16 +38,20 @@ public class ShopAutoCloseByDistance : MonoBehaviour
     {
         target = npcOrAnchor;
         if (playerTransform != null) player = playerTransform;
-        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
+        _cachedWorldBridge = RuntimeRefs.DialogWorldBridge;
     }
 
     private void OnEnable()
     {
+        RuntimeRefs.DialogWorldBridgeChanged += HandleWorldBridgeChanged;
+        RuntimeRefs.PlayerTransformChanged += HandlePlayerTransformChanged;
         if (loop == null) loop = StartCoroutine(CheckLoop());
     }
 
     private void OnDisable()
     {
+        RuntimeRefs.DialogWorldBridgeChanged -= HandleWorldBridgeChanged;
+        RuntimeRefs.PlayerTransformChanged -= HandlePlayerTransformChanged;
         if (loop != null)
         {
             StopCoroutine(loop);
@@ -68,8 +72,7 @@ public class ShopAutoCloseByDistance : MonoBehaviour
             // �Զ��� Tag ��ȡ���
             if (player == null && !string.IsNullOrEmpty(playerTag))
             {
-                var go = GameObject.FindGameObjectWithTag(playerTag);
-                if (go != null) player = go.transform;
+                player = RuntimeRefs.PlayerTransform;
             }
 
             if (player == null || target == null) continue;
@@ -84,6 +87,19 @@ public class ShopAutoCloseByDistance : MonoBehaviour
                 // �ٹر��̵�
                 shopUI.Close();
             }
+        }
+    }
+
+    private void HandleWorldBridgeChanged(NPCDialogWorldBridge bridge)
+    {
+        _cachedWorldBridge = bridge;
+    }
+
+    private void HandlePlayerTransformChanged(Transform playerTransform)
+    {
+        if (player == null || player == playerTransform)
+        {
+            player = playerTransform;
         }
     }
 }

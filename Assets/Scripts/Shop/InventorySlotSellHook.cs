@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Reflection;
 using TMPro;
@@ -9,213 +8,366 @@ using UnityEngine.UI;
 public class InventorySlotSellHook : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI Bind")]
-    public GameObject sellBar;              // Õ∆ºˆ∞— BtnSell1/BtnSellAll/Qty/BtnSellQty/Tip ∑≈µΩ“ª∏ˆ»›∆˜œ¬£¨Õ≥“ªœ‘“˛
+    public GameObject sellBar;
     public Button btnSell1;
     public Button btnSellAll;
     public TMP_InputField qtyInput;
     public Button btnSellQty;
     public TextMeshProUGUI tip;
 
-    [Header(" ∂±ŒÔ∆∑ID")]
+    [Header("Item Resolve")]
     public string itemIdOverride = "";
     public string iconChildName = "Icon";
 
-    // ◊¥Ã¨
-    static InventorySlotSellHook _selected; // µ±«∞±ª—°÷–µƒ∏Ò◊”
-    bool _shopOpen;
+    [Header("Runtime Refs (Optional)")]
+    public MiniShop shopOverride;
+    public InventoryBridge bridgeOverride;
 
-    // ∑˛ŒÒ
-    MiniShop _shop;
-    InventoryBridge _bridge;
-    ShopCatalogSO _catalog;
-    Image _iconImg;
+    private static InventorySlotSellHook selected;
+    private bool isShopOpen;
+
+    private MiniShop shop;
+    private InventoryBridge bridge;
+    private ShopCatalogSO catalog;
+    private Image iconImage;
 
     void Awake()
     {
-        // ∞Û∂®∞¥≈•
-        if (btnSell1) btnSell1.onClick.AddListener(() => Sell(1));
-        if (btnSellAll) btnSellAll.onClick.AddListener(SellAll);
-        if (btnSellQty && qtyInput) btnSellQty.onClick.AddListener(() =>
+        if (btnSell1 != null)
         {
-            int q = 1; int.TryParse(qtyInput.text, out q); Sell(Mathf.Max(1, q));
-        });
+            btnSell1.onClick.AddListener(() => Sell(1));
+        }
 
-        // Õº±Í
-        var t = transform.Find(iconChildName);
-        if (t) _iconImg = t.GetComponent<Image>();
+        if (btnSellAll != null)
+        {
+            btnSellAll.onClick.AddListener(SellAll);
+        }
 
-        // ∑˛ŒÒ£∫‘ –Ì…ÃµÍ√Ê∞ÂŒ¥º§ªÓ
-        _shop = FindInSceneIncludingInactive<MiniShop>();
-        _bridge = FindInSceneIncludingInactive<InventoryBridge>();
-        _catalog = _shop ? _shop.catalog : null;
+        if (btnSellQty != null && qtyInput != null)
+        {
+            btnSellQty.onClick.AddListener(() =>
+            {
+                int quantity = 1;
+                int.TryParse(qtyInput.text, out quantity);
+                Sell(Mathf.Max(1, quantity));
+            });
+        }
 
-        // ≥ı º“˛≤ÿ¬ÙÃı
+        Transform iconTransform = transform.Find(iconChildName);
+        if (iconTransform != null)
+        {
+            iconImage = iconTransform.GetComponent<Image>();
+        }
+
+        ResolveShopRefs();
         SetSellBar(false);
+        isShopOpen = MiniShop.Active != null && MiniShop.Active.IsOpen;
+    }
 
-        // ∂©‘ƒ…ÃµÍ ¬º˛
+    void OnEnable()
+    {
         MiniShop.OnActiveChanged += OnShopActiveChanged;
-        _shopOpen = MiniShop.Active != null && MiniShop.Active.IsOpen;
+        RuntimeRefs.MiniShopUIChanged += HandleMiniShopChanged;
+        RuntimeRefs.InventoryBridgeChanged += HandleInventoryBridgeChanged;
+
+        ResolveShopRefs();
+        isShopOpen = MiniShop.Active != null && MiniShop.Active.IsOpen;
+    }
+
+    void OnDisable()
+    {
+        MiniShop.OnActiveChanged -= OnShopActiveChanged;
+        RuntimeRefs.MiniShopUIChanged -= HandleMiniShopChanged;
+        RuntimeRefs.InventoryBridgeChanged -= HandleInventoryBridgeChanged;
     }
 
     void OnDestroy()
     {
-        MiniShop.OnActiveChanged -= OnShopActiveChanged;
-        if (_selected == this) _selected = null;
+        if (selected == this)
+        {
+            selected = null;
+        }
+    }
+
+    private void HandleMiniShopChanged(MiniShop miniShop)
+    {
+        if (shopOverride != null)
+        {
+            return;
+        }
+
+        shop = miniShop;
+        catalog = shop != null ? shop.catalog : null;
+    }
+
+    private void HandleInventoryBridgeChanged(InventoryBridge inventoryBridge)
+    {
+        if (bridgeOverride != null)
+        {
+            return;
+        }
+
+        bridge = inventoryBridge;
+    }
+
+    private void ResolveShopRefs()
+    {
+        shop = shopOverride != null ? shopOverride : RuntimeRefs.MiniShopUI;
+        bridge = bridgeOverride != null ? bridgeOverride : RuntimeRefs.InventoryBridge;
+        catalog = shop != null ? shop.catalog : null;
     }
 
     void OnShopActiveChanged(bool open)
     {
-        _shopOpen = open;
-        if (!open) SetSellBar(false);                 // …ÃµÍπÿ°˙À˘”–∏Ò◊”“˛≤ÿ
-        else if (_selected == this) SetSellBar(true); // …ÃµÍø™«“◊‘º∫—°÷–°˙œ‘ æ
+        isShopOpen = open;
+        if (!open)
+        {
+            SetSellBar(false);
+        }
+        else if (selected == this)
+        {
+            SetSellBar(true);
+        }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        // «–ªª—°÷–
-        if (_selected && _selected != this) _selected.SetSellBar(false);
-        _selected = this;
+        if (selected != null && selected != this)
+        {
+            selected.SetSellBar(false);
+        }
 
-        // Ωˆµ±…ÃµÍø™◊≈°¢«“∏√∏Ò◊””–ŒÔ∆∑ ±œ‘ æ
-        if (_shopOpen && HasSomething()) SetSellBar(true);
-        else SetSellBar(false);
-    }
+        selected = this;
 
-    bool HasSomething()
-    {
-        string id = ResolveItemId();
-        if (string.IsNullOrEmpty(id) || _bridge == null) return false;
-        return _bridge.GetCount(id) > 0;
-    }
-
-    void SetSellBar(bool v)
-    {
-        if (sellBar) sellBar.SetActive(v);
+        if (isShopOpen && HasSomething())
+        {
+            SetSellBar(true);
+        }
         else
         {
-            if (btnSell1) btnSell1.gameObject.SetActive(v);
-            if (btnSellAll) btnSellAll.gameObject.SetActive(v);
-            if (qtyInput) qtyInput.gameObject.SetActive(v);
-            if (btnSellQty) btnSellQty.gameObject.SetActive(v);
-            if (tip) tip.gameObject.SetActive(v);
+            SetSellBar(false);
         }
-        if (!v && tip) tip.text = "";
     }
 
-    // ===== ≥ˆ € =====
-    void Sell(int qty)
-    {
-        string itemId = ResolveItemId();
-        if (string.IsNullOrEmpty(itemId)) { Tip("Œﬁ∑® ∂±ŒÔ∆∑"); return; }
-        if (_shop == null || _bridge == null) { Tip("∑˛ŒÒŒ¥æÕ–˜"); return; }
-
-        int have = _bridge.GetCount(itemId);
-        if (have <= 0) { Tip("√ª”–ø…¬Ù"); SetSellBar(false); return; }
-        qty = Mathf.Clamp(qty, 1, have);
-
-        if (!_shop.QuoteSell(itemId, qty, out int total)) { Tip("≤ªø…≥ˆ €"); return; }
-
-        if (!_bridge.TryRemove(itemId, qty)) { Tip("“∆≥˝ ß∞‹"); return; }
-
-        if (!_shop.ConfirmSell(itemId, qty)) { Tip("Ω·À„ ß∞‹"); return; }
-
-        Tip($"“—¬Ù{qty}£¨+{total}");
-
-        // »Ù¬Ùπ‚£¨“˛≤ÿ
-        if (_bridge.GetCount(itemId) <= 0) SetSellBar(false);
-    }
-
-    void SellAll()
+    private bool HasSomething()
     {
         string id = ResolveItemId();
-        if (string.IsNullOrEmpty(id)) { Tip("Œﬁ∑® ∂±ŒÔ∆∑"); return; }
-        int have = _bridge ? _bridge.GetCount(id) : 0;
-        if (have <= 0) { Tip("√ª”–ø…¬Ù"); return; }
-        Sell(have);
+        if (string.IsNullOrEmpty(id) || bridge == null)
+        {
+            return false;
+        }
+
+        return bridge.GetCount(id) > 0;
     }
 
-    // =====  ∂±ŒÔ∆∑ID£∫override °˙ ∑¥…‰ °˙ Õº±Í∆•≈‰ =====
-    string ResolveItemId()
+    private void SetSellBar(bool visible)
     {
-        if (!string.IsNullOrEmpty(itemIdOverride)) return itemIdOverride;
+        if (sellBar != null)
+        {
+            sellBar.SetActive(visible);
+        }
+        else
+        {
+            if (btnSell1 != null) btnSell1.gameObject.SetActive(visible);
+            if (btnSellAll != null) btnSellAll.gameObject.SetActive(visible);
+            if (qtyInput != null) qtyInput.gameObject.SetActive(visible);
+            if (btnSellQty != null) btnSellQty.gameObject.SetActive(visible);
+            if (tip != null) tip.gameObject.SetActive(visible);
+        }
 
-        // ∑¥…‰£∫≥¢ ‘‘⁄±æ Slot …œ’“ itemId / item / itemSO ◊÷∂Œ
+        if (!visible && tip != null)
+        {
+            tip.text = "";
+        }
+    }
+
+    private void Sell(int quantity)
+    {
+        string itemId = ResolveItemId();
+        if (string.IsNullOrEmpty(itemId))
+        {
+            Tip("Êó†Ê≥ïËØÜÂà´Áâ©ÂìÅ");
+            return;
+        }
+
+        if (shop == null || bridge == null)
+        {
+            Tip("ÂïÜÂ∫óÊú™Â∞±Áª™");
+            return;
+        }
+
+        int owned = bridge.GetCount(itemId);
+        if (owned <= 0)
+        {
+            Tip("Ê≤°ÊúâÂèØÂçñ");
+            SetSellBar(false);
+            return;
+        }
+
+        quantity = Mathf.Clamp(quantity, 1, owned);
+
+        if (!shop.QuoteSell(itemId, quantity, out int total))
+        {
+            Tip("‰∏çÂèØÂá∫ÂîÆ");
+            return;
+        }
+
+        if (!bridge.TryRemove(itemId, quantity))
+        {
+            Tip("ÁßªÈô§Â§±Ë¥•");
+            return;
+        }
+
+        if (!shop.ConfirmSell(itemId, quantity))
+        {
+            Tip("ÁªìÁÆóÂ§±Ë¥•");
+            return;
+        }
+
+        Tip($"Â∑≤Âçñ{quantity}Ôºå+{total}");
+
+        if (bridge.GetCount(itemId) <= 0)
+        {
+            SetSellBar(false);
+        }
+    }
+
+    private void SellAll()
+    {
+        string id = ResolveItemId();
+        if (string.IsNullOrEmpty(id))
+        {
+            Tip("Êó†Ê≥ïËØÜÂà´Áâ©ÂìÅ");
+            return;
+        }
+
+        int owned = bridge != null ? bridge.GetCount(id) : 0;
+        if (owned <= 0)
+        {
+            Tip("Ê≤°ÊúâÂèØÂçñ");
+            return;
+        }
+
+        Sell(owned);
+    }
+
+    private string ResolveItemId()
+    {
+        if (!string.IsNullOrEmpty(itemIdOverride))
+        {
+            return itemIdOverride;
+        }
+
         try
         {
-            var comps = GetComponents<MonoBehaviour>();
-            foreach (var c in comps)
+            MonoBehaviour[] components = GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour component in components)
             {
-                if (!c) continue; var t = c.GetType();
-
-                var fId = t.GetField("itemId", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (fId != null && fId.FieldType == typeof(string))
+                if (component == null)
                 {
-                    var val = fId.GetValue(c) as string;
-                    if (!string.IsNullOrEmpty(val)) return val;
+                    continue;
                 }
 
-                var fItem = t.GetField("item", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                          ?? t.GetField("itemSO", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (fItem != null)
+                var type = component.GetType();
+
+                var itemIdField = type.GetField("itemId", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (itemIdField != null && itemIdField.FieldType == typeof(string))
                 {
-                    var obj = fItem.GetValue(c) as UnityEngine.Object;
-                    string id = MapObjectToId(obj);
-                    if (!string.IsNullOrEmpty(id)) return id;
-                }
-            }
-        }
-        catch { }
-
-        // Õº±Í”Îƒø¬º∆•≈‰
-        if (_iconImg && _iconImg.sprite && _catalog)
-        {
-            var sp = _iconImg.sprite;
-            var e = _catalog.entries.FirstOrDefault(x => x.icon == sp);
-            if (e != null) return e.itemId;
-        }
-
-        return null;
-    }
-
-    string MapObjectToId(UnityEngine.Object obj)
-    {
-        if (obj == null || _bridge == null) return null;
-        var field = typeof(InventoryBridge).GetField("manualMapping", BindingFlags.Public | BindingFlags.Instance);
-        if (field != null)
-        {
-            var list = field.GetValue(_bridge) as System.Collections.IEnumerable;
-            if (list != null)
-            {
-                foreach (var it in list)
-                {
-                    var t = it.GetType();
-                    var fObj = t.GetField("itemObject");
-                    var fId = t.GetField("itemId");
-                    if (fObj != null && fId != null)
+                    var value = itemIdField.GetValue(component) as string;
+                    if (!string.IsNullOrEmpty(value))
                     {
-                        var o = fObj.GetValue(it) as UnityEngine.Object;
-                        if (o == obj) return fId.GetValue(it) as string;
+                        return value;
+                    }
+                }
+
+                var itemField = type.GetField("item", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?? type.GetField("itemSO", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (itemField != null)
+                {
+                    var obj = itemField.GetValue(component) as Object;
+                    string mappedId = MapObjectToId(obj);
+                    if (!string.IsNullOrEmpty(mappedId))
+                    {
+                        return mappedId;
                     }
                 }
             }
         }
+        catch
+        {
+            // Keep fail-safe behavior for mixed slot implementations.
+        }
+
+        if (iconImage != null && iconImage.sprite != null && catalog != null)
+        {
+            Sprite sprite = iconImage.sprite;
+            var entry = catalog.entries.FirstOrDefault(x => x.icon == sprite);
+            if (entry != null)
+            {
+                return entry.itemId;
+            }
+        }
+
         return null;
     }
 
-    // π§æﬂ
-    void Tip(string s)
+    private string MapObjectToId(Object obj)
     {
-        if (!tip) return;
-        tip.text = s;
+        if (obj == null || bridge == null)
+        {
+            return null;
+        }
+
+        var field = typeof(InventoryBridge).GetField("manualMapping", BindingFlags.Public | BindingFlags.Instance);
+        if (field == null)
+        {
+            return null;
+        }
+
+        var list = field.GetValue(bridge) as System.Collections.IEnumerable;
+        if (list == null)
+        {
+            return null;
+        }
+
+        foreach (var item in list)
+        {
+            var type = item.GetType();
+            var objectField = type.GetField("itemObject");
+            var idField = type.GetField("itemId");
+            if (objectField == null || idField == null)
+            {
+                continue;
+            }
+
+            var mappedObject = objectField.GetValue(item) as Object;
+            if (mappedObject == obj)
+            {
+                return idField.GetValue(item) as string;
+            }
+        }
+
+        return null;
+    }
+
+    private void Tip(string message)
+    {
+        if (tip == null)
+        {
+            return;
+        }
+
+        tip.text = message;
         CancelInvoke(nameof(ClearTip));
         Invoke(nameof(ClearTip), 1.2f);
     }
-    void ClearTip() { if (tip) tip.text = ""; }
 
-    T FindInSceneIncludingInactive<T>() where T : Component
+    private void ClearTip()
     {
-        var a = Resources.FindObjectsOfTypeAll<T>();
-        foreach (var x in a) if (x && x.gameObject.scene.IsValid()) return x;
-        return null;
+        if (tip != null)
+        {
+            tip.text = "";
+        }
     }
 }

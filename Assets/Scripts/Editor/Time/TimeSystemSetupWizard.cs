@@ -10,12 +10,14 @@ using UnityEngine.UI;
 /// 时间系统自动配置向导
 /// 一键完成时间系统的完整配置
 /// </summary>
-public class TimeSystemSetupWizard : EditorWindow
+namespace FarmGame.Editor.TimeTools
 {
-    private GameTimeSystem timeSystemAsset;
-    private GameObject timeManagerObject;
-    private bool showDetails = true;
-    private Vector2 scrollPosition;
+    public class TimeSystemSetupWizard : EditorWindow
+    {
+        private GameTimeSystem timeSystemAsset;
+        private GameObject timeManagerObject;
+        private bool showDetails = true;
+        private Vector2 scrollPosition;
 
     [MenuItem("Tools/Time System/Setup Wizard")]
     public static void ShowWindow()
@@ -449,6 +451,7 @@ public class TimeSystemSetupWizard : EditorWindow
         {
             timeManagerObject = GameObject.Find("TimeManager");
         }
+    }
     }
 }
 #endif

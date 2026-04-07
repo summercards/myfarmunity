@@ -1,8 +1,6 @@
 using UnityEngine;
 using System.Collections;   // IEnumerator
-using FarmGame.NPCSystem; // Phase 1: 保留兼容性
-using FarmGame.UI;          // Added for IDialogSubject
-using FarmGame.ActorSystem;    // Phase 8: 新系统支持
+using FarmGame.Core.Contracts;
 
 #if ENABLE_INPUT_SYSTEM && !UNITY_INPUT_SYSTEM_DISABLE
 using UnityEngine.InputSystem;
@@ -14,11 +12,13 @@ using UnityEngine.InputSystem;
 /// - 对话打开时隐藏提示；
 /// - 离开当前对话 NPC 超过 closeDistance 自动关闭对话框；
 /// - 对话期间可就近切换到另一个 NPC（通过协程安全切换，避免 UI 竞态）。
-/// Phase 8: 支持新 Actor 系统（优先）和旧 NPC 系统（兼容）
+/// NPC 主线使用 ActorSystem，旧交互体通过 IDialogSubject 兼容。
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerInteractor : MonoBehaviour
 {
+    private const string LegacyNpcInteractableTypeName = "FarmGame.NPCSystem.NPCInteractable";
+
     [Header("Detect")]
     [Tooltip("交互搜索半径（米）。")]
     public float searchRadius = 2.2f;
@@ -28,15 +28,19 @@ public class PlayerInteractor : MonoBehaviour
 
     [Header("UI (Optional)")]
     [Tooltip("用于显示提示字符串（可直接拖你项目里的 PickupHUD）。")]
-    public PickupHUD hintHUD;
+    public MonoBehaviour hintHUD;
 
     [Tooltip("（可选）对话面板引用。若 NPC 未绑定，会回退使用这里的。")]
-    public NPCDialogUI sharedDialogUI;
+    public MonoBehaviour sharedDialogUI;
 
     [Header("Auto Close")]
     [Tooltip("对话打开时，若玩家与该 NPC 距离大于该值则自动关闭。")]
     public bool autoCloseWhenFar = true;
     public float closeDistance = 3.0f;
+
+    [Header("Legacy Compatibility")]
+    [Tooltip("是否允许回退到旧 NPCInteractable。阶段4建议关闭，仅用于迁移排障。")]
+    public bool allowLegacyNpcFallback = false;
 
     // 当前锁定的可交互体
     private IInteractable _current;
@@ -51,36 +55,61 @@ public class PlayerInteractor : MonoBehaviour
     private string _lastHintText = "";
 
     // Phase 4 修复：缓存的 UI 引用
-    private NPCDialogUI _cachedDialogUI;
-    private NPCDialogWorldBridge _cachedWorldBridge;
+    private IHintHUD _hintHUDContract;
+    private IDialogUI _sharedDialogUIContract;
+    private IDialogUI _cachedDialogUI;
+    private IDialogWorldBridge _cachedWorldBridge;
 
     void Awake()
     {
-        // Phase 4 修复：缓存 NPCDialogUI 引用
-        if (sharedDialogUI != null)
-        {
-            _cachedDialogUI = sharedDialogUI;
-            Debug.Log("[PlayerInteractor] 已使用指定的 NPCDialogUI 引用");
-        }
-        else
-        {
-            _cachedDialogUI = FindObjectOfType<NPCDialogUI>();
-            if (_cachedDialogUI != null)
-            {
-                Debug.Log("[PlayerInteractor] 已找到并缓存 NPCDialogUI");
-            }
-            else
-            {
-                Debug.LogWarning("[PlayerInteractor] 场景中找不到 NPCDialogUI，交互功能将不可用");
-            }
-        }
+        ResolveHintHUDContract();
+        ResolveSharedDialogUIContract();
+        _cachedDialogUI = _sharedDialogUIContract ?? RuntimeRefs.DialogUIContract;
+        _cachedWorldBridge = RuntimeRefs.DialogWorldBridgeContract;
+    }
 
-        // 缓存 WorldBridge 引用
-        _cachedWorldBridge = FindObjectOfType<NPCDialogWorldBridge>();
+    void OnEnable()
+    {
+        RuntimeRefs.DialogUIContractChanged += HandleDialogUIChanged;
+        RuntimeRefs.DialogWorldBridgeContractChanged += HandleWorldBridgeChanged;
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.DialogUIContractChanged -= HandleDialogUIChanged;
+        RuntimeRefs.DialogWorldBridgeContractChanged -= HandleWorldBridgeChanged;
+    }
+
+    void HandleDialogUIChanged(IDialogUI dialogUI)
+    {
+        if (_sharedDialogUIContract == null)
+        {
+            _cachedDialogUI = dialogUI;
+        }
+    }
+
+    void HandleWorldBridgeChanged(IDialogWorldBridge worldBridge)
+    {
+        _cachedWorldBridge = worldBridge;
     }
 
     void Update()
     {
+        if (_hintHUDContract == null)
+        {
+            ResolveHintHUDContract();
+        }
+
+        if (_sharedDialogUIContract == null && sharedDialogUI != null)
+        {
+            ResolveSharedDialogUIContract();
+        }
+
+        if (_cachedDialogUI == null && _sharedDialogUIContract != null)
+        {
+            _cachedDialogUI = _sharedDialogUIContract;
+        }
+
         if (_cachedDialogUI == null) return;
 
         // 对话打开时处理
@@ -102,7 +131,7 @@ public class PlayerInteractor : MonoBehaviour
         // 处理离开距离自动关闭
         if (autoCloseWhenFar)
         {
-            var subject = _cachedDialogUI.CurrentNPC;
+            var subject = _cachedDialogUI.CurrentSubject;
             if (subject != null)
             {
                 float d = Vector3.Distance(transform.position, subject.SubjectTransform.position);
@@ -123,7 +152,7 @@ public class PlayerInteractor : MonoBehaviour
     /// </summary>
     private void HandleConversationSwitch()
     {
-        var currSubject = _cachedDialogUI.CurrentNPC;
+        var currSubject = _cachedDialogUI.CurrentSubject;
         Transform currTrans = currSubject?.SubjectTransform;
 
         // 检查是否靠近另一个NPC
@@ -204,7 +233,41 @@ public class PlayerInteractor : MonoBehaviour
 
         for (int i = 0; i < cols.Length; i++)
         {
-            var inter = cols[i].GetComponentInParent<IInteractable>();
+            MonoBehaviour[] candidates = cols[i].GetComponentsInParent<MonoBehaviour>(true);
+            IInteractable inter = null;
+            IInteractable legacyFallback = null;
+
+            for (int j = 0; j < candidates.Length; j++)
+            {
+                MonoBehaviour candidate = candidates[j];
+                if (!(candidate is IInteractable interactable))
+                {
+                    continue;
+                }
+
+                if (IsLegacyNpcInteractable(interactable))
+                {
+                    if (!allowLegacyNpcFallback)
+                    {
+                        continue;
+                    }
+
+                    if (legacyFallback == null)
+                    {
+                        legacyFallback = interactable;
+                    }
+                    continue;
+                }
+
+                inter = interactable;
+                break;
+            }
+
+            if (inter == null)
+            {
+                inter = legacyFallback;
+            }
+
             if (inter == null)
             {
                 // Debug.Log($"[PlayerInteractor] Ignored collider {cols[i].name} (No IInteractable)");
@@ -213,7 +276,13 @@ public class PlayerInteractor : MonoBehaviour
             
             // Debug.Log($"[PlayerInteractor] Found candidate: {inter.GetTransform().name}");
 
-            float d = Vector3.Distance(transform.position, inter.GetTransform().position);
+            Transform interactTransform = inter.GetTransform();
+            if (interactTransform == null)
+            {
+                continue;
+            }
+
+            float d = Vector3.Distance(transform.position, interactTransform.position);
             if (d < bestDist)
             {
                 best = inter;
@@ -231,108 +300,159 @@ public class PlayerInteractor : MonoBehaviour
         // 标记目标，避免重复启动
         _pendingSwitch = target;
 
-        // Phase 8: 检查目标类型并处理兼容性
-        IDialogSubject dialogSubject = null;
-        GameObject targetGameObject = null;
+        try
+        {
+            TryResolveDialogSubject(target, out IDialogSubject dialogSubject, out GameObject targetGameObject);
 
-        if (target is IDialogSubject)
-        {
-            dialogSubject = (IDialogSubject)target;
-            targetGameObject = dialogSubject.SubjectTransform?.gameObject;
+            if (targetGameObject == null)
+            {
+                Debug.LogWarning("[PlayerInteractor] Target is null, cannot switch conversation");
+                yield break;
+            }
+
+            // 1) 请求关闭当前对话（如果开着）
+            if (_cachedDialogUI != null && _cachedDialogUI.IsOpen)
+                _cachedDialogUI.Close();
+
+            // 2) 等待 UI 真正关闭（IsOpen == false），最多等待 switchTimeout
+            float t = 0f;
+            while (_cachedDialogUI != null && _cachedDialogUI.IsOpen && t < switchTimeout)
+            {
+                t += Time.unscaledDeltaTime;   // 不受 Time.timeScale 影响
+                yield return null;             // 等一帧
+            }
+
+            // 3) 保险：再让一帧过去，让 Close 回调/事件收尾
+            yield return null;
+
+            // 4) 切换到新的交互对象并立刻触发
+            _current = target;
+
+            if (_cachedDialogUI != null && dialogSubject != null)
+            {
+                _cachedDialogUI.Open(dialogSubject);
+                Debug.Log($"[PlayerInteractor] Opened NPC dialogue: {dialogSubject.Name}");
+            }
+            else
+            {
+                target.Interact(gameObject);
+                Debug.Log("[PlayerInteractor] Target does not expose dialog subject, fallback to Interact()");
+            }
+
+            if (_cachedWorldBridge != null)
+            {
+                if (dialogSubject != null)
+                {
+                    _cachedWorldBridge.BindToSubject(dialogSubject);
+                }
+                else
+                {
+                    _cachedWorldBridge.Bind(target.GetTransform());
+                }
+            }
         }
-        else if (target is Component comp)
+        finally
         {
-            targetGameObject = comp.gameObject;
-            // 尝试获取 IDialogSubject
-            dialogSubject = comp.GetComponent<IDialogSubject>();
+            // 5) 清理状态（确保任何提前退出也会清理）
+            _pendingSwitch = null;
+            _switchCo = null;
+        }
+    }
+
+    private void TryResolveDialogSubject(IInteractable target, out IDialogSubject dialogSubject, out GameObject targetGameObject)
+    {
+        dialogSubject = null;
+        targetGameObject = null;
+        IDialogSubject legacySubjectFallback = null;
+
+        if (target == null)
+        {
+            return;
+        }
+
+        if (target is Component targetComponent)
+        {
+            targetGameObject = targetComponent.gameObject;
+        }
+
+        if (target is IDialogSubject directSubject)
+        {
+            if (IsLegacyNpcDialogSubject(directSubject))
+            {
+                if (allowLegacyNpcFallback)
+                {
+                    legacySubjectFallback = directSubject;
+                }
+            }
+            else
+            {
+                dialogSubject = directSubject;
+            }
+        }
+
+        if (targetGameObject == null && dialogSubject != null && dialogSubject.SubjectTransform != null)
+        {
+            targetGameObject = dialogSubject.SubjectTransform.gameObject;
         }
 
         if (targetGameObject == null)
         {
-            Debug.LogWarning("[PlayerInteractor] Target is null, cannot switch conversation");
-            yield break;
+            return;
         }
 
-        // 1) 请求关闭当前对话（如果开着）
-        if (_cachedDialogUI != null && _cachedDialogUI.IsOpen)
-            _cachedDialogUI.Close();
-
-        // 2) 等待 UI 真正关闭（IsOpen == false），最多等待 switchTimeout
-        float t = 0f;
-        while (_cachedDialogUI != null && _cachedDialogUI.IsOpen && t < switchTimeout)
+        if (dialogSubject != null)
         {
-            t += Time.unscaledDeltaTime;   // 不受 Time.timeScale 影响
-            yield return null;             // 等一帧
+            return;
         }
 
-        // 3) 保险：再让一帧过去，让 Close 回调/事件收尾
-        yield return null;
-
-        // 4) 切换到新的交互对象并立刻触发
-        _current = target;
-
-        // Phase 8: 优先使用新系统的 Actor
-        if (targetGameObject != null)
+        MonoBehaviour[] candidates = targetGameObject.GetComponentsInParent<MonoBehaviour>(true);
+        foreach (MonoBehaviour candidate in candidates)
         {
-            Actor newActor = targetGameObject.GetComponent<Actor>();
-            if (newActor != null)
+            if (candidate is IDialogSubject subject)
             {
-                // 新系统：直接传递 Actor 给 UI
-                if (_cachedDialogUI != null)
+                if (IsLegacyNpcDialogSubject(subject))
                 {
-                    _cachedDialogUI.Open(newActor);
-                    Debug.Log($"[PlayerInteractor] Opened new Actor system NPC: {newActor.Identity?.Name}");
-                }
-            }
-            else
-            {
-                // 旧系统兼容：使用 IInteractable
-                // Phase 8: 如果是旧版 NPC 且没单独指定 dialogUI，则复用 sharedDialogUI
-                if (target is NPCInteractable oldNpc && oldNpc.dialogUI == null && sharedDialogUI != null)
-                {
-                    oldNpc.dialogUI = sharedDialogUI;
-                }
-
-                // Phase 8: 通知 UI
-                if (target is IDialogSubject sub)
-                {
-                    _cachedDialogUI.Open(sub);
-                    Debug.Log($"[PlayerInteractor] Opened legacy NPC system: {sub.Name}");
+                    if (allowLegacyNpcFallback && legacySubjectFallback == null)
+                    {
+                        legacySubjectFallback = subject;
+                    }
                 }
                 else
                 {
-                    // Phase 8: 回退到旧方式
-                    target.Interact(gameObject);
-                    Debug.Log("[PlayerInteractor] Used legacy Interact() method");
+                    dialogSubject = subject;
+                    targetGameObject = subject.SubjectTransform != null ? subject.SubjectTransform.gameObject : candidate.gameObject;
+                    return;
                 }
             }
         }
 
-        // Phase 8: 绑定世界气泡到当前 NPC
-        if (_cachedWorldBridge != null)
+        if (legacySubjectFallback != null)
         {
-            if (dialogSubject != null)
-            {
-                _cachedWorldBridge.BindToSubject(dialogSubject);
-            }
-            else if (targetGameObject != null)
-            {
-                // Phase 8: 如果是旧版 NPC，尝试绑定（保留兼容性）
-                var oldNpc = targetGameObject.GetComponent<NPCInteractable>();
-                if (oldNpc != null)
-                    _cachedWorldBridge.BindToNPC(oldNpc);
-            }
-            else
-            {
-                // Phase 8: 简单的 Transform 绑定
-                Transform anchor = target.GetTransform();
-                _cachedWorldBridge.Bind(anchor);
-            }
+            dialogSubject = legacySubjectFallback;
+            targetGameObject = legacySubjectFallback.SubjectTransform != null
+                ? legacySubjectFallback.SubjectTransform.gameObject
+                : targetGameObject;
+        }
+    }
+
+    private static bool IsLegacyNpcInteractable(IInteractable interactable)
+    {
+        if (!(interactable is MonoBehaviour behaviour))
+        {
+            return false;
         }
 
-        // 5) 清理状态
-        _pendingSwitch = null;
-        _switchCo = null;
+        return behaviour.GetType().FullName == LegacyNpcInteractableTypeName;
+    }
+
+    private static bool IsLegacyNpcDialogSubject(IDialogSubject subject)
+    {
+        if (!(subject is MonoBehaviour behaviour))
+        {
+            return false;
+        }
+
+        return behaviour.GetType().FullName == LegacyNpcInteractableTypeName;
     }
 
     private bool PressedInteractKey()
@@ -345,12 +465,22 @@ public class PlayerInteractor : MonoBehaviour
 
     private void ShowHint(string text)
     {
-        if (hintHUD) hintHUD.Show(text);
+        _hintHUDContract?.Show(text);
     }
 
     private void HideHint()
     {
-        if (hintHUD) hintHUD.Hide();
+        _hintHUDContract?.Hide();
+    }
+
+    private void ResolveHintHUDContract()
+    {
+        _hintHUDContract = hintHUD as IHintHUD;
+    }
+
+    private void ResolveSharedDialogUIContract()
+    {
+        _sharedDialogUIContract = sharedDialogUI as IDialogUI;
     }
 
     void OnDrawGizmosSelected()

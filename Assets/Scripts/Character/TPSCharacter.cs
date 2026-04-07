@@ -60,6 +60,7 @@ public class TPSCharacter : MonoBehaviour
     {
         cc = GetComponent<CharacterController>();
         if (!input) input = GetComponent<TPSInput>();
+        RuntimeRefs.RegisterPlayerCharacter(this);
 
         // �� �Զ��� Buildable ͼ�㲢������⣨�������ｨ�˸ò㣩
         int buildable = LayerMask.NameToLayer("Buildable");
@@ -94,6 +95,11 @@ public class TPSCharacter : MonoBehaviour
             _cachedMainCamera = Camera.main;
         }
         Debug.Log($"[TPSCharacter] 刷新相机缓存: {_cachedMainCamera?.name ?? "null"}");
+    }
+
+    void OnDestroy()
+    {
+        RuntimeRefs.UnregisterPlayerCharacter(this);
     }
 
     void Update()

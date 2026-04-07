@@ -122,16 +122,6 @@ namespace FarmGame.ActorSystem
         protected override void OnEnabled()
         {
             base.OnEnabled();
-            
-            // Phase 7: 自动查找礼物通知 UI
-            if (giftNotificationUI == null)
-            {
-                giftNotificationUI = GameObject.FindWithTag("GiftNotificationUI");
-                if (giftNotificationUI != null)
-                {
-                    Debug.Log("[GiftModule] 已找到礼物通知 UI");
-                }
-            }
         }
 
         /// <summary>

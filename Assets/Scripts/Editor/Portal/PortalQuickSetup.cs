@@ -5,13 +5,15 @@ using UnityEditor;
 /// <summary>
 /// 传送门快速设置 - 场景配置菜单
 /// </summary>
-public class PortalQuickSetup : EditorWindow
+namespace FarmGame.Editor.PortalTools
 {
-    [MenuItem("Tools/传送门/场景传送快速设置")]
-    public static void ShowWindow()
+    public class PortalQuickSetup : EditorWindow
     {
-        GetWindow<PortalQuickSetup>("传送门场景设置");
-    }
+        [MenuItem("Tools/传送门/场景传送快速设置")]
+        public static void ShowWindow()
+        {
+            GetWindow<PortalQuickSetup>("传送门场景设置");
+        }
 
     private void OnGUI()
     {
@@ -156,5 +158,6 @@ public class PortalQuickSetup : EditorWindow
             }
         }
         return false;
+    }
     }
 }

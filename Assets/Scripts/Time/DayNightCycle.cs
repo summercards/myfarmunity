@@ -98,38 +98,30 @@ public class DayNightCycle : MonoBehaviour
     private Color currentFogColor;
     private Vector3 currentRotation;
 
-    private bool isInitialized = false;
-
-    void Start()
+    void Awake()
     {
-        // 如果没有指定时间系统，尝试查找
-        if (timeSystem == null)
-        {
-            timeSystem = FindObjectOfType<GameTimeSystem>();
-        }
-
-        // 初始化灯光
         if (directionalLight == null)
         {
-            directionalLight = FindObjectOfType<Light>();
+            directionalLight = GetComponent<Light>();
         }
 
-        // 订阅加载完成事件
-        if (timeSystem != null)
+        if (directionalLight == null)
         {
-            timeSystem.onLoadComplete.AddListener(OnTimeLoaded);
+            directionalLight = RenderSettings.sun;
         }
-
-        // 设置初始值（等待时间系统初始化后再更新）
     }
 
-    void OnDestroy()
+    void OnEnable()
     {
-        // 只有时间系统存在时才取消订阅
-        if (timeSystem != null)
-        {
-            timeSystem.onLoadComplete.RemoveListener(OnTimeLoaded);
-        }
+        RuntimeRefs.TimeSystemChanged += HandleTimeSystemChanged;
+        AttachTimeSystem(ResolveTimeSystem(logWhenMissing: false));
+        ForceUpdate();
+    }
+
+    void OnDisable()
+    {
+        RuntimeRefs.TimeSystemChanged -= HandleTimeSystemChanged;
+        AttachTimeSystem(null);
     }
 
     /// <summary>
@@ -138,18 +130,17 @@ public class DayNightCycle : MonoBehaviour
     private void OnTimeLoaded()
     {
         UpdateDayNightCycle();
-        isInitialized = true;
+    }
+
+    private void HandleTimeSystemChanged(GameTimeSystem system)
+    {
+        AttachTimeSystem(system);
+        ForceUpdate();
     }
 
     void Update()
     {
         if (timeSystem == null) return;
-
-        // 确保时间系统已初始化
-        if (!isInitialized && timeSystem.Hour > 0)
-        {
-            OnTimeLoaded();
-        }
 
         UpdateDayNightCycle();
     }
@@ -159,6 +150,11 @@ public class DayNightCycle : MonoBehaviour
     /// </summary>
     private void UpdateDayNightCycle()
     {
+        if (directionalLight == null)
+        {
+            directionalLight = RenderSettings.sun;
+        }
+
         float currentTime = timeSystem.CurrentTime;
         float dayProgress = GetDayProgress(currentTime);
 
@@ -349,11 +345,13 @@ public class DayNightCycle : MonoBehaviour
     /// </summary>
     public void SetTimeSystem(GameTimeSystem system)
     {
-        timeSystem = system;
         if (system != null)
         {
-            system.onLoadComplete.AddListener(OnTimeLoaded);
+            RuntimeRefs.RegisterTimeSystem(system);
         }
+
+        AttachTimeSystem(system);
+        ForceUpdate();
     }
 
     /// <summary>
@@ -372,6 +370,47 @@ public class DayNightCycle : MonoBehaviour
         if (timeSystem != null)
         {
             UpdateDayNightCycle();
+        }
+    }
+
+    private GameTimeSystem ResolveTimeSystem(bool logWhenMissing)
+    {
+        if (timeSystem != null)
+        {
+            return timeSystem;
+        }
+
+        GameTimeSystem resolved = RuntimeRefs.TimeSystem;
+        if (resolved == null)
+        {
+            resolved = TimeSystemAccessor.TimeSystem;
+        }
+
+        if (resolved != null)
+        {
+            timeSystem = resolved;
+            RuntimeRefs.RegisterTimeSystem(resolved);
+        }
+        else if (logWhenMissing)
+        {
+            Debug.LogWarning("[DayNightCycle] 未找到时间系统，昼夜循环不会更新");
+        }
+
+        return timeSystem;
+    }
+
+    private void AttachTimeSystem(GameTimeSystem system)
+    {
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.RemoveListener(OnTimeLoaded);
+        }
+
+        timeSystem = system;
+
+        if (timeSystem != null)
+        {
+            timeSystem.onLoadComplete.AddListener(OnTimeLoaded);
         }
     }
 }

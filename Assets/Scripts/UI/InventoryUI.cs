@@ -30,22 +30,21 @@ public class InventoryUI : MonoBehaviour
     public KeyCode toggleKey = KeyCode.I;
 
     private readonly List<InventorySlotUI> _slots = new();
-    private bool _referencesInitialized = false;
 
     void Reset()
     {
-        // Reset 时尝试动态查找
+        // Reset 时优先使用运行时注册的引用
+        if (!playerInv) playerInv = RuntimeRefs.InventoryHolder;
         if (!playerInv) playerInv = PlayerInventoryHolder.Instance;
-        if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
-        if (!activeCtrl) activeCtrl = FindObjectOfType<ActiveItemController>();
+        if (!activeCtrl) activeCtrl = RuntimeRefs.ActiveItemController;
         if (!itemDB && playerInv) itemDB = playerInv.itemDB;
     }
 
     void Awake()
     {
-        // 尝试从单例获取
+        if (!playerInv) playerInv = RuntimeRefs.InventoryHolder;
         if (!playerInv) playerInv = PlayerInventoryHolder.Instance;
-        if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
+        if (!activeCtrl) activeCtrl = RuntimeRefs.ActiveItemController;
 
         if (!itemDB && playerInv) itemDB = playerInv.itemDB;
 
@@ -55,29 +54,29 @@ public class InventoryUI : MonoBehaviour
 
     void OnEnable()
     {
+        RuntimeRefs.InventoryHolderChanged += HandleInventoryHolderChanged;
+        RuntimeRefs.ActiveItemControllerChanged += HandleActiveItemControllerChanged;
+
         // 确保引用正确（只在启用时检查一次）
         EnsureReferences();
-        _referencesInitialized = true;
+        UnsubscribeInventoryHolder(playerInv);
+        SubscribeInventoryHolder(playerInv);
+        UnsubscribeActiveItemController(activeCtrl);
+        SubscribeActiveItemController(activeCtrl);
 
-        if (playerInv != null) playerInv.OnInventoryChanged += RefreshAll;
-        if (activeCtrl != null) activeCtrl.OnActiveChanged += _ => RefreshAll();
         RefreshAll();
     }
 
     void OnDisable()
     {
-        if (playerInv != null) playerInv.OnInventoryChanged -= RefreshAll;
-        if (activeCtrl != null) activeCtrl.OnActiveChanged -= _ => RefreshAll();
+        RuntimeRefs.InventoryHolderChanged -= HandleInventoryHolderChanged;
+        RuntimeRefs.ActiveItemControllerChanged -= HandleActiveItemControllerChanged;
+        UnsubscribeInventoryHolder(playerInv);
+        UnsubscribeActiveItemController(activeCtrl);
     }
 
     void Update()
     {
-        // 只在引用丢失时才重新查找（避免每帧检查）
-        if (_referencesInitialized && (playerInv == null || activeCtrl == null || itemDB == null))
-        {
-            EnsureReferences();
-        }
-
         if (toggleWithKey && Input.GetKeyDown(toggleKey))
             TogglePanel();
     }
@@ -94,8 +93,8 @@ public class InventoryUI : MonoBehaviour
         if (playerInv == null || playerInv.gameObject == null)
         {
             var prevInv = playerInv;
-            playerInv = PlayerInventoryHolder.Instance;
-            if (!playerInv) playerInv = FindObjectOfType<PlayerInventoryHolder>();
+            playerInv = RuntimeRefs.InventoryHolder;
+            if (!playerInv) playerInv = PlayerInventoryHolder.Instance;
 
             if (playerInv != null && prevInv != playerInv)
             {
@@ -105,8 +104,8 @@ public class InventoryUI : MonoBehaviour
                 // 重新订阅事件
                 if (isActiveAndEnabled)
                 {
-                    if (prevInv != null) prevInv.OnInventoryChanged -= RefreshAll;
-                    playerInv.OnInventoryChanged += RefreshAll;
+                    UnsubscribeInventoryHolder(prevInv);
+                    SubscribeInventoryHolder(playerInv);
                 }
             }
         }
@@ -115,11 +114,14 @@ public class InventoryUI : MonoBehaviour
         if (activeCtrl == null || (activeCtrl as MonoBehaviour) == null ||
             (activeCtrl as MonoBehaviour).gameObject == null)
         {
-            activeCtrl = FindObjectOfType<ActiveItemController>();
-            if (activeCtrl != null && isActiveAndEnabled)
+            var prevCtrl = activeCtrl;
+            activeCtrl = RuntimeRefs.ActiveItemController;
+            if (activeCtrl != null && prevCtrl != activeCtrl && isActiveAndEnabled)
             {
                 Debug.Log($"[InventoryUI] 重新绑定 ActiveItemController");
                 changed = true;
+                UnsubscribeActiveItemController(prevCtrl);
+                SubscribeActiveItemController(activeCtrl);
             }
         }
 
@@ -131,6 +133,73 @@ public class InventoryUI : MonoBehaviour
         {
             RefreshAll();
         }
+    }
+
+    private void HandleInventoryHolderChanged(PlayerInventoryHolder holder)
+    {
+        if (holder == playerInv)
+        {
+            return;
+        }
+
+        UnsubscribeInventoryHolder(playerInv);
+        playerInv = holder;
+        if (playerInv != null)
+        {
+            itemDB = playerInv.itemDB;
+        }
+        SubscribeInventoryHolder(playerInv);
+        RefreshAll();
+    }
+
+    private void HandleActiveItemControllerChanged(ActiveItemController controller)
+    {
+        if (controller == activeCtrl)
+        {
+            return;
+        }
+
+        UnsubscribeActiveItemController(activeCtrl);
+        activeCtrl = controller;
+        SubscribeActiveItemController(activeCtrl);
+        RefreshAll();
+    }
+
+    private void SubscribeInventoryHolder(PlayerInventoryHolder holder)
+    {
+        if (holder != null)
+        {
+            holder.OnInventoryChanged += RefreshAll;
+        }
+    }
+
+    private void UnsubscribeInventoryHolder(PlayerInventoryHolder holder)
+    {
+        if (holder != null)
+        {
+            holder.OnInventoryChanged -= RefreshAll;
+        }
+    }
+
+    private void SubscribeActiveItemController(ActiveItemController controller)
+    {
+        if (controller != null)
+        {
+            controller.OnActiveChanged += HandleActiveChanged;
+        }
+    }
+
+    private void UnsubscribeActiveItemController(ActiveItemController controller)
+    {
+        if (controller != null)
+        {
+            controller.OnActiveChanged -= HandleActiveChanged;
+        }
+    }
+
+    private void HandleActiveChanged(string _)
+    {
+        RefreshAll();
     }
 
     public void TogglePanel()
