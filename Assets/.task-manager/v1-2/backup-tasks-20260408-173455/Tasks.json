@@ -2,193 +2,161 @@
   {
     "id": "v1-2-scope-confirmation",
     "title": "确认v1.2功能范围与边界（不含美术）",
-    "description": "确认v1.2纳入与不纳入范围，冻结边界，输出风险清单与阶段节奏。",
+    "description": "确认v1.2纳入范围与不纳入范围，输出风险清单与预计完成节奏。",
     "syncKey": "myfarm-v1-2-scope-confirmation",
     "stageId": "implementation-v1-2-analysis",
     "priority": "high",
     "tags": ["v1.2", "规划", "范围"],
-    "orderIndex": 1,
-    "status": "done",
-    "progress": 100
+    "orderIndex": 1
   },
   {
     "id": "v1-2-teleport-architecture-alignment",
     "title": "统一传送架构方案（复用Portal）",
-    "description": "明确Portal/PortalManager/SpawnPoint为唯一主链路，禁止并行Teleport主流程。",
+    "description": "确定Portal/PortalManager/SpawnPoint为唯一主链路，禁止并行Teleport主流程。",
     "syncKey": "myfarm-v1-2-teleport-architecture-alignment",
     "stageId": "implementation-v1-2-analysis",
     "priority": "high",
     "tags": ["v1.2", "传送", "架构"],
-    "orderIndex": 2,
-    "status": "done",
-    "progress": 100
+    "orderIndex": 2
   },
   {
     "id": "v1-2-data-model-design",
     "title": "设计卧室数据模型与存档兼容策略",
-    "description": "定义BedroomData/FurniturePlacement结构，并约束SaveManager优先、fallback策略。",
+    "description": "定义BedroomData与FurniturePlacement结构，并明确SaveManager优先、PlayerPrefs fallback策略。",
     "syncKey": "myfarm-v1-2-data-model-design",
     "stageId": "implementation-v1-2-analysis",
     "priority": "high",
     "tags": ["v1.2", "数据结构", "存档"],
-    "orderIndex": 3,
-    "status": "done",
-    "progress": 100
+    "orderIndex": 3
   },
   {
     "id": "v1-2-diy-design",
     "title": "设计DIY编辑与交互方案",
-    "description": "定义卧室DIY放置/移动/删除流程与主循环兼容约束，复用Build系统能力。",
+    "description": "定义卧室DIY放置/移动/删除流程与主循环兼容方案，复用Build系统能力。",
     "syncKey": "myfarm-v1-2-diy-design",
     "stageId": "implementation-v1-2-analysis",
     "priority": "high",
     "tags": ["v1.2", "DIY", "交互"],
-    "orderIndex": 4,
-    "status": "done",
-    "progress": 100
+    "orderIndex": 4
   },
   {
     "id": "v1-2-create-scenes-and-spawnpoints",
     "title": "创建Bedroom与SpiritSpace基础场景",
-    "description": "创建Bedroom/spiritspace场景，配置bedroom_entry_from_cloudcity、cloudcity_entry_from_bedroom、spiritspace_bed_entry并写入Build Settings。",
+    "description": "创建Bedroom和spiritspace场景，配置核心SpawnPoint并加入Build Settings。",
     "syncKey": "myfarm-v1-2-create-scenes-and-spawnpoints",
-    "stageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+    "stageId": "implementation-v1-2-bedroom-scene",
     "priority": "high",
     "tags": ["v1.2", "场景", "SpawnPoint"],
-    "orderIndex": 11,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 5
   },
   {
     "id": "v1-2-configure-cloud-bedroom-portal",
     "title": "配置云层↔卧室双向传送",
-    "description": "在cloudcity.scene与Bedroom场景配置双向Portal，校验targetScene/targetSpawnID与落点正确性。",
+    "description": "在cloudcity与Bedroom场景配置Portal双向传送并验证落点与稳定性。",
     "syncKey": "myfarm-v1-2-configure-cloud-bedroom-portal",
-    "stageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+    "stageId": "implementation-v1-2-teleport-system",
     "priority": "high",
     "tags": ["v1.2", "传送", "Portal"],
-    "orderIndex": 12,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 6
   },
   {
     "id": "v1-2-implement-bed-sleep-entrance",
     "title": "实现床睡觉入口到灵之空间",
-    "description": "实现床交互触发睡觉状态并传送到spiritspace_bed_entry，增加重复触发保护。",
+    "description": "实现床交互触发睡觉状态并传送到spiritspace_bed_entry。",
     "syncKey": "myfarm-v1-2-implement-bed-sleep-entrance",
-    "stageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+    "stageId": "implementation-v1-2-spirit-space",
     "priority": "high",
     "tags": ["v1.2", "灵之空间", "入口"],
-    "orderIndex": 13,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 7
   },
   {
     "id": "v1-2-implement-diy-editing",
     "title": "实现DIY编辑能力（放置/移动/删除）",
-    "description": "在卧室内实现编辑模式、区域约束与放置/移动/删除闭环，并保证不破坏玩家基础控制。",
+    "description": "实现卧室编辑模式与可编辑区域约束，完成DIY放置/移动/删除流程。",
     "syncKey": "myfarm-v1-2-implement-diy-editing",
-    "stageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+    "stageId": "implementation-v1-2-diy-system",
     "priority": "high",
     "tags": ["v1.2", "DIY", "编辑"],
-    "orderIndex": 14,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 8
   },
   {
     "id": "v1-2-implement-diy-persistence",
     "title": "实现DIY持久化（SaveManager优先）",
-    "description": "实现卧室DIY数据保存与恢复：优先SaveManager(ISaveParticipant)，无服务时fallback，并避免读档重复生成。",
+    "description": "实现BedroomDIYSaveParticipant并接入SaveManager，缺省回退PlayerPrefs。",
     "syncKey": "myfarm-v1-2-implement-diy-persistence",
-    "stageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+    "stageId": "implementation-v1-2-diy-system",
     "priority": "high",
     "tags": ["v1.2", "DIY", "存档"],
-    "orderIndex": 15,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 9
   },
   {
     "id": "v1-2-enforce-single-spirit-entrance",
     "title": "完成灵之空间唯一入口治理",
-    "description": "实现入口排查与治理脚本，仅保留卧室床入口，并提供误配置检测。",
+    "description": "禁用非卧室床入口并补充入口校验脚本，确保唯一入口约束可验证。",
     "syncKey": "myfarm-v1-2-enforce-single-spirit-entrance",
-    "stageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+    "stageId": "implementation-v1-2-spirit-space",
     "priority": "high",
     "tags": ["v1.2", "灵之空间", "治理"],
-    "orderIndex": 16,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 10
   },
   {
     "id": "v1-2-integration-teleport",
     "title": "传送系统联调（云层↔卧室↔灵之空间）",
-    "description": "联调三段传送链路，覆盖首进、往返、多次触发和读档后传送，产出联调记录。",
+    "description": "联调三段传送链路，覆盖首进、往返、多次触发与读档后传送。",
     "syncKey": "myfarm-v1-2-integration-teleport",
-    "stageId": "implementation-v1-2-release",
+    "stageId": "implementation-v1-2-integration",
     "priority": "high",
     "tags": ["v1.2", "联调", "传送"],
-    "orderIndex": 21,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 11
   },
   {
     "id": "v1-2-integration-diy",
     "title": "DIY系统与主循环联调",
-    "description": "联调DIY与移动/背包/保存加载，验证放置-保存-加载循环稳定，输出问题清单。",
+    "description": "联调DIY与移动/背包/保存加载，验证放置-保存-加载循环稳定。",
     "syncKey": "myfarm-v1-2-integration-diy",
-    "stageId": "implementation-v1-2-release",
+    "stageId": "implementation-v1-2-integration",
     "priority": "high",
     "tags": ["v1.2", "联调", "DIY"],
-    "orderIndex": 22,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 12
   },
   {
     "id": "v1-2-integration-spirit-space",
     "title": "床入口与SpiritSpace场景联调",
-    "description": "联调睡觉触发、场景加载、出生点落位与返回路径，确认入口行为稳定。",
+    "description": "联调睡觉触发、场景加载、出生点落位，确认仅入口能力纳入v1.2。",
     "syncKey": "myfarm-v1-2-integration-spirit-space",
-    "stageId": "implementation-v1-2-release",
+    "stageId": "implementation-v1-2-integration",
     "priority": "high",
     "tags": ["v1.2", "联调", "灵之空间"],
-    "orderIndex": 23,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 13
   },
   {
     "id": "v1-2-regression-test",
     "title": "回归测试（含唯一入口断言）",
-    "description": "回归云层/NPC/商店/移动/存档，并验证灵之空间仅卧室床入口可触发，输出测试报告。",
+    "description": "回归云层/NPC/商店/移动/存档，并验证灵之空间仅卧室床入口可触发。",
     "syncKey": "myfarm-v1-2-regression-test",
     "stageId": "implementation-v1-2-release",
     "priority": "high",
     "tags": ["v1.2", "回归测试", "QA"],
-    "orderIndex": 24,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 14
   },
   {
     "id": "v1-2-code-review",
     "title": "代码审查与文档整理",
-    "description": "完成代码审查、测试记录、用户说明和变更文档整理。",
+    "description": "完成代码审查、测试报告、用户说明及CHANGELOG更新。",
     "syncKey": "myfarm-v1-2-code-review",
     "stageId": "implementation-v1-2-release",
     "priority": "medium",
     "tags": ["v1.2", "代码审查", "文档"],
-    "orderIndex": 25,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 15
   },
   {
     "id": "v1-2-release",
     "title": "版本打标签与发布",
-    "description": "完成最终测试、主分支合并、v1.2标签、CHANGELOG与发布公告。",
+    "description": "完成最终测试、合并主分支、打v1.2标签与发布公告。",
     "syncKey": "myfarm-v1-2-release",
     "stageId": "implementation-v1-2-release",
     "priority": "high",
     "tags": ["v1.2", "发布", "版本标签"],
-    "orderIndex": 26,
-    "status": "todo",
-    "progress": 0
+    "orderIndex": 16
   }
 ]

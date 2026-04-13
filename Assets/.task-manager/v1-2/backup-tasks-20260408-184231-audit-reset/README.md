@@ -4,7 +4,7 @@
 
 - Project Name: 我的农场
 - Current Version: v1.2
-- Status: in_progress
+- Status: completed
 
 ## How To Use
 
@@ -25,4 +25,4 @@
 
 ## Current Version Focus
 
-推进卧室功能闭环（不含美术）
+完成卧室功能闭环（不含美术）

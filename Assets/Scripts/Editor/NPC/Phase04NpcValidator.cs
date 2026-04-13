@@ -87,6 +87,7 @@ namespace FarmGame.Editor.NPC
                 ValidateFeatureModules(def, root, errors);
                 ValidateVisuals(def, root, errors);
                 ValidatePhysics(def, root, errors);
+                ValidateV1_1DataConsistency(def, root, errors, warnings);
             }
             finally
             {
@@ -289,6 +290,197 @@ namespace FarmGame.Editor.NPC
             if (!string.IsNullOrEmpty(originalScenePath))
             {
                 EditorSceneManager.OpenScene(originalScenePath, OpenSceneMode.Single);
+            }
+        }
+
+        /// <summary>
+        /// v1.1: 数据一致性校验
+        /// 验证配置数据与运行时组件的一致性
+        /// 重点抓"数据已配置但运行时组件没挂上"的不一致问题
+        /// </summary>
+        private static void ValidateV1_1DataConsistency(NPCDefinition def, GameObject root, List<string> errors, List<string> warnings)
+        {
+            // 校验 1: dialogueSet 配置与 DialogueResolver 的 dialogueSet 引用一致性
+            ValidateDialogueSetConsistency(def, root, errors);
+
+            // 校验 2: baseStats 配置与 ActorStatsModule 的存在一致性
+            ValidateBaseStatsConsistency(def, root, errors);
+
+            // 校验 3: skills 配置与 SkillModule 的存在一致性
+            ValidateSkillsConsistency(def, root, errors);
+
+            // 校验 4: enableLowFrequencyTick 与 ActorTickModule 的存在一致性
+            ValidateTickModuleConsistency(def, root, errors);
+        }
+
+        /// <summary>
+        /// 校验 dialogueSet 配置与 DialogueResolver 的 dialogueSet 引用一致性
+        /// </summary>
+        private static void ValidateDialogueSetConsistency(NPCDefinition def, GameObject root, List<string> errors)
+        {
+            // 检查是否配置了 dialogueSet
+            bool hasConfiguredDialogueSet = def.dialogueSet != null;
+
+            if (!hasConfiguredDialogueSet)
+            {
+                // dialogueSet 为 null，不进行校验（可选模块为空）
+                return;
+            }
+
+            // dialogueSet 不为 null，检查是否存在 DialogueResolver 组件
+            DialogueResolver resolver = root.GetComponent<DialogueResolver>();
+            if (resolver == null)
+            {
+                errors.Add($"[{def.npcId}] 配置了 dialogueSet ({def.dialogueSet.name}) 但预制体缺少 DialogueResolver 组件");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查 DialogueResolver 的 dialogueSet 引用是否正确
+            if (resolver.dialogueSet == null)
+            {
+                errors.Add($"[{def.npcId}] 配置了 dialogueSet ({def.dialogueSet.name}) 但 DialogueResolver.dialogueSet 为 null");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查引用是否一致
+            if (resolver.dialogueSet != def.dialogueSet)
+            {
+                errors.Add($"[{def.npcId}] DialogueResolver.dialogueSet ({resolver.dialogueSet.name}) 与配置的 dialogueSet ({def.dialogueSet.name}) 不一致");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 校验 baseStats 配置与 ActorStatsModule 的存在一致性
+        /// </summary>
+        private static void ValidateBaseStatsConsistency(NPCDefinition def, GameObject root, List<string> errors)
+        {
+            // 检查是否配置了 baseStats
+            bool hasConfiguredBaseStats = def.baseStats != null && def.baseStats.Count > 0;
+
+            if (!hasConfiguredBaseStats)
+            {
+                // baseStats 为空，不进行校验（可选模块为空）
+                return;
+            }
+
+            // baseStats 不为空，检查是否存在 ActorStatsModule 组件
+            ActorStatsModule statsModule = root.GetComponent<ActorStatsModule>();
+            if (statsModule == null)
+            {
+                errors.Add($"[{def.npcId}] 配置了 baseStats ({def.baseStats.Count} 个属性) 但预制体缺少 ActorStatsModule 组件");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查 ActorStatsModule 的 baseStats 是否正确
+            if (statsModule.baseStats == null || statsModule.baseStats.Count == 0)
+            {
+                errors.Add($"[{def.npcId}] 配置了 baseStats ({def.baseStats.Count} 个属性) 但 ActorStatsModule.baseStats 为空");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查属性数量是否一致
+            if (statsModule.baseStats.Count != def.baseStats.Count)
+            {
+                errors.Add($"[{def.npcId}] ActorStatsModule.baseStats 数量 ({statsModule.baseStats.Count}) 与配置的 baseStats 数量 ({def.baseStats.Count}) 不一致");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 校验 skills 配置与 SkillModule 的存在一致性
+        /// </summary>
+        private static void ValidateSkillsConsistency(NPCDefinition def, GameObject root, List<string> errors)
+        {
+            // 检查是否配置了 skills
+            bool hasConfiguredSkills = def.skills != null && def.skills.Count > 0;
+
+            if (!hasConfiguredSkills)
+            {
+                // skills 为空，不进行校验（可选模块为空）
+                return;
+            }
+
+            // skills 不为空，检查是否存在 Skills.SkillModule 组件
+            Skills.SkillModule skillModule = root.GetComponent<Skills.SkillModule>();
+            if (skillModule == null)
+            {
+                errors.Add($"[{def.npcId}] 配置了 skills ({def.skills.Count} 个技能) 但预制体缺少 Skills.SkillModule 组件");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查 Skills.SkillModule 的 skills 是否正确
+            if (skillModule.skills == null || skillModule.skills.Count == 0)
+            {
+                errors.Add($"[{def.npcId}] 配置了 skills ({def.skills.Count} 个技能) 但 Skills.SkillModule.skills 为空");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查技能数量是否一致
+            if (skillModule.skills.Count != def.skills.Count)
+            {
+                errors.Add($"[{def.npcId}] Skills.SkillModule.skills 数量 ({skillModule.skills.Count}) 与配置的 skills 数量 ({def.skills.Count}) 不一致");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 校验 enableLowFrequencyTick 与 ActorTickModule 的存在一致性
+        /// </summary>
+        private static void ValidateTickModuleConsistency(NPCDefinition def, GameObject root, List<string> errors)
+        {
+            // 检查是否启用了低频调度
+            bool enableLowFrequencyTick = def.enableLowFrequencyTick;
+
+            if (!enableLowFrequencyTick)
+            {
+                // enableLowFrequencyTick 为 false，不进行校验（可选模块为空）
+                return;
+            }
+
+            // enableLowFrequencyTick 为 true，检查是否配置了 skills（因为 ActorTickModule 主要驱动技能冷却）
+            bool hasConfiguredSkills = def.skills != null && def.skills.Count > 0;
+
+            if (!hasConfiguredSkills)
+            {
+                // 没有配置技能，但启用了低频调度
+                // 警告（不是错误，因为未来可能有其他用途）
+                errors.Add($"[{def.npcId}] 启用了低频调度 (enableLowFrequencyTick=true) 但没有配置任何技能");
+                errors.Add($"[{def.npcId}] → 建议：配置技能后再启用低频调度，或者取消启用低频调度");
+                return;
+            }
+
+            // enableLowFrequencyTick 为 true 且有技能，检查是否存在 ActorTickModule 组件
+            ActorTickModule tickModule = root.GetComponent<ActorTickModule>();
+            if (tickModule == null)
+            {
+                errors.Add($"[{def.npcId}] 启用了低频调度 (enableLowFrequencyTick=true) 且配置了技能 ({def.skills.Count} 个) 但预制体缺少 ActorTickModule 组件");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            // 检查 ActorTickModule 的配置是否正确
+            if (Mathf.Abs(tickModule.tickInterval - def.tickInterval) > 0.0001f)
+            {
+                errors.Add($"[{def.npcId}] ActorTickModule.tickInterval ({tickModule.tickInterval}) 与配置的 tickInterval ({def.tickInterval}) 不一致");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
+            }
+
+            if (tickModule.useUnscaledTime != def.useUnscaledTime)
+            {
+                errors.Add($"[{def.npcId}] ActorTickModule.useUnscaledTime ({tickModule.useUnscaledTime}) 与配置的 useUnscaledTime ({def.useUnscaledTime}) 不一致");
+                errors.Add($"[{def.npcId}] → 建议操作：重新构建预制体（工具/NPC/构建选中 NPC 预制体）");
+                return;
             }
         }
     }

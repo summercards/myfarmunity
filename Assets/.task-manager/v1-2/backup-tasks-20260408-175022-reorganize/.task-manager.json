@@ -1,0 +1,278 @@
+{
+  "version": "id-6211-7684-519c-573a-1-2-4142abba",
+  "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+  "projectName": "我的农场",
+  "projectStatus": "in_progress",
+  "tasks": [
+    {
+      "id": "4244c861-b149-4e57-ac64-336765682213",
+      "title": "确认 v1.1 NPC 模块化边界与交付清单",
+      "description": "请阅读 `Assets/.task-manager/v1-1/TargetDocument.md` 与 `Assets/.task-manager/v1-1/ImplementationDocument.md`，输出一份 v1.1 边界确认结论。\n必须明确 4 个纳入范围：台词分组、属性模块、技能模块、低频 tick。\n必须明确 4 个不纳入范围：ECS、行为树、复杂技能树/技能图、条件 DSL 编辑器。\n必须指定 1 个试点 NPC，并说明为什么它最适合作为本版本验证对象。\n必须列出版本完成的判定标准，至少覆盖：对话主链路正常、首次/重复台词切换、属性可读写、技能冷却闭环、低频 tick 无残留回调。\n输出结果应可直接作为本版本开发过程中的统一约束说明，供后续所有任务引用，不允许只写抽象目标。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "10f14065-a737-4efb-9538-9025b298c91d",
+      "title": "确认v1.2 纳入范围与边界",
+      "description": "请确认以下纳入范围:\n**必须完成**:\n- 卧室场景美术(白膜→成品)\n- 传送系统(云层电梯↔卧室)\n- DIY系统基础(家具摆放、装饰)\n- 灵之空间入口(床上睡觉触发)\n- 数据持久化(DIY数据、传送状态)\n**不纳入范围**:\n- 复杂灵之空间内容(本版本只做入口)\n- 卧室NPC交互\n- 复杂家具动画\n- 多个房间设计\n- 室外场景\n- 灵之空间完整内容\n请输出:\n1. 对范围的确认或修改意见\n2. 是否同意不纳入范围的清单\n3. 预计完成时间",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.260Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "d8c19e5f-dacf-4953-85b5-de8194496345",
+      "title": "设计台词分组与 NPC 扩展数据结构",
+      "description": "请基于当前 `ActorSystem` 与 `NPCDefinition` 的现有结构，设计 v1.1 所需的数据模型，不要引入复杂框架。\n需要明确 `DialogueSetSO`、`DialogueGroup`、`StatEntry`、`SkillDefinitionSO`、`NPCDefinition` 新增字段的最终字段清单与用途说明。\n所有新增结构优先使用 `List<>` + ScriptableObject 引用，避免 Dictionary 序列化问题。\n需要保证旧 NPC 在不配置 `dialogueSet`、`baseStats`、`skills` 时仍可运行，不报错、不丢失原有对话和交互能力。\n输出应包含每个字段的类型、默认值策略、缺省行为、编辑器写入路径，以及和旧数据的兼容方式。\n结果应足够详细，让后续编码任务可以直接按这个结构实现而不需要再次推翻方案。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "38c87ccd-ae42-4fbd-8166-ac14c13f9c0f",
+      "title": "设计卧室数据模型",
+      "description": "请基于当前系统设计v1.2所需的数据模型,不引入复杂框架。\n**需要设计的模型**:\n1. `BedroomData.cs` - 卧室数据(家具摆放列表、玩家出生点)\n2. `FurnitureSO.cs` - 家具ScriptableObject(ID、名称、Prefab、占用网格)\n3. `TeleportPoint.cs` - 传送点(目标场景、目标传送点ID、出生偏移)\n**要求**:\n- 所有新结构优先使用`List<>` + ScriptableObject引用,避免Dictionary序列化问题\n- 需要明确每个字段的类型、默认值策略、缺失行为、编辑器写入路径\n- 需要说明与旧数据的兼容方式\n输出应包含每个字段的类型、默认值、缺失行为、编辑器写入路径,以及与旧数据的兼容方式",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.261Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "fddb6e3e-c5ec-4f65-b1c4-b3df1c6d3b56",
+      "title": "统一传送架构方案（复用Portal）",
+      "description": "确定Portal/PortalManager/SpawnPoint为唯一主链路，禁止并行Teleport主流程。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "8475bb1c-3a9f-4a62-9b0b-f8b54e8c1c93",
+      "title": "实现 DialogueSetSO 与 DialogueResolver 分组选择逻辑",
+      "description": "请新增 `Assets/Scripts/ActorSystem/Dialogue/DialogueSetSO.cs`，实现 `DialogueGroup { string key; List<string> lines; }` 与 `DialogueSetSO { List<DialogueGroup> groups; }`。\n请修改 `Assets/Scripts/ActorSystem/DialogueResolver.cs`，新增 `dialogueSet` 输入，并在 `GetCurrentDialogue()` 中实现轻量选择顺序：`first_meet` 优先，其次按好感度映射 `stranger/acquaintance/friend/close_friend`，再回退 `daily`，最后回退 `ActorIdentity.GetDefaultDialog()`。\n要求保证没有分组资源时仍能走旧逻辑，不能让现有 NPC 对话失效。\n需要处理空组、空文本、缺失 key、重复触发首次会面等边界情况。\n交付时请给出至少 1 个试点 NPC 的验证步骤：首次对话命中 `first_meet`，再次对话命中 `daily` 或好感度分组。\n描述中请记录所有可能破坏旧链路的风险点，并写明如何规避。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "7381490d-4763-44ac-a1ba-c12af7e93cd3",
+      "title": "设计传送系统技术方案",
+      "description": "请设计传送系统的技术方案,支持:\n**功能需求**:\n- 云层电梯↔卧室传送\n- 传送动画(淡入淡出/黑屏)\n- 传送状态保存\n**技术要求**:\n- 使用`SceneManager.LoadSceneAsync()`加载场景\n- 使用异步动画(协程或async/await)\n- 保存当前场景和位置用于返回\n- 确保传送过程流畅无卡顿\n**需要设计**:\n1. `ScreenFadeEffect.cs` - 屏幕淡入淡出效果\n2. `TeleportPoint.cs` - 传送点组件\n3. `SceneTransitionManager.cs` - 场景过渡管理器\n请输出:\n1. 每个类的核心方法和字段\n2. 传送流程的伪代码\n3. 如何避免传送过程中的bug(如多次触发、场景未加载完成)",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.261Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "815a3415-2edd-4c8f-a8d0-ea66b221964d",
+      "title": "扩展 NPCPrefabBuilder 写入台词分组内容管线",
+      "description": "请检查 `Assets/Scripts/Editor/NPC/NPCPrefabBuilder.cs` 当前的构建流程，并在不破坏旧构建逻辑的前提下，把 `NPCDefinition.dialogueSet` 写入 `DialogueResolver.dialogueSet`。\n如果 `dialogueSet` 为空，构建结果必须与旧版本一致，不能强制挂载无意义组件或产生空引用。\n需要确认构建产物中的组件顺序、引用注入时机和保存逻辑，避免出现 prefab 已挂模块但未写入资源引用的情况。\n请补充验证步骤：重新构建试点 NPC prefab，进入场景后对话逻辑应与配置一致。\n输出结果要明确说明：策划在哪个资产上填数据，编辑器在哪一步写入，运行时从哪个组件读取。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "100bdec6-1e0e-4692-acae-597dc175370a",
+      "title": "设计DIY系统技术方案",
+      "description": "请设计DIY系统的技术方案,支持:\n**功能需求**:\n- 家具放置(点击→跟随→确认)\n- 家具移动(拖拽)\n- 家具删除(右键删除)\n- 保存/加载DIY数据\n**技术要求**:\n- 使用ScriptableObject管理家具数据\n- 使用射线检测确定放置位置\n- 使用JSON进行数据持久化\n- 确保DIY数据正确保存和加载\n**需要设计**:\n1. `FurniturePlacementManager.cs` - 家具放置管理器\n2. `BedroomDataManager.cs` - 卧室数据管理器\n3. `BedroomInteractionManager.cs` - 卧室交互管理器\n请输出:\n1. 每个类的核心方法和字段\n2. 放置、移动、删除的流程伪代码\n3. 如何确保数据持久化的可靠性",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.261Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "f59bd175-2b3a-466f-a0e3-c9ce2350595b",
+      "title": "设计DIY编辑与交互方案",
+      "description": "定义卧室DIY放置/移动/删除流程与主循环兼容方案，复用Build系统能力。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "9e136b7d-219c-4b09-b43f-dc062addd04a",
+      "title": "实现 ActorStatsModule 与基础属性读写能力",
+      "description": "请新增 `Assets/Scripts/ActorSystem/ActorStatsModule.cs`，实现 `StatEntry { string key; float value; }` 与 `Get/Set/Add` 三个核心接口。\n模块必须支持按 key 查询属性，不存在时返回默认值，且对缺省 NPC 安全无报错。\n请同步扩展 `Assets/Scripts/NPCSystem/NPCDefinition.cs` 的 `baseStats` 输入结构，并在 `NPCPrefabBuilder` 中实现“有数据则挂模块，无数据则保持旧 NPC 不变”的写入规则。\n需要给出 1 个明确示例属性，比如 `friendship_gain_multiplier`，并验证读取、覆盖、累加三个路径都能工作。\n请确保实现不会引入战斗框架或复杂数值系统，当前只做轻量 key/value 属性层。\n交付结果需要附带模块职责说明、使用方式、缺省行为和一轮试点 NPC 的验证记录。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "67b6a863-05db-43db-bd08-5b9347bbe43a",
+      "title": "创建卧室白模场景",
+      "description": "请在Unity中创建卧室白模场景。\n**场景文件**:\n- `Assets/Scenes/Bedroom.unity`\n**实现步骤**:\n1. 在Unity中创建新场景`Bedroom.unity`\n2. 创建房间基础结构(立方体)\n3. 放置床、窗户、门、家具位(立方体占位)\n4. 设置玩家出生点\n5. 设置传送出口点(回云层电梯)\n6. 添加基础光照(Directional Light)\n7. 保存场景\n**验收标准**:\n- [ ] 卧室场景可以正常加载\n- [ ] 房间布局合理(大小、位置)\n- [ ] 家具位位置明确\n- [ ] 玩家出生点设置正确\n- [ ] 传送出口点设置正确\n**交付物**:\n- Bedroom.unity场景文件\n- 截图展示白模场景布局",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "79468112-1c7d-4008-a5f3-a67e06404bdb",
+      "title": "创建Bedroom与SpiritSpace基础场景",
+      "description": "创建Bedroom和spiritspace场景，配置核心SpawnPoint并加入Build Settings。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "9bc4b52f-ef18-4fc4-b345-b5d2bde1b0d5",
+      "title": "实现 SkillDefinitionSO 与 SkillModule 冷却闭环",
+      "description": "请新增 `Assets/Scripts/ActorSystem/Skills/SkillDefinitionSO.cs` 与 `Assets/Scripts/ActorSystem/Skills/SkillModule.cs`。\n`SkillDefinitionSO` 需要至少包含：`skillId`、`displayName`、`cooldownSeconds` 以及少量必要参数；`SkillModule` 需要至少提供 `TryCast`、`IsReady`、`Tick(float dt)`。\n运行时冷却表不要求序列化，但必须保证同一技能触发后进入冷却，冷却结束前不能重复成功施放。\n请同步扩展 `NPCDefinition.skills` 输入，并在 `NPCPrefabBuilder` 中实现“配置了技能才挂 SkillModule”的写入策略。\n需要补充 1 个试点技能的验证脚本：首次触发成功、冷却期间失败、冷却结束后再次成功。\n全过程必须保持轻量，不做技能树、复杂条件组合或行为图编辑器。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "4cc7ec19-f39d-43da-8bd4-391a604a6bd3",
+      "title": "实现传送系统",
+      "description": "请实现传送系统,支持云层电梯↔卧室传送。\n**文件路径**:\n- `Assets/Scripts/BedroomSystem/ScreenFadeEffect.cs`\n- `Assets/Scripts/BedroomSystem/TeleportPoint.cs`\n**实现步骤**:\n**步骤1: ScreenFadeEffect.cs**\n- 实现单例模式\n- 实现FadeIn(淡入)方法\n- 实现FadeOut(淡出)方法\n- 使用Image组件控制透明度\n**步骤2: TeleportPoint.cs**\n- 实现TeleportPlayer()方法\n- 使用ScreenFadeEffect实现淡入淡出\n- 使用PlayerPrefs保存当前场景和位置\n- 使用SceneManager.LoadSceneAsync()加载目标场景\n- 查找目标传送点并设置玩家位置\n**步骤3: 集成到场景**",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "f53197f1-4692-477b-98cb-7ed5a85a1a6e",
+      "title": "配置云层↔卧室双向传送",
+      "description": "在cloudcity与Bedroom场景配置Portal双向传送并验证落点与稳定性。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "5f430b18-1cd8-44c6-80c5-2e670efee41d",
+      "title": "实现 ActorTickModule 并用低频调度驱动技能刷新",
+      "description": "请新增 `Assets/Scripts/ActorSystem/ActorTickModule.cs`，并基于现有 `FarmGame.Core.TaskManager.ScheduleRepeating` 实现重复调度。\n模块至少需要支持 `tickInterval`、`useUnscaledTime`，并在启用时注册、禁用或销毁时可靠取消，避免场景切换后残留回调。\n当前版本的最小闭环是：每次 tick 调用 `SkillModule.Tick(tickInterval)`，让技能冷却通过低频调度刷新，而不是依赖 `Update()`。\n需要验证 3 个关键场景：正常运行时冷却递减、禁用 NPC 后停止调度、切场景或销毁对象后无悬挂回调。\n如果现有代码里还有其他逐帧逻辑涉及 NPC 状态刷新，请在不扩大版本范围的前提下评估是否可迁移到本模块。\n输出中要明确说明 tick 周期选择依据，以及为什么当前实现不会带来额外性能负担。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "7046f079-dfe3-4068-af7e-41ecddafe6e0",
+      "title": "实现DIY系统",
+      "description": "请实现DIY系统,支持家具摆放、移动、删除和数据持久化。\n**文件路径**:\n- `Assets/Scripts/BedroomSystem/FurnitureSO.cs`\n- `Assets/Scripts/BedroomSystem/FurniturePlacementManager.cs`\n- `Assets/Scripts/BedroomSystem/BedroomDataManager.cs`\n**实现步骤**:\n**步骤1: FurnitureSO.cs**\n- 创建ScriptableObject",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "4507c800-e51a-41cd-8ff2-2e73c15fd885",
+      "title": "实现床睡觉入口到灵之空间",
+      "description": "实现床交互触发睡觉状态并传送到spiritspace_bed_entry。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "0d1aeb8b-4c6e-495d-9470-b3934fcbfbe1",
+      "title": "补齐编辑器校验器，防止配置与 prefab 不一致",
+      "description": "请检查并修改 `Assets/Scripts/Editor/NPC/Phase04NpcValidator.cs`，新增对 `dialogueSet`、`baseStats`、`skills` 的一致性校验。\n校验规则至少包括：配置了台词分组就必须存在对应引用，配置了属性就必须有 `ActorStatsModule`，配置了技能就必须有 `SkillModule`，启用了低频调度闭环时必须存在 `ActorTickModule` 或等效驱动路径。\n校验输出需要可读，能直接告诉开发或策划缺了什么、在哪个 prefab 或资产上缺、下一步应该补什么。\n需要避免把“可选模块为空”误判成错误，重点抓“数据已配置但运行时组件没挂上”的不一致问题。\n交付时请附带至少 2 个正例和 2 个反例，确保校验器真的能挡住错误构建。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "2ff81043-b6ab-454b-ac76-7b8151b96ec0",
+      "title": "实现灵之空间入口",
+      "description": "请实现灵之空间入口,支持主角躺在床上睡觉触发传送。\n**文件路径**:\n- `Assets/Scripts/BedroomSystem/SpiritSpaceEntrance.cs`\n- `Assets/Scripts/BedroomSystem/SleepAnimationController.cs`\n**实现步骤**:\n**步骤1: SpiritSpaceEntrance.cs**\n- 实现EnterSpiritSpace()方法\n- 触发睡觉动画\n- 等待延迟(sleepDelay)\n- 淡出屏幕\n- 加载灵之空间场景\n**步骤2: SleepAnimationController.cs**\n- 获取Animator组件\n- 实现PlaySleepAnimation()方法\n- 播放IsSleeping=true动画\n- 等待动画完成\n- 淡出屏幕\n**步骤3: 集成到场景**\n- 在床物体上添加SpiritSpaceEntrance组件\n- 在床物体上添加SleepAnimationController组件\n- 添加Animator和睡觉动画\n- 配置sleepDelay参数\n**验收标准**:\n- [ ] 主角躺在床上可以触发睡觉\n- [ ] 睡觉动画播放正常\n- [ ] 睡觉后正确传送到灵之空间\n- [ ] 传送动画流畅\n**交付物**:\n- SpiritSpaceEntrance.cs源码\n- SleepAnimationController.cs源码\n- 睡觉动画片段(Animaton Clip)\n- 测试视频展示灵之空间入口效果",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "5f8e9975-0818-4bbc-a19b-5b8b8c2ef4e3",
+      "title": "实现DIY编辑能力（放置/移动/删除）",
+      "description": "实现卧室编辑模式与可编辑区域约束，完成DIY放置/移动/删除流程。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "a5cb1f06-47db-4f40-8101-0e3d5d285b08",
+      "title": "执行 v1.1 试点 NPC 全链路回归验收",
+      "description": "请基于试点 NPC 执行一轮完整回归，覆盖对话打开、首次/重复台词切换、商店或原有功能链路、属性读写、技能触发与冷却、低频 tick 调度、禁用/切场景后的回调清理。\n需要结合 `VersionDocs/phase-04-playtest-script.md`（如果存在）与当前 v1.1 文档目标，整理一份实际执行清单；如果该脚本不存在，就按本任务要求补一份最小可执行脚本。\n验收结果必须按“通过 / 失败 / 风险待观察”分类记录，并对每个失败项给出复现步骤、影响范围和建议修复方向。\n如果主链路（对话、交互、商店）出现任何回退，应直接阻断版本完成判定，不能用“模块功能已完成”掩盖主流程退化。\n最终输出应明确说明：v1.1 是否满足发布条件，如果不满足，剩余阻塞项是什么。",
+      "status": "done",
+      "createdAt": "2026-04-07T01:00:08.022Z",
+      "updatedAt": "2026-04-08T09:37:39.555Z"
+    },
+    {
+      "id": "6ccaa8cf-6095-45b3-81f4-7e1ee4ad500d",
+      "title": "素材替换",
+      "description": "请将白模场景替换为实际美术资源。\n**资源路径**:",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "12c80cc5-5425-49d8-9b5e-f62bc7668ed3",
+      "title": "实现DIY持久化（SaveManager优先）",
+      "description": "实现BedroomDIYSaveParticipant并接入SaveManager，缺省回退PlayerPrefs。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "d0c98f63-2646-4b80-aabd-55073fabe73d",
+      "title": "细节打磨",
+      "description": "请进行细节打磨,包括音效、性能优化和视觉优化。\n**资源路径**:",
+      "status": "todo",
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "1bc6bb45-a24b-42f4-b6b5-210199eb1b60",
+      "title": "完成灵之空间唯一入口治理",
+      "description": "禁用非卧室床入口并补充入口校验脚本，确保唯一入口约束可验证。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "f49a160e-5b39-4220-a460-c7a079ce881b",
+      "title": "传送系统与云层场景联调",
+      "description": "请将传送系统与云层场景进行联调测试。\n**联调内容**:\n1. 云层电梯传送点配置\n2. 卧室传送点配置\n3. 传送动画测试\n4. 传送状态保存测试\n5. 多次传送测试\n**测试步骤**:\n1. 从云层电梯传送到卧室\n2. 从卧室传送到云层电梯\n3. 多次重复传送\n4. 保存游戏后传送\n5. 读取游戏后传送\n**验收标准**:\n- [ ] 云层电梯→卧室传送正常\n- [ ] 卧室→云层电梯传送正常\n- [ ] 传送动画流畅\n- [ ] 多次传送无异常\n- [ ] 传送状态正确保存\n**交付物**:\n- 联调测试报告\n- 测试视频",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.264Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "fbecc8fc-f70f-4424-ad8c-01e016b176ea",
+      "title": "DIY系统与游戏主循环联调",
+      "description": "请将DIY系统与游戏主循环进行联调测试。\n**联调内容**:\n1. DIY系统与玩家移动的兼容性\n2. DIY系统与游戏保存的兼容性\n3. DIY系统与游戏加载的兼容性\n4. DIY数据持久化测试\n**测试步骤**:\n1. 游戏中放置家具\n2. 保存游戏\n3. 加载游戏\n4. 验证DIY数据是否正确恢复\n5. 继续放置、移动、删除家具\n6. 再次保存和加载\n**验收标准**:\n- [ ] DIY系统不影响玩家移动\n- [ ] DIY数据正确保存\n- [ ] DIY数据正确加载\n- [ ] 多次保存加载无异常\n**交付物**:\n- 联调测试报告\n- 测试视频",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.264Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "7cc5cfb3-e944-428c-bf0d-f754884cbbbb",
+      "title": "灵之空间入口与灵之空间场景联调",
+      "description": "请将灵之空间入口与灵之空间场景进行联调测试。\n**联调内容**:\n1. 灵之空间场景配置\n2. 灵之空间出生点配置\n3. 睡觉传送测试\n4. 灵之空间返回测试(如需要)\n**测试步骤**:\n1. 主角躺在床上\n2. 触发睡觉动画\n3. 传送到灵之空间\n4. 验证灵之空间场景正常加载\n5. 验证玩家出生点正确\n**注意**: 本版本只做入口,灵之空间内容留待后续版本\n**验收标准**:\n- [ ] 睡觉动画播放正常\n- [ ] 正确传送到灵之空间\n- [ ] 灵之空间场景正常加载\n- [ ] 玩家出生点正确\n**交付物**:\n- 联调测试报告\n- 测试视频",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.264Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "216bd682-88a2-487d-b612-1a2a6b0958b2",
+      "title": "回归测试",
+      "description": "请进行回归测试,确保v1.2不影响现有功能。\n**测试内容**:\n1. 云层功能测试\n2. NPC对话系统测试\n3. 商店功能测试\n4. 玩家移动测试\n5. 游戏保存加载测试\n**测试步骤**:\n1. 在云层场景正常移动\n2. 与NPC对话\n3. 打开商店进行交易\n4. 保存游戏\n5. 加载游戏\n6. 验证所有功能正常\n**验收标准**:\n- [ ] 云层功能不受影响\n- [ ] NPC对话系统不受影响\n- [ ] 商店功能不受影响\n- [ ] 玩家移动不受影响\n- [ ] 游戏保存加载不受影响\n**交付物**:\n- 回归测试报告\n- Bug清单(如有)",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.264Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "2b13216d-9027-42f5-a30d-2e7235133ab0",
+      "title": "代码审查与文档整理",
+      "description": "请进行代码审查并整理文档。\n**代码审查**:\n1. 检查代码规范\n2. 检查注释完整性\n3. 检查代码复用性\n4. 检查性能问题\n5. 检查安全性问题\n**文档整理**:\n1. 更新TargetDocument.md\n2. 更新ImplementationDocument.md\n3. 编写测试报告\n4. 编写用户使用说明\n5. 更新CHANGELOG.md\n**验收标准**:\n- [ ] 代码审查通过\n- [ ] 文档整理完成\n- [ ] 测试报告无严重bug\n- [ ] CHANGELOG更新完成\n**交付物**:\n- 代码审查报告\n- 更新后的文档\n- 测试报告\n- CHANGELOG更新",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.264Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "897b2868-f073-44bd-a3e0-20a4fa5590ae",
+      "title": "版本打标签与发布",
+      "description": "请完成v1.2版本的打标签和发布。\n**发布步骤**:\n1. 最终测试(全流程)\n2. 代码审查通过\n3. 文档整理完成\n4. 合并到主分支\n5. 版本打标签(v1.2)\n6. 更新CHANGELOG\n7. 发布公告\n**验收标准**:\n- [ ] 所有纳入范围的验收标准全部通过\n- [ ] 所有交付物准备就绪\n- [ ] 测试报告无严重bug\n- [ ] 代码审查通过\n- [ ] 不影响现有功能\n**交付物**:\n- v1.2版本标签\n- 发布公告\n- 最终交付物清单",
+      "status": "done",
+      "createdAt": "2026-04-07T14:20:57.264Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    }
+  ],
+  "goal": {
+    "targetCount": 6,
+    "currentCount": 6,
+    "description": "完成个人卧室的场景白膜制作"
+  },
+  "lastSyncedAt": "2026-04-08T09:46:10.939Z"
+}

@@ -169,7 +169,59 @@ namespace FarmGame.Editor.NPC
             EnsureOrReplace<ActorMemory>(root);
             EnsureOrReplace<ActorBrain>(root);
             EnsureOrReplace<ActorDialogue>(root);
-            EnsureOrReplace<DialogueResolver>(root);
+            var dialogueResolver = EnsureOrReplace<DialogueResolver>(root);
+
+            // v1.1: 写入台词分组资产
+            if (def.dialogueSet != null)
+            {
+                dialogueResolver.dialogueSet = def.dialogueSet;
+                Debug.Log($"[NPCPrefabBuilder] {def.npcId} 已写入 dialogueSet: {def.dialogueSet.name}");
+            }
+            else
+            {
+                // dialogueSet 为空时不修改，保持旧逻辑
+                dialogueResolver.dialogueSet = null;
+            }
+
+            // v1.1: 写入属性模块（有数据则挂模块，无数据则保持旧 NPC 不变）
+            if (def.baseStats != null && def.baseStats.Count > 0)
+            {
+                var statsModule = EnsureOrReplace<ActorStatsModule>(root);
+                statsModule.baseStats = def.baseStats;
+                Debug.Log($"[NPCPrefabBuilder] {def.npcId} 已挂载 ActorStatsModule，包含 {def.baseStats.Count} 个属性");
+            }
+            else
+            {
+                // baseStats 为空或不配置时不挂载模块，保持旧 NPC 不变
+                RemoveIfExists<ActorStatsModule>(root);
+            }
+
+            // v1.1: 写入技能模块（有数据则挂模块，无数据则保持旧 NPC 不变）
+            if (def.skills != null && def.skills.Count > 0)
+            {
+                var skillModule = EnsureOrReplace<ActorSkills.SkillModule>(root);
+                skillModule.skills = def.skills;
+                Debug.Log($"[NPCPrefabBuilder] {def.npcId} 已挂载 SkillModule，包含 {def.skills.Count} 个技能");
+            }
+            else
+            {
+                // skills 为空或不配置时不挂载模块，保持旧 NPC 不变
+                RemoveIfExists<ActorSkills.SkillModule>(root);
+            }
+
+            // v1.1: 写入低频 tick 调度模块（启用低频调度且有技能时才挂模块）
+            if (def.enableLowFrequencyTick && def.skills != null && def.skills.Count > 0)
+            {
+                var tickModule = EnsureOrReplace<ActorTickModule>(root);
+                tickModule.tickInterval = def.tickInterval;
+                tickModule.useUnscaledTime = def.useUnscaledTime;
+                Debug.Log($"[NPCPrefabBuilder] {def.npcId} 已挂载 ActorTickModule，周期：{def.tickInterval} 秒，未缩放时间：{def.useUnscaledTime}");
+            }
+            else
+            {
+                // 未启用低频调度或无技能时不挂载模块，保持旧 NPC 不变
+                RemoveIfExists<ActorTickModule>(root);
+            }
 
             // 交互组件
             if (def.enableInteraction)

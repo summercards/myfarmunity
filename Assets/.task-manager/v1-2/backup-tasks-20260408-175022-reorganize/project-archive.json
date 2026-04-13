@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "savedAt": "2026-04-13T02:32:52.739Z",
+  "savedAt": "2026-04-08T09:46:10.939Z",
   "project": {
     "id": "1a34a394-db84-4779-9cce-3e7875711428",
     "name": "我的农场",
@@ -9,11 +9,11 @@
     "path": "/Users/summercards/myfarmunity/Assets",
     "isArchived": false,
     "createdAt": "2026-04-06T16:30:12.640Z",
-    "updatedAt": "2026-04-08T10:49:15.523Z",
+    "updatedAt": "2026-04-08T09:44:16.137Z",
     "goal": {
       "targetCount": 6,
-      "currentCount": 4,
-      "description": "推进卧室功能闭环（不含美术）"
+      "currentCount": 6,
+      "description": "完成个人卧室的场景白膜制作"
     },
     "currentVersionId": "id-6211-7684-519c-573a-1-2-4142abba",
     "tracking": {
@@ -21,11 +21,11 @@
       "currentVersionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "currentVersionLabel": "v1.2",
       "statusLabel": "v1.2 开发中",
-      "progress": 25,
-      "currentFocus": "v1.2 开发中：卧室功能开发阶段任务待实现（12项）。",
+      "progress": 67,
+      "currentFocus": "当前正在规划 v1.2，请先补齐文档与阶段，再接入开发事件。",
       "childWorkspaceName": "我的农场",
       "childWorkspacePath": "/Users/summercards/myfarmunity/Assets",
-      "lastUpdatedAt": "2026-04-08T10:49:15.523Z"
+      "lastUpdatedAt": "2026-04-08T09:44:16.137Z"
     },
     "versions": [
       {
@@ -111,12 +111,12 @@
         "id": "id-6211-7684-519c-573a-1-2-4142abba",
         "version": "1.2",
         "label": "v1.2",
-        "summary": "推进卧室功能闭环（不含美术）",
+        "summary": "完成个人卧室的场景白膜制作",
         "status": "active",
         "goal": {
           "targetCount": 6,
-          "currentCount": 2,
-          "description": "推进卧室功能闭环（不含美术）"
+          "currentCount": 0,
+          "description": "完成个人卧室的场景白膜制作"
         },
         "documents": [
           {
@@ -126,19 +126,19 @@
             "type": "goal",
             "summary": "定义 我的农场 v1.2 的目标范围、关键阶段和验收要求。",
             "path": ".task-manager/v1-2/TargetDocument.md",
-            "updatedAt": "2026-04-08T10:45:36Z",
+            "updatedAt": "2026-04-07T13:51:38.487Z",
             "stages": [
               {
                 "id": "goal-v1-2-scope",
                 "title": "版本目标与范围",
                 "summary": "明确 v1.2 需要覆盖的业务边界与核心目标。",
-                "status": "done"
+                "status": "todo"
               },
               {
                 "id": "goal-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
-                "title": "卧室功能开发",
-                "summary": "推进卧室功能闭环（不含美术）",
-                "status": "in_progress"
+                "title": "卧室场景制作",
+                "summary": "完成个人卧室的场景白膜制作",
+                "status": "todo"
               },
               {
                 "id": "goal-v1-2-acceptance",
@@ -155,18 +155,18 @@
             "type": "implementation",
             "summary": "记录 我的农场 v1.2 的施工步骤、代码落点与联调方案。",
             "path": ".task-manager/v1-2/ImplementationDocument.md",
-            "updatedAt": "2026-04-08T10:45:36Z",
+            "updatedAt": "2026-04-07T13:51:38.487Z",
             "stages": [
               {
                 "id": "implementation-v1-2-analysis",
                 "title": "设计与拆解",
                 "summary": "拆分 v1.2 的模块、接口与开发顺序。",
-                "status": "done"
+                "status": "todo"
               },
               {
                 "id": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
-                "title": "卧室功能开发",
-                "summary": "完成卧室功能开发任务（场景/传送/入口/DIY/治理）",
+                "title": "卧室场景制作 开发",
+                "summary": "完成个人卧室的场景白膜制作",
                 "status": "todo"
               },
               {
@@ -184,7 +184,7 @@
           "开发中如果触发自动接入，也必须明确任务归属阶段。"
         ],
         "taskPreparationHistory": [],
-        "updatedAt": "2026-04-08T10:45:36Z"
+        "updatedAt": "2026-04-07T13:51:38.487Z"
       }
     ],
     "documents": [
@@ -239,19 +239,19 @@
       "documentStageId": "implementation-v1-2-analysis",
       "syncKey": "myfarm-v1-2-scope-confirmation",
       "sourceType": "external_sync",
-      "title": "确认v1.2功能范围与边界（不含美术）",
-      "description": "确认v1.2纳入与不纳入范围，冻结边界，输出风险清单与阶段节奏。",
+      "title": "确认v1.2 纳入范围与边界",
+      "description": "请确认以下纳入范围:\n**必须完成**:\n- 卧室场景美术(白膜→成品)\n- 传送系统(云层电梯↔卧室)\n- DIY系统基础(家具摆放、装饰)\n- 灵之空间入口(床上睡觉触发)\n- 数据持久化(DIY数据、传送状态)\n**不纳入范围**:\n- 复杂灵之空间内容(本版本只做入口)\n- 卧室NPC交互\n- 复杂家具动画\n- 多个房间设计\n- 室外场景\n- 灵之空间完整内容\n请输出:\n1. 对范围的确认或修改意见\n2. 是否同意不纳入范围的清单\n3. 预计完成时间",
       "status": "done",
       "priority": "high",
       "progress": 100,
-      "targetSummary": "确认v1.2功能范围与边界（不含美术）",
+      "targetSummary": "明确v1.2的纳入范围和边界，确保开发方向清晰",
       "tags": [
         "v1.2",
         "规划",
         "范围"
       ],
       "createdAt": "2026-04-07T14:20:57.260Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "d8c19e5f-dacf-4953-85b5-de8194496345",
@@ -277,6 +277,30 @@
       "orderIndex": 2
     },
     {
+      "id": "38c87ccd-ae42-4fbd-8166-ac14c13f9c0f",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 2,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-analysis",
+      "syncKey": "myfarm-v1-2-data-model-design",
+      "sourceType": "external_sync",
+      "title": "设计卧室数据模型",
+      "description": "请基于当前系统设计v1.2所需的数据模型,不引入复杂框架。\n**需要设计的模型**:\n1. `BedroomData.cs` - 卧室数据(家具摆放列表、玩家出生点)\n2. `FurnitureSO.cs` - 家具ScriptableObject(ID、名称、Prefab、占用网格)\n3. `TeleportPoint.cs` - 传送点(目标场景、目标传送点ID、出生偏移)\n**要求**:\n- 所有新结构优先使用`List<>` + ScriptableObject引用,避免Dictionary序列化问题\n- 需要明确每个字段的类型、默认值策略、缺失行为、编辑器写入路径\n- 需要说明与旧数据的兼容方式\n输出应包含每个字段的类型、默认值、缺失行为、编辑器写入路径,以及与旧数据的兼容方式",
+      "status": "done",
+      "priority": "high",
+      "progress": 100,
+      "targetSummary": "设计v1.2所需的数据模型，支持家具摆放和卧室数据持久化",
+      "tags": [
+        "v1.2",
+        "数据结构",
+        "SO",
+        "设计"
+      ],
+      "createdAt": "2026-04-07T14:20:57.261Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
       "id": "fddb6e3e-c5ec-4f65-b1c4-b3df1c6d3b56",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
       "orderIndex": 2,
@@ -286,18 +310,18 @@
       "syncKey": "myfarm-v1-2-teleport-architecture-alignment",
       "sourceType": "external_sync",
       "title": "统一传送架构方案（复用Portal）",
-      "description": "明确Portal/PortalManager/SpawnPoint为唯一主链路，禁止并行Teleport主流程。",
+      "description": "确定Portal/PortalManager/SpawnPoint为唯一主链路，禁止并行Teleport主流程。\n完成状态：已完成（用户确认）",
       "status": "done",
       "priority": "high",
       "progress": 100,
-      "targetSummary": "统一传送架构方案（复用Portal）",
+      "targetSummary": "完成统一传送架构方案（复用Portal）",
       "tags": [
         "v1.2",
         "传送",
         "架构"
       ],
       "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "8475bb1c-3a9f-4a62-9b0b-f8b54e8c1c93",
@@ -323,27 +347,28 @@
       "orderIndex": 3
     },
     {
-      "id": "38c87ccd-ae42-4fbd-8166-ac14c13f9c0f",
+      "id": "7381490d-4763-44ac-a1ba-c12af7e93cd3",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
       "orderIndex": 3,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-analysis",
-      "syncKey": "myfarm-v1-2-data-model-design",
+      "syncKey": "myfarm-v1-2-teleport-system-design",
       "sourceType": "external_sync",
-      "title": "设计卧室数据模型与存档兼容策略",
-      "description": "定义BedroomData/FurniturePlacement结构，并约束SaveManager优先、fallback策略。",
-      "status": "done",
+      "title": "设计传送系统技术方案",
+      "description": "请设计传送系统的技术方案,支持:\n**功能需求**:\n- 云层电梯↔卧室传送\n- 传送动画(淡入淡出/黑屏)\n- 传送状态保存\n**技术要求**:\n- 使用`SceneManager.LoadSceneAsync()`加载场景\n- 使用异步动画(协程或async/await)\n- 保存当前场景和位置用于返回\n- 确保传送过程流畅无卡顿\n**需要设计**:\n1. `ScreenFadeEffect.cs` - 屏幕淡入淡出效果\n2. `TeleportPoint.cs` - 传送点组件\n3. `SceneTransitionManager.cs` - 场景过渡管理器\n请输出:\n1. 每个类的核心方法和字段\n2. 传送流程的伪代码\n3. 如何避免传送过程中的bug(如多次触发、场景未加载完成)",
+      "status": "todo",
       "priority": "high",
-      "progress": 100,
-      "targetSummary": "设计卧室数据模型与存档兼容策略",
+      "progress": 0,
+      "targetSummary": "设计传送系统的技术方案，支持云层电梯↔卧室传送",
       "tags": [
         "v1.2",
-        "数据结构",
-        "存档"
+        "传送",
+        "场景管理",
+        "设计"
       ],
       "createdAt": "2026-04-07T14:20:57.261Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:37:39.557Z"
     },
     {
       "id": "815a3415-2edd-4c8f-a8d0-ea66b221964d",
@@ -369,6 +394,30 @@
       "orderIndex": 4
     },
     {
+      "id": "100bdec6-1e0e-4692-acae-597dc175370a",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 4,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-analysis",
+      "syncKey": "myfarm-v1-2-diy-system-design",
+      "sourceType": "external_sync",
+      "title": "设计DIY系统技术方案",
+      "description": "请设计DIY系统的技术方案,支持:\n**功能需求**:\n- 家具放置(点击→跟随→确认)\n- 家具移动(拖拽)\n- 家具删除(右键删除)\n- 保存/加载DIY数据\n**技术要求**:\n- 使用ScriptableObject管理家具数据\n- 使用射线检测确定放置位置\n- 使用JSON进行数据持久化\n- 确保DIY数据正确保存和加载\n**需要设计**:\n1. `FurniturePlacementManager.cs` - 家具放置管理器\n2. `BedroomDataManager.cs` - 卧室数据管理器\n3. `BedroomInteractionManager.cs` - 卧室交互管理器\n请输出:\n1. 每个类的核心方法和字段\n2. 放置、移动、删除的流程伪代码\n3. 如何确保数据持久化的可靠性",
+      "status": "todo",
+      "priority": "high",
+      "progress": 0,
+      "targetSummary": "设计DIY系统的技术方案，支持家具摆放、移动、删除和数据持久化",
+      "tags": [
+        "v1.2",
+        "DIY",
+        "数据持久化",
+        "设计"
+      ],
+      "createdAt": "2026-04-07T14:20:57.261Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
       "id": "f59bd175-2b3a-466f-a0e3-c9ce2350595b",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
       "orderIndex": 4,
@@ -378,18 +427,18 @@
       "syncKey": "myfarm-v1-2-diy-design",
       "sourceType": "external_sync",
       "title": "设计DIY编辑与交互方案",
-      "description": "定义卧室DIY放置/移动/删除流程与主循环兼容约束，复用Build系统能力。",
+      "description": "定义卧室DIY放置/移动/删除流程与主循环兼容方案，复用Build系统能力。\n完成状态：已完成（用户确认）",
       "status": "done",
       "priority": "high",
       "progress": 100,
-      "targetSummary": "设计DIY编辑与交互方案",
+      "targetSummary": "完成设计DIY编辑与交互方案",
       "tags": [
         "v1.2",
         "DIY",
         "交互"
       ],
       "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "9e136b7d-219c-4b09-b43f-dc062addd04a",
@@ -415,6 +464,53 @@
       "orderIndex": 5
     },
     {
+      "id": "67b6a863-05db-43db-bd08-5b9347bbe43a",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 5,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "goal-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-create-blockout-scene",
+      "sourceType": "external_sync",
+      "title": "创建卧室白模场景",
+      "description": "请在Unity中创建卧室白模场景。\n**场景文件**:\n- `Assets/Scenes/Bedroom.unity`\n**实现步骤**:\n1. 在Unity中创建新场景`Bedroom.unity`\n2. 创建房间基础结构(立方体)\n3. 放置床、窗户、门、家具位(立方体占位)\n4. 设置玩家出生点\n5. 设置传送出口点(回云层电梯)\n6. 添加基础光照(Directional Light)\n7. 保存场景\n**验收标准**:\n- [ ] 卧室场景可以正常加载\n- [ ] 房间布局合理(大小、位置)\n- [ ] 家具位位置明确\n- [ ] 玩家出生点设置正确\n- [ ] 传送出口点设置正确\n**交付物**:\n- Bedroom.unity场景文件\n- 截图展示白模场景布局",
+      "status": "todo",
+      "priority": "high",
+      "progress": 0,
+      "targetSummary": "在Unity中创建卧室白模场景，包括房间布局、家具位、出生点和传送点",
+      "tags": [
+        "v1.2",
+        "白模",
+        "场景",
+        "Unity"
+      ],
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "79468112-1c7d-4008-a5f3-a67e06404bdb",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 5,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-create-scenes-and-spawnpoints",
+      "sourceType": "external_sync",
+      "title": "创建Bedroom与SpiritSpace基础场景",
+      "description": "创建Bedroom和spiritspace场景，配置核心SpawnPoint并加入Build Settings。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "priority": "high",
+      "progress": 100,
+      "targetSummary": "完成创建Bedroom与SpiritSpace基础场景",
+      "tags": [
+        "v1.2",
+        "场景",
+        "SpawnPoint"
+      ],
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
       "id": "9bc4b52f-ef18-4fc4-b345-b5d2bde1b0d5",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
       "versionId": "-1-1-d4d7f96e",
@@ -436,6 +532,53 @@
       "createdAt": "2026-04-07T01:00:08.022Z",
       "updatedAt": "2026-04-08T09:37:39.555Z",
       "orderIndex": 6
+    },
+    {
+      "id": "4cc7ec19-f39d-43da-8bd4-391a604a6bd3",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 6,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-implement-teleport-system",
+      "sourceType": "external_sync",
+      "title": "实现传送系统",
+      "description": "请实现传送系统,支持云层电梯↔卧室传送。\n**文件路径**:\n- `Assets/Scripts/BedroomSystem/ScreenFadeEffect.cs`\n- `Assets/Scripts/BedroomSystem/TeleportPoint.cs`\n**实现步骤**:\n**步骤1: ScreenFadeEffect.cs**\n- 实现单例模式\n- 实现FadeIn(淡入)方法\n- 实现FadeOut(淡出)方法\n- 使用Image组件控制透明度\n**步骤2: TeleportPoint.cs**\n- 实现TeleportPlayer()方法\n- 使用ScreenFadeEffect实现淡入淡出\n- 使用PlayerPrefs保存当前场景和位置\n- 使用SceneManager.LoadSceneAsync()加载目标场景\n- 查找目标传送点并设置玩家位置\n**步骤3: 集成到场景**",
+      "status": "todo",
+      "priority": "high",
+      "progress": 0,
+      "targetSummary": "实现传送系统，支持云层电梯↔卧室传送",
+      "tags": [
+        "v1.2",
+        "传送",
+        "场景管理",
+        "C#"
+      ],
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "f53197f1-4692-477b-98cb-7ed5a85a1a6e",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 6,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-configure-cloud-bedroom-portal",
+      "sourceType": "external_sync",
+      "title": "配置云层↔卧室双向传送",
+      "description": "在cloudcity与Bedroom场景配置Portal双向传送并验证落点与稳定性。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "priority": "high",
+      "progress": 100,
+      "targetSummary": "完成配置云层↔卧室双向传送",
+      "tags": [
+        "v1.2",
+        "传送",
+        "Portal"
+      ],
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "5f430b18-1cd8-44c6-80c5-2e670efee41d",
@@ -461,6 +604,54 @@
       "orderIndex": 7
     },
     {
+      "id": "7046f079-dfe3-4068-af7e-41ecddafe6e0",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 7,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-implement-diy-system",
+      "sourceType": "external_sync",
+      "title": "实现DIY系统",
+      "description": "请实现DIY系统,支持家具摆放、移动、删除和数据持久化。\n**文件路径**:\n- `Assets/Scripts/BedroomSystem/FurnitureSO.cs`\n- `Assets/Scripts/BedroomSystem/FurniturePlacementManager.cs`\n- `Assets/Scripts/BedroomSystem/BedroomDataManager.cs`\n**实现步骤**:\n**步骤1: FurnitureSO.cs**\n- 创建ScriptableObject",
+      "status": "todo",
+      "priority": "high",
+      "progress": 0,
+      "targetSummary": "实现DIY系统，支持家具摆放、移动、删除和数据持久化",
+      "tags": [
+        "v1.2",
+        "DIY",
+        "数据持久化",
+        "SO",
+        "C#"
+      ],
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "4507c800-e51a-41cd-8ff2-2e73c15fd885",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 7,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-implement-bed-sleep-entrance",
+      "sourceType": "external_sync",
+      "title": "实现床睡觉入口到灵之空间",
+      "description": "实现床交互触发睡觉状态并传送到spiritspace_bed_entry。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "priority": "high",
+      "progress": 100,
+      "targetSummary": "完成实现床睡觉入口到灵之空间",
+      "tags": [
+        "v1.2",
+        "灵之空间",
+        "入口"
+      ],
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
       "id": "0d1aeb8b-4c6e-495d-9470-b3934fcbfbe1",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
       "versionId": "-1-1-d4d7f96e",
@@ -482,6 +673,54 @@
       "createdAt": "2026-04-07T01:00:08.022Z",
       "updatedAt": "2026-04-08T09:37:39.555Z",
       "orderIndex": 8
+    },
+    {
+      "id": "2ff81043-b6ab-454b-ac76-7b8151b96ec0",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 8,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-implement-spirit-space-entrance",
+      "sourceType": "external_sync",
+      "title": "实现灵之空间入口",
+      "description": "请实现灵之空间入口,支持主角躺在床上睡觉触发传送。\n**文件路径**:\n- `Assets/Scripts/BedroomSystem/SpiritSpaceEntrance.cs`\n- `Assets/Scripts/BedroomSystem/SleepAnimationController.cs`\n**实现步骤**:\n**步骤1: SpiritSpaceEntrance.cs**\n- 实现EnterSpiritSpace()方法\n- 触发睡觉动画\n- 等待延迟(sleepDelay)\n- 淡出屏幕\n- 加载灵之空间场景\n**步骤2: SleepAnimationController.cs**\n- 获取Animator组件\n- 实现PlaySleepAnimation()方法\n- 播放IsSleeping=true动画\n- 等待动画完成\n- 淡出屏幕\n**步骤3: 集成到场景**\n- 在床物体上添加SpiritSpaceEntrance组件\n- 在床物体上添加SleepAnimationController组件\n- 添加Animator和睡觉动画\n- 配置sleepDelay参数\n**验收标准**:\n- [ ] 主角躺在床上可以触发睡觉\n- [ ] 睡觉动画播放正常\n- [ ] 睡觉后正确传送到灵之空间\n- [ ] 传送动画流畅\n**交付物**:\n- SpiritSpaceEntrance.cs源码\n- SleepAnimationController.cs源码\n- 睡觉动画片段(Animaton Clip)\n- 测试视频展示灵之空间入口效果",
+      "status": "todo",
+      "priority": "high",
+      "progress": 0,
+      "targetSummary": "实现灵之空间入口，支持主角躺在床上睡觉触发传送",
+      "tags": [
+        "v1.2",
+        "灵之空间",
+        "入口",
+        "动画",
+        "C#"
+      ],
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
+    },
+    {
+      "id": "5f8e9975-0818-4bbc-a19b-5b8b8c2ef4e3",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 8,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-implement-diy-editing",
+      "sourceType": "external_sync",
+      "title": "实现DIY编辑能力（放置/移动/删除）",
+      "description": "实现卧室编辑模式与可编辑区域约束，完成DIY放置/移动/删除流程。\n完成状态：已完成（用户确认）",
+      "status": "done",
+      "priority": "high",
+      "progress": 100,
+      "targetSummary": "完成实现DIY编辑能力（放置/移动/删除）",
+      "tags": [
+        "v1.2",
+        "DIY",
+        "编辑"
+      ],
+      "createdAt": "2026-04-08T09:44:06.989Z",
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "a5cb1f06-47db-4f40-8101-0e3d5d285b08",
@@ -507,280 +746,242 @@
       "orderIndex": 9
     },
     {
-      "id": "79468112-1c7d-4008-a5f3-a67e06404bdb",
+      "id": "6ccaa8cf-6095-45b3-81f4-7e1ee4ad500d",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 11,
+      "orderIndex": 9,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
-      "syncKey": "myfarm-v1-2-create-scenes-and-spawnpoints",
+      "syncKey": "myfarm-v1-2-replace-assets",
       "sourceType": "external_sync",
-      "title": "创建Bedroom与SpiritSpace基础场景",
-      "description": "创建Bedroom/spiritspace场景，配置bedroom_entry_from_cloudcity、cloudcity_entry_from_bedroom、spiritspace_bed_entry并写入Build Settings。",
+      "title": "素材替换",
+      "description": "请将白模场景替换为实际美术资源。\n**资源路径**:",
       "status": "todo",
-      "priority": "high",
+      "priority": "medium",
       "progress": 0,
-      "targetSummary": "创建Bedroom与SpiritSpace基础场景",
+      "targetSummary": "将白模场景替换为实际美术资源",
       "tags": [
         "v1.2",
-        "场景",
-        "SpawnPoint"
+        "美术",
+        "素材",
+        "模型"
       ],
-      "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
-    },
-    {
-      "id": "f53197f1-4692-477b-98cb-7ed5a85a1a6e",
-      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 12,
-      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
-      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
-      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
-      "syncKey": "myfarm-v1-2-configure-cloud-bedroom-portal",
-      "sourceType": "external_sync",
-      "title": "配置云层↔卧室双向传送",
-      "description": "在cloudcity.scene与Bedroom场景配置双向Portal，校验targetScene/targetSpawnID与落点正确性。",
-      "status": "todo",
-      "priority": "high",
-      "progress": 0,
-      "targetSummary": "配置云层↔卧室双向传送",
-      "tags": [
-        "v1.2",
-        "传送",
-        "Portal"
-      ],
-      "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
-    },
-    {
-      "id": "4507c800-e51a-41cd-8ff2-2e73c15fd885",
-      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 13,
-      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
-      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
-      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
-      "syncKey": "myfarm-v1-2-implement-bed-sleep-entrance",
-      "sourceType": "external_sync",
-      "title": "实现床睡觉入口到灵之空间",
-      "description": "实现床交互触发睡觉状态并传送到spiritspace_bed_entry，增加重复触发保护。",
-      "status": "todo",
-      "priority": "high",
-      "progress": 0,
-      "targetSummary": "实现床睡觉入口到灵之空间",
-      "tags": [
-        "v1.2",
-        "灵之空间",
-        "入口"
-      ],
-      "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
-    },
-    {
-      "id": "5f8e9975-0818-4bbc-a19b-5b8b8c2ef4e3",
-      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 14,
-      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
-      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
-      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
-      "syncKey": "myfarm-v1-2-implement-diy-editing",
-      "sourceType": "external_sync",
-      "title": "实现DIY编辑能力（放置/移动/删除）",
-      "description": "在卧室内实现编辑模式、区域约束与放置/移动/删除闭环，并保证不破坏玩家基础控制。",
-      "status": "todo",
-      "priority": "high",
-      "progress": 0,
-      "targetSummary": "实现DIY编辑能力（放置/移动/删除）",
-      "tags": [
-        "v1.2",
-        "DIY",
-        "编辑"
-      ],
-      "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
     },
     {
       "id": "12c80cc5-5425-49d8-9b5e-f62bc7668ed3",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 15,
+      "orderIndex": 9,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
       "syncKey": "myfarm-v1-2-implement-diy-persistence",
       "sourceType": "external_sync",
       "title": "实现DIY持久化（SaveManager优先）",
-      "description": "实现卧室DIY数据保存与恢复：优先SaveManager(ISaveParticipant)，无服务时fallback，并避免读档重复生成。",
-      "status": "todo",
+      "description": "实现BedroomDIYSaveParticipant并接入SaveManager，缺省回退PlayerPrefs。\n完成状态：已完成（用户确认）",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "实现DIY持久化（SaveManager优先）",
+      "progress": 100,
+      "targetSummary": "完成实现DIY持久化（SaveManager优先）",
       "tags": [
         "v1.2",
         "DIY",
         "存档"
       ],
       "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
+    },
+    {
+      "id": "d0c98f63-2646-4b80-aabd-55073fabe73d",
+      "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
+      "orderIndex": 10,
+      "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
+      "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
+      "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
+      "syncKey": "myfarm-v1-2-polish-details",
+      "sourceType": "external_sync",
+      "title": "细节打磨",
+      "description": "请进行细节打磨,包括音效、性能优化和视觉优化。\n**资源路径**:",
+      "status": "todo",
+      "priority": "medium",
+      "progress": 0,
+      "targetSummary": "进行细节打磨，包括音效、性能优化和视觉优化",
+      "tags": [
+        "v1.2",
+        "优化",
+        "音效",
+        "性能"
+      ],
+      "createdAt": "2026-04-07T14:20:57.263Z",
+      "updatedAt": "2026-04-08T09:37:39.557Z"
     },
     {
       "id": "1bc6bb45-a24b-42f4-b6b5-210199eb1b60",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 16,
+      "orderIndex": 10,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-id-5367-5ba4-573a-666f-5236-4f5c",
       "syncKey": "myfarm-v1-2-enforce-single-spirit-entrance",
       "sourceType": "external_sync",
       "title": "完成灵之空间唯一入口治理",
-      "description": "实现入口排查与治理脚本，仅保留卧室床入口，并提供误配置检测。",
-      "status": "todo",
+      "description": "禁用非卧室床入口并补充入口校验脚本，确保唯一入口约束可验证。\n完成状态：已完成（用户确认）",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "完成灵之空间唯一入口治理",
+      "progress": 100,
+      "targetSummary": "完成完成灵之空间唯一入口治理",
       "tags": [
         "v1.2",
         "灵之空间",
         "治理"
       ],
       "createdAt": "2026-04-08T09:44:06.989Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "f49a160e-5b39-4220-a460-c7a079ce881b",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 21,
+      "orderIndex": 11,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-release",
       "syncKey": "myfarm-v1-2-integration-teleport",
       "sourceType": "external_sync",
-      "title": "传送系统联调（云层↔卧室↔灵之空间）",
-      "description": "联调三段传送链路，覆盖首进、往返、多次触发和读档后传送，产出联调记录。",
-      "status": "todo",
+      "title": "传送系统与云层场景联调",
+      "description": "请将传送系统与云层场景进行联调测试。\n**联调内容**:\n1. 云层电梯传送点配置\n2. 卧室传送点配置\n3. 传送动画测试\n4. 传送状态保存测试\n5. 多次传送测试\n**测试步骤**:\n1. 从云层电梯传送到卧室\n2. 从卧室传送到云层电梯\n3. 多次重复传送\n4. 保存游戏后传送\n5. 读取游戏后传送\n**验收标准**:\n- [ ] 云层电梯→卧室传送正常\n- [ ] 卧室→云层电梯传送正常\n- [ ] 传送动画流畅\n- [ ] 多次传送无异常\n- [ ] 传送状态正确保存\n**交付物**:\n- 联调测试报告\n- 测试视频",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "传送系统联调（云层↔卧室↔灵之空间）",
+      "progress": 100,
+      "targetSummary": "将传送系统与云层场景进行联调测试",
       "tags": [
         "v1.2",
         "联调",
-        "传送"
+        "传送",
+        "测试"
       ],
       "createdAt": "2026-04-07T14:20:57.264Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "fbecc8fc-f70f-4424-ad8c-01e016b176ea",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 22,
+      "orderIndex": 12,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-release",
       "syncKey": "myfarm-v1-2-integration-diy",
       "sourceType": "external_sync",
-      "title": "DIY系统与主循环联调",
-      "description": "联调DIY与移动/背包/保存加载，验证放置-保存-加载循环稳定，输出问题清单。",
-      "status": "todo",
+      "title": "DIY系统与游戏主循环联调",
+      "description": "请将DIY系统与游戏主循环进行联调测试。\n**联调内容**:\n1. DIY系统与玩家移动的兼容性\n2. DIY系统与游戏保存的兼容性\n3. DIY系统与游戏加载的兼容性\n4. DIY数据持久化测试\n**测试步骤**:\n1. 游戏中放置家具\n2. 保存游戏\n3. 加载游戏\n4. 验证DIY数据是否正确恢复\n5. 继续放置、移动、删除家具\n6. 再次保存和加载\n**验收标准**:\n- [ ] DIY系统不影响玩家移动\n- [ ] DIY数据正确保存\n- [ ] DIY数据正确加载\n- [ ] 多次保存加载无异常\n**交付物**:\n- 联调测试报告\n- 测试视频",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "DIY系统与主循环联调",
+      "progress": 100,
+      "targetSummary": "将DIY系统与游戏主循环进行联调测试",
       "tags": [
         "v1.2",
         "联调",
-        "DIY"
+        "DIY",
+        "测试"
       ],
       "createdAt": "2026-04-07T14:20:57.264Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "7cc5cfb3-e944-428c-bf0d-f754884cbbbb",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 23,
+      "orderIndex": 13,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-release",
       "syncKey": "myfarm-v1-2-integration-spirit-space",
       "sourceType": "external_sync",
-      "title": "床入口与SpiritSpace场景联调",
-      "description": "联调睡觉触发、场景加载、出生点落位与返回路径，确认入口行为稳定。",
-      "status": "todo",
+      "title": "灵之空间入口与灵之空间场景联调",
+      "description": "请将灵之空间入口与灵之空间场景进行联调测试。\n**联调内容**:\n1. 灵之空间场景配置\n2. 灵之空间出生点配置\n3. 睡觉传送测试\n4. 灵之空间返回测试(如需要)\n**测试步骤**:\n1. 主角躺在床上\n2. 触发睡觉动画\n3. 传送到灵之空间\n4. 验证灵之空间场景正常加载\n5. 验证玩家出生点正确\n**注意**: 本版本只做入口,灵之空间内容留待后续版本\n**验收标准**:\n- [ ] 睡觉动画播放正常\n- [ ] 正确传送到灵之空间\n- [ ] 灵之空间场景正常加载\n- [ ] 玩家出生点正确\n**交付物**:\n- 联调测试报告\n- 测试视频",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "床入口与SpiritSpace场景联调",
+      "progress": 100,
+      "targetSummary": "将灵之空间入口与灵之空间场景进行联调测试",
       "tags": [
         "v1.2",
         "联调",
-        "灵之空间"
+        "灵之空间",
+        "测试"
       ],
       "createdAt": "2026-04-07T14:20:57.264Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "216bd682-88a2-487d-b612-1a2a6b0958b2",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 24,
+      "orderIndex": 14,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-release",
       "syncKey": "myfarm-v1-2-regression-test",
       "sourceType": "external_sync",
-      "title": "回归测试（含唯一入口断言）",
-      "description": "回归云层/NPC/商店/移动/存档，并验证灵之空间仅卧室床入口可触发，输出测试报告。",
-      "status": "todo",
+      "title": "回归测试",
+      "description": "请进行回归测试,确保v1.2不影响现有功能。\n**测试内容**:\n1. 云层功能测试\n2. NPC对话系统测试\n3. 商店功能测试\n4. 玩家移动测试\n5. 游戏保存加载测试\n**测试步骤**:\n1. 在云层场景正常移动\n2. 与NPC对话\n3. 打开商店进行交易\n4. 保存游戏\n5. 加载游戏\n6. 验证所有功能正常\n**验收标准**:\n- [ ] 云层功能不受影响\n- [ ] NPC对话系统不受影响\n- [ ] 商店功能不受影响\n- [ ] 玩家移动不受影响\n- [ ] 游戏保存加载不受影响\n**交付物**:\n- 回归测试报告\n- Bug清单(如有)",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "回归测试（含唯一入口断言）",
+      "progress": 100,
+      "targetSummary": "进行回归测试，确保v1.2不影响现有功能",
       "tags": [
         "v1.2",
         "回归测试",
-        "QA"
+        "QA",
+        "测试"
       ],
       "createdAt": "2026-04-07T14:20:57.264Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "2b13216d-9027-42f5-a30d-2e7235133ab0",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 25,
+      "orderIndex": 15,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-release",
       "syncKey": "myfarm-v1-2-code-review",
       "sourceType": "external_sync",
       "title": "代码审查与文档整理",
-      "description": "完成代码审查、测试记录、用户说明和变更文档整理。",
-      "status": "todo",
+      "description": "请进行代码审查并整理文档。\n**代码审查**:\n1. 检查代码规范\n2. 检查注释完整性\n3. 检查代码复用性\n4. 检查性能问题\n5. 检查安全性问题\n**文档整理**:\n1. 更新TargetDocument.md\n2. 更新ImplementationDocument.md\n3. 编写测试报告\n4. 编写用户使用说明\n5. 更新CHANGELOG.md\n**验收标准**:\n- [ ] 代码审查通过\n- [ ] 文档整理完成\n- [ ] 测试报告无严重bug\n- [ ] CHANGELOG更新完成\n**交付物**:\n- 代码审查报告\n- 更新后的文档\n- 测试报告\n- CHANGELOG更新",
+      "status": "done",
       "priority": "medium",
-      "progress": 0,
-      "targetSummary": "代码审查与文档整理",
+      "progress": 100,
+      "targetSummary": "进行代码审查并整理文档",
       "tags": [
         "v1.2",
         "代码审查",
-        "文档"
+        "文档",
+        "发布"
       ],
       "createdAt": "2026-04-07T14:20:57.264Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     },
     {
       "id": "897b2868-f073-44bd-a3e0-20a4fa5590ae",
       "projectId": "1a34a394-db84-4779-9cce-3e7875711428",
-      "orderIndex": 26,
+      "orderIndex": 16,
       "versionId": "id-6211-7684-519c-573a-1-2-4142abba",
       "documentId": "id-6211-7684-519c-573a-1-2-4142abba-implementation-document",
       "documentStageId": "implementation-v1-2-release",
       "syncKey": "myfarm-v1-2-release",
       "sourceType": "external_sync",
       "title": "版本打标签与发布",
-      "description": "完成最终测试、主分支合并、v1.2标签、CHANGELOG与发布公告。",
-      "status": "todo",
+      "description": "请完成v1.2版本的打标签和发布。\n**发布步骤**:\n1. 最终测试(全流程)\n2. 代码审查通过\n3. 文档整理完成\n4. 合并到主分支\n5. 版本打标签(v1.2)\n6. 更新CHANGELOG\n7. 发布公告\n**验收标准**:\n- [ ] 所有纳入范围的验收标准全部通过\n- [ ] 所有交付物准备就绪\n- [ ] 测试报告无严重bug\n- [ ] 代码审查通过\n- [ ] 不影响现有功能\n**交付物**:\n- v1.2版本标签\n- 发布公告\n- 最终交付物清单",
+      "status": "done",
       "priority": "high",
-      "progress": 0,
-      "targetSummary": "版本打标签与发布",
+      "progress": 100,
+      "targetSummary": "完成v1.2版本的打标签和发布",
       "tags": [
         "v1.2",
         "发布",
-        "版本标签"
+        "版本标签",
+        "发布"
       ],
       "createdAt": "2026-04-07T14:20:57.264Z",
-      "updatedAt": "2026-04-08T10:45:36Z"
+      "updatedAt": "2026-04-08T09:44:06.989Z"
     }
   ],
   "comments": []

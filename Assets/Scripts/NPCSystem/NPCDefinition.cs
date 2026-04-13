@@ -80,7 +80,30 @@ namespace FarmGame.NPCSystem
         public Vector3 colliderCenter = new Vector3(0, 1, 0);
         public float colliderRadius = 0.5f;
         public float colliderHeight = 2.0f;
-        
+
+        [Header("台词分组配置（v1.1 扩展）")]
+        [Tooltip("可选的台词分组资产，支持首次会面、好感度分级等分组规则")]
+        public FarmGame.ActorSystem.DialogueSetSO dialogueSet;
+
+        [Header("基础属性配置（v1.1 扩展）")]
+        [Tooltip("可选的基础属性列表，支持键值对配置（如 friendship_gain_multiplier, max_hp 等）")]
+        public List<FarmGame.ActorSystem.StatEntry> baseStats = new List<FarmGame.ActorSystem.StatEntry>();
+
+        [Header("技能配置（v1.1 扩展）")]
+        [Tooltip("可选的技能定义列表，支持技能冷却和触发")]
+        public List<FarmGame.ActorSystem.Skills.SkillDefinitionSO> skills = new List<FarmGame.ActorSystem.Skills.SkillDefinitionSO>();
+
+        [Header("低频调度配置（v1.1 扩展）")]
+        [Tooltip("是否启用低频 tick 调度（需要配置技能才能生效）")]
+        public bool enableLowFrequencyTick = false;
+
+        [Tooltip("低频 tick 周期（秒），默认 1 秒")]
+        [Range(0.01f, 60f)]
+        public float tickInterval = 1f;
+
+        [Tooltip("是否使用未缩放时间（不受 Time.timeScale 影响）")]
+        public bool useUnscaledTime = false;
+
         [Header("调试绘制 (Gizmos)")]
         public Color gizmoColor = new Color(0.2f, 0.8f, 1f, 0.35f);
     }

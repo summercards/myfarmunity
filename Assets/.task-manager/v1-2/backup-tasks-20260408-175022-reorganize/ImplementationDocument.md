@@ -2,33 +2,13 @@
 
 ## Version Summary
 
-在现有工程基础上完成卧室功能闭环（不含美术）：
-- 云层↔卧室双向传送
-- 床睡觉进入灵之空间
-- 卧室DIY编辑与持久化
-- 灵之空间唯一入口治理
-- 联调、回归、发布收口
-
----
-
-## 当前代码与资源基线（2026-04-08 审计）
-
-### 已有可复用能力
-- 已有 `Portal.cs` / `PortalManager.cs` / `SpawnPoint.cs`。
-- 已有 `BuildSaveManager`（实现 `ISaveParticipant`）与 `PlayerBuilder` 基础建造链路。
-- `RuntimeRefs` 已支持 `SpawnPoint` 注册和查询。
-
-### 当前阻塞项
-- `Assets/Scenes` 下尚无 `Bedroom.unity` 与 `spiritspace.unity`。
-- `ProjectSettings/EditorBuildSettings.asset` 当前 `m_Scenes: []`（未配置构建场景）。
-- 尚无 `BedroomSystem` 相关脚本（床入口、DIY编辑控制、唯一入口治理）。
-- 尚无 v1.2 联调测试报告、回归报告、发布标签。
+交付卧室功能闭环（不含美术）：双向传送、DIY可编辑与持久化、床睡觉进入灵之空间、唯一入口治理、联调发布。
 
 ---
 
 ## Version Tasks
 
-> 本文档用于“可执行施工”，不代表自动完成。是否完成以任务状态和证据为准。
+> 注：本版本任务以“复用现有系统”为前提，避免新增并行框架。
 
 ---
 
@@ -36,69 +16,121 @@
 
 ### 设计与拆解
 
-- **Status**: done
-- **Summary**: 架构已对齐，明确复用路线与边界。
+- **Status**: todo
+- **Summary**: 先完成架构对齐，再进入开发，避免返工
 
 #### 架构对齐结论（必须遵守）
 
 1. **传送系统统一**
-   - 复用 `Portal.cs` + `PortalManager.cs` + `SpawnPoint.cs`。
-   - 不新增并行 `TeleportPoint` 主链路实现。
+   - 复用现有 `Portal.cs` + `PortalManager.cs` + `SpawnPoint.cs`
+   - 不新增并行 `TeleportPoint` 主链路实现
 
 2. **存档策略统一**
-   - 优先接入 `SaveManager`（`ISaveParticipant`）。
-   - 仅在无 `SaveManager` 场景允许 fallback。
+   - 优先接入 `SaveManager` (`ISaveParticipant`)
+   - 仅在无 `SaveManager` 场景允许 PlayerPrefs fallback
 
 3. **DIY能力复用**
-   - 复用 `BuildCatalogSO` / `PlayerBuilder` / `PlacedObject`。
-   - 卧室场景内增加编辑态和区域限制。
+   - 复用现有 `BuildCatalogSO` / `PlayerBuilder` / `PlacedObject`
+   - 在卧室场景补充编辑态控制与区域限制
 
 4. **唯一入口治理**
-   - 灵之空间入口仅允许“卧室床”触发。
-   - 必须有入口排查脚本与回归断言。
+   - 灵之空间入口仅允许“卧室床”触发
+   - 必须有排查清单和回归验证项
+
+#### 数据模型设计
+
+**1. 卧室DIY数据模型**
+
+创建 `Assets/Scripts/BedroomSystem/BedroomData.cs`：
+```csharp
+[System.Serializable]
+public class BedroomData
+{
+    public List<FurniturePlacement> furniturePlacements = new();
+}
+
+[System.Serializable]
+public class FurniturePlacement
+{
+    public string itemId;
+    public Vector3 position;
+    public Quaternion rotation;
+    public Vector3 scale;
+}
+```
+
+**2. 床入口配置模型**
+
+创建 `Assets/Scripts/BedroomSystem/BedEntranceConfig.cs`：
+```csharp
+[CreateAssetMenu(fileName = "BedEntranceConfig", menuName = "MyFarm/Bedroom/BedEntranceConfig")]
+public class BedEntranceConfig : ScriptableObject
+{
+    public string spiritSceneName = "spiritspace";
+    public string spiritSpawnId = "spiritspace_bed_entry";
+    public float sleepDelaySeconds = 1.5f;
+}
+```
+
+**3. 唯一入口治理配置**
+
+创建 `Assets/Scripts/BedroomSystem/SpiritEntrancePolicy.cs`：
+```csharp
+[CreateAssetMenu(fileName = "SpiritEntrancePolicy", menuName = "MyFarm/Bedroom/SpiritEntrancePolicy")]
+public class SpiritEntrancePolicy : ScriptableObject
+{
+    public string allowedEntranceId = "bedroom_bed_entrance";
+    public bool blockOtherEntrances = true;
+}
+```
+
+#### 开发顺序建议
+
+```text
+1. 架构对齐 -> 2. 场景与传送点 -> 3. 床入口 -> 4. DIY编辑 -> 5. DIY存档 -> 6. 唯一入口治理 -> 7. 联调与发布
+```
 
 ---
 
 ### 卧室功能开发
 
 - **Status**: todo
-- **Summary**: 当前仍处于待实现状态，需按顺序落地。
+- **Summary**: 按“场景基础 -> 核心功能 -> 治理”顺序实现
 
 #### 任务1：创建场景与基础点位
 
 **文件路径**：
 - `Assets/Scenes/Bedroom.unity`
 - `Assets/Scenes/spiritspace.unity`
-- `ProjectSettings/EditorBuildSettings.asset`
 
 **实现步骤**：
 1. 创建 `Bedroom.unity`（可白模）
 2. 创建 `spiritspace.unity`（入口承接场景）
-3. 在场景中创建 `SpawnPoint`：
+3. 在两个场景创建 `SpawnPoint`：
    - `bedroom_entry_from_cloudcity`
    - `cloudcity_entry_from_bedroom`
    - `spiritspace_bed_entry`
-4. 将 `cloudcity.scene` / `Bedroom.unity` / `spiritspace.unity` 加入 Build Settings
+4. 将两个场景加入 Build Settings
 
 **验收标准**：
 - [ ] 场景可加载
 - [ ] SpawnPoint ID 唯一且可被 `RuntimeRefs` 注册
-- [ ] Build Settings 已配置并可运行
+- [ ] Build Settings 中可见并可运行
 
 ---
 
 #### 任务2：接入云层↔卧室双向传送
 
 **文件路径**：
-- `Assets/Scripts/Portal/Portal.cs`
-- `Assets/Scripts/Portal/PortalManager.cs`
+- `Assets/Scripts/Portal/Portal.cs`（复用配置）
+- `Assets/Scripts/Portal/PortalManager.cs`（复用）
 - `Assets/Scenes/cloudcity.scene`
 - `Assets/Scenes/Bedroom.unity`
 
 **实现步骤**：
-1. 在 `cloudcity.scene` 增加指向卧室的 Portal
-2. 在 `Bedroom.unity` 增加返回云层的 Portal
-3. 配置 `targetScene` / `targetSpawnID`
+1. 在 cloudcity 放置指向卧室的 Portal
+2. 在 Bedroom 放置返回 cloudcity 的 Portal
+3. 配置 `targetScene` 和 `targetSpawnID`
 4. 验证多次连续传送稳定性
 
 **验收标准**：
@@ -118,7 +150,7 @@
 1. 床触发区内按 `E` 进入睡觉流程
 2. 播放睡觉状态（动画或状态切换）
 3. 延迟后调用 `PortalManager.Teleport("spiritspace", "spiritspace_bed_entry")`
-4. 增加重复触发保护
+4. 处理重复触发保护
 
 **验收标准**：
 - [ ] E键可触发
@@ -154,9 +186,9 @@
 - `Assets/Scripts/BedroomSystem/BedroomData.cs`
 
 **实现步骤**：
-1. 实现 `ISaveParticipant` 并接入 `SaveManager`
-2. 保存卧室家具清单（位置/旋转/缩放）
-3. 无 `SaveManager` 时走 fallback（建议 `PlayerPrefs` key: `BedroomDIYData`）
+1. 实现 `ISaveParticipant`，接入 `SaveManager`
+2. 保存卧室内家具清单（位置/旋转/缩放）
+3. 无 `SaveManager` 时回退 PlayerPrefs（key: `BedroomDIYData`）
 4. 读档后恢复并避免重复生成
 
 **验收标准**：
@@ -173,10 +205,10 @@
 - `Assets/Scripts/BedroomSystem/SpiritEntranceValidator.cs`
 
 **实现步骤**：
-1. 扫描工程内灵之空间入口
+1. 扫描当前工程中的灵之空间入口点
 2. 保留卧室床入口，禁用其他入口
 3. 增加校验（启动时或编辑器菜单）
-4. 回归脚本加入唯一入口断言
+4. 回归脚本中加入唯一入口断言
 
 **验收标准**：
 - [ ] 仅卧室床可进入灵之空间
@@ -187,9 +219,10 @@
 ### 联调与发布
 
 - **Status**: todo
-- **Summary**: 待功能任务完成后进入联调、回归和发布阶段。
+- **Summary**: 确保功能可上线且不回归
 
 #### 联调清单
+
 - [ ] 传送系统与云层场景联调
 - [ ] DIY系统与主循环联调
 - [ ] 床入口与灵之空间场景联调
@@ -197,6 +230,7 @@
 - [ ] 唯一入口治理联调
 
 #### 回归测试
+
 - [ ] 云层功能不受影响
 - [ ] NPC对话系统不受影响
 - [ ] 商店功能不受影响
@@ -204,6 +238,7 @@
 - [ ] 现有保存加载不受影响
 
 #### 发布准备
+
 - [ ] 代码审查通过
 - [ ] 文档整理完成
 - [ ] 测试报告无严重bug
@@ -212,21 +247,32 @@
 
 ---
 
-## 实施顺序建议
+## 附录
+
+### 文件结构（v1.2 功能版）
 
 ```text
-1. 场景与 Build Settings
-2. 云层↔卧室双向传送
-3. 床睡觉入口
-4. DIY编辑
-5. DIY持久化
-6. 唯一入口治理
-7. 联调
-8. 回归
-9. 发布
+Assets/
+├── Scenes/
+│   ├── Bedroom.unity
+│   └── spiritspace.unity
+├── Scripts/
+│   ├── Portal/
+│   │   ├── Portal.cs
+│   │   ├── PortalManager.cs
+│   │   └── SpawnPoint.cs
+│   └── BedroomSystem/
+│       ├── BedroomData.cs
+│       ├── BedroomDIYSaveParticipant.cs
+│       ├── BedroomEditModeController.cs
+│       ├── BedroomFurnitureEditController.cs
+│       ├── BedSleepEntrance.cs
+│       ├── BedEntranceConfig.cs
+│       ├── SpiritEntrancePolicy.cs
+│       └── SpiritEntranceValidator.cs
 ```
 
-## 实施原则
+### 实施原则
 
 - 不重复造传送轮子，优先复用已有稳定链路。
 - 存档遵循主干架构，避免局部方案与全局冲突。
