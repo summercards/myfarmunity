@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using FarmGame.NPCSystem;
 using FarmGame.ActorSystem; // 引用新系统
+using ActorSkills = FarmGame.ActorSystem.Skills;
 
 namespace FarmGame.Editor.NPC
 {

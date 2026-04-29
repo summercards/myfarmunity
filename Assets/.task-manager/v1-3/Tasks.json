@@ -1,0 +1,110 @@
+[
+  {
+    "id": "v1-3-exec-orchestration-baseline",
+    "title": "执行：输出中控基线审计与RuntimeRefs迁移规则",
+    "description": "AI 阅读 TargetDocument.md 与 ImplementationDocument.md，扫描 AppRoot、GameManager、RuntimeRefs、TaskManager、SaveManager 及其主要使用方，输出 DesignNotes/OrchestrationBaseline.md 和 DesignNotes/RuntimeRefsMigrationRules.md。文档必须列明保留职责、迁移职责、本版本不动范围、至少 3 个试点系统，以及新增功能禁止继续扩展 RuntimeRefs 具体对象清单的规则。",
+    "syncKey": "myfarm-v1-3-exec-orchestration-baseline",
+    "stageId": "implementation-v1-3-baseline",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "中控", "审计"],
+    "orderIndex": 1,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-exec-orchestration-contracts",
+    "title": "执行：建立中控核心目录与基础契约",
+    "description": "AI 新建 Assets/Scripts/Orchestration 及 Contracts、Events、Commands、Adapters 子目录，建立 FarmGame.Orchestration 命名空间。实现基础契约和结果类型，至少包括服务注册接口、事件总线接口、命令总线接口、运行时状态接口、CommandResult。不得让中控契约依赖具体 UI 类或场景对象。",
+    "syncKey": "myfarm-v1-3-exec-orchestration-contracts",
+    "stageId": "implementation-v1-3-core",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "Orchestration", "Contracts"],
+    "orderIndex": 2,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-exec-core-orchestration-services",
+    "title": "执行：实现ServiceRegistry、EventBus、CommandBus与GameStateService",
+    "description": "AI 实现 GameServiceRegistry、GameEventBus、GameCommandBus、GameStateService 和 GameRuntimeContext。要求服务可注册/获取/注销，事件可订阅/取消/发布，命令可注册/执行并返回成功或失败，运行时状态不持有 UI 引用。命令未注册时必须返回可读失败结果。事件订阅必须有取消订阅路径。",
+    "syncKey": "myfarm-v1-3-exec-core-orchestration-services",
+    "stageId": "implementation-v1-3-core",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "ServiceRegistry", "EventBus", "CommandBus"],
+    "orderIndex": 3,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-exec-approot-runtime-context",
+    "title": "执行：接入AppRoot初始化并保持旧系统兼容",
+    "description": "AI 将 GameRuntimeContext 接入 AppRoot 或等效启动入口，确保中控层跨场景可用。保留 GameManager、SaveManager、TaskManager、RuntimeRefs 现有职责，不做大规模改写。完成后记录初始化顺序和兼容策略。",
+    "syncKey": "myfarm-v1-3-exec-approot-runtime-context",
+    "stageId": "implementation-v1-3-core",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "AppRoot", "兼容"],
+    "orderIndex": 4,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-exec-time-system-adapter",
+    "title": "执行：接入时间系统试点",
+    "description": "AI 定义 ITimeService 和时间事件，使用适配器包装现有 GameTimeSystem / TimeSystemAccessor。发布游戏小时、日期、季节等变化事件。不得破坏现有 TimeController、TimeUI 和 SaveManager 对时间系统的使用。",
+    "syncKey": "myfarm-v1-3-exec-time-system-adapter",
+    "stageId": "implementation-v1-3-pilot",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "Time", "Adapter"],
+    "orderIndex": 5,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-exec-inventory-wallet-ui-adapter",
+    "title": "执行：接入背包或钱包试点并改造一个UI监听路径",
+    "description": "AI 选择背包或钱包作为试点，定义对应服务接口和变化事件，通过适配器接入现有系统，并改造一个最小 UI 监听路径，使 UI 可以通过中控事件刷新。保留旧路径作为兼容 fallback，避免场景配置一次性失效。",
+    "syncKey": "myfarm-v1-3-exec-inventory-wallet-ui-adapter",
+    "stageId": "implementation-v1-3-pilot",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "Inventory", "Wallet", "UI"],
+    "orderIndex": 6,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-exec-shop-or-dialogue-command-pilot",
+    "title": "执行：接入商店或NPC对话命令试点",
+    "description": "AI 选择商店或 NPC 对话作为命令试点，定义至少一个强类型命令和处理器，例如购买物品、出售物品、打开对话或关闭对话。UI 或交互入口发送命令，玩法系统处理命令并返回 CommandResult。旧交互链路必须保持可用。",
+    "syncKey": "myfarm-v1-3-exec-shop-or-dialogue-command-pilot",
+    "stageId": "implementation-v1-3-pilot",
+    "priority": "high",
+    "tags": ["v1.3", "执行", "CommandBus", "Shop", "NPC"],
+    "orderIndex": 7,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-accept-core-orchestration-validation",
+    "title": "验收：执行编译检查与中控核心行为验证",
+    "description": "AI 执行编译检查，并通过最小验证脚本或编辑器验证记录证明：服务注册/获取/注销正常，事件订阅/取消/发布正常，命令注册/执行/失败返回正常，GameStateService 不依赖具体 UI 或场景对象。结果写入 AcceptanceReport.md。",
+    "syncKey": "myfarm-v1-3-accept-core-orchestration-validation",
+    "stageId": "implementation-v1-3-acceptance",
+    "priority": "high",
+    "tags": ["v1.3", "验收", "编译", "中控"],
+    "orderIndex": 8,
+    "status": "todo",
+    "progress": 0
+  },
+  {
+    "id": "v1-3-accept-pilot-regression-and-template",
+    "title": "验收：完成试点回归与新功能接入模板",
+    "description": "AI 输出 NewFeatureIntegrationTemplate.md，模板必须包含服务接口、事件、命令、状态、存档、UI、回归测试和禁止事项。随后回归玩家移动、时间、存档、背包、商店、NPC、传送主链路，写入 AcceptanceReport.md。验收结论必须说明 v1.3 是否满足完成条件，以及剩余未迁移风险。",
+    "syncKey": "myfarm-v1-3-accept-pilot-regression-and-template",
+    "stageId": "implementation-v1-3-acceptance",
+    "priority": "high",
+    "tags": ["v1.3", "验收", "回归", "模板"],
+    "orderIndex": 9,
+    "status": "todo",
+    "progress": 0
+  }
+]

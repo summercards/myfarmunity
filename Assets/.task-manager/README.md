@@ -3,7 +3,7 @@
 ## Project
 
 - Project Name: 我的农场
-- Current Version: v1.2
+- Current Version: v1.3
 - Status: in_progress
 
 ## How To Use
@@ -25,4 +25,4 @@
 
 ## Current Version Focus
 
-推进卧室功能闭环（不含美术）
+中控模式框架搭建：通过中控系统串联每个系统，让单独系统可以独立迭代且不影响其他系统。

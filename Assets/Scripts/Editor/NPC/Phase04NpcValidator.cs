@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using ActorSkills = FarmGame.ActorSystem.Skills;
 
 namespace FarmGame.Editor.NPC
 {
@@ -408,7 +409,7 @@ namespace FarmGame.Editor.NPC
             }
 
             // skills 不为空，检查是否存在 Skills.SkillModule 组件
-            Skills.SkillModule skillModule = root.GetComponent<Skills.SkillModule>();
+            ActorSkills.SkillModule skillModule = root.GetComponent<ActorSkills.SkillModule>();
             if (skillModule == null)
             {
                 errors.Add($"[{def.npcId}] 配置了 skills ({def.skills.Count} 个技能) 但预制体缺少 Skills.SkillModule 组件");

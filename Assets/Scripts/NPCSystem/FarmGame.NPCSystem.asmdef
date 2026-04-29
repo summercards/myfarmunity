@@ -3,7 +3,8 @@
   "rootNamespace": "FarmGame.NPCSystem",
   "references": [
     "FarmGame.Core",
-    "FarmGame.Gameplay"
+    "FarmGame.Gameplay",
+    "FarmGame.ActorSystem"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
