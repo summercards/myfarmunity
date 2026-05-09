@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using FarmGame.Core.Contracts;
+using FarmGame.Orchestration;
 
 public class MiniShop : MonoBehaviour
 {
@@ -85,6 +86,7 @@ public class MiniShop : MonoBehaviour
     NPCDialogUI _cachedDialogUI;
     PlayerInventoryHolder _cachedPlayerHolder;
     NPCDialogWorldBridge _cachedWorldBridge;
+    IDisposable _walletEventSubscription;
 
     void Awake()
     {
@@ -107,6 +109,7 @@ public class MiniShop : MonoBehaviour
         RuntimeRefs.DialogWorldBridgeChanged += HandleDialogWorldBridgeChanged;
         RuntimeRefs.PlayerWalletChanged += HandlePlayerWalletChanged;
         RuntimeRefs.InventoryBridgeChanged += HandleInventoryBridgeChanged;
+        SubscribeWalletChangedEvent();
     }
 
     void OnDisable()
@@ -118,6 +121,8 @@ public class MiniShop : MonoBehaviour
         RuntimeRefs.DialogWorldBridgeChanged -= HandleDialogWorldBridgeChanged;
         RuntimeRefs.PlayerWalletChanged -= HandlePlayerWalletChanged;
         RuntimeRefs.InventoryBridgeChanged -= HandleInventoryBridgeChanged;
+        _walletEventSubscription?.Dispose();
+        _walletEventSubscription = null;
         // 保险：面板被禁用也要结束气泡（例如切场景/父级隐藏）
         EndShopBubble();
     }
@@ -235,6 +240,25 @@ public class MiniShop : MonoBehaviour
         UpdateWalletText(); tip?.Invoke("购买成功");
     }
 
+    bool TryBuyThroughCommand(ShopCatalogSO.ShopEntrySO entry, int qty, Action<string> tip)
+    {
+        var bus = GameRuntimeContext.CommandBus;
+        if (bus == null || !bus.HasHandler<BuyShopItemCommand>())
+        {
+            return false;
+        }
+
+        Transform playerContext = player ? player : RuntimeRefs.PlayerTransform;
+        CommandResult result = bus.Execute(new BuyShopItemCommand(catalog, entry.itemId, qty, playerContext));
+        tip?.Invoke(result.Success ? "购买成功" : result.Message);
+        if (result.Success)
+        {
+            UpdateWalletText();
+        }
+
+        return true;
+    }
+
     public bool QuoteSell(string itemId, int qty, out int total)
     {
         total = 0;
@@ -302,7 +326,13 @@ public class MiniShop : MonoBehaviour
             { int q = GetQty() + 1; if (qtyIF) qtyIF.text = q.ToString(); });
 
             if (btnBuy) btnBuy.onClick.AddListener(() =>
-            { TryBuy(e.itemId, e.buyPrice, GetQty(), Tip); });
+            {
+                int qty = GetQty();
+                if (!TryBuyThroughCommand(e, qty, Tip))
+                {
+                    TryBuy(e.itemId, e.buyPrice, qty, Tip);
+                }
+            });
         }
     }
 
@@ -401,6 +431,23 @@ public class MiniShop : MonoBehaviour
     }
 
     void OnCoinsChanged(int _) => UpdateWalletText();
+
+    void SubscribeWalletChangedEvent()
+    {
+        _walletEventSubscription?.Dispose();
+        _walletEventSubscription = null;
+
+        var eventBus = GameRuntimeContext.EventBus;
+        if (eventBus != null)
+        {
+            _walletEventSubscription = eventBus.Subscribe<WalletChangedEvent>(HandleWalletChangedEvent);
+        }
+    }
+
+    void HandleWalletChangedEvent(WalletChangedEvent walletChanged)
+    {
+        UpdateWalletText();
+    }
 
     void UpdateWalletText()
     {

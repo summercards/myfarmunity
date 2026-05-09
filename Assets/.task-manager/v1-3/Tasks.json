@@ -8,8 +8,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "中控", "审计"],
     "orderIndex": 1,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-exec-orchestration-contracts",
@@ -20,8 +20,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "Orchestration", "Contracts"],
     "orderIndex": 2,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-exec-core-orchestration-services",
@@ -32,8 +32,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "ServiceRegistry", "EventBus", "CommandBus"],
     "orderIndex": 3,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-exec-approot-runtime-context",
@@ -44,8 +44,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "AppRoot", "兼容"],
     "orderIndex": 4,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-exec-time-system-adapter",
@@ -56,8 +56,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "Time", "Adapter"],
     "orderIndex": 5,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-exec-inventory-wallet-ui-adapter",
@@ -68,8 +68,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "Inventory", "Wallet", "UI"],
     "orderIndex": 6,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-exec-shop-or-dialogue-command-pilot",
@@ -80,8 +80,8 @@
     "priority": "high",
     "tags": ["v1.3", "执行", "CommandBus", "Shop", "NPC"],
     "orderIndex": 7,
-    "status": "todo",
-    "progress": 0
+    "status": "done",
+    "progress": 100
   },
   {
     "id": "v1-3-accept-core-orchestration-validation",
@@ -92,8 +92,8 @@
     "priority": "high",
     "tags": ["v1.3", "验收", "编译", "中控"],
     "orderIndex": 8,
-    "status": "todo",
-    "progress": 0
+    "status": "in_progress",
+    "progress": 75
   },
   {
     "id": "v1-3-accept-pilot-regression-and-template",
@@ -104,7 +104,7 @@
     "priority": "high",
     "tags": ["v1.3", "验收", "回归", "模板"],
     "orderIndex": 9,
-    "status": "todo",
-    "progress": 0
+    "status": "in_progress",
+    "progress": 65
   }
 ]

@@ -3,6 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using FarmGame.Orchestration;
 
 /// <summary>
 /// SimpleShopUI - 稳健版
@@ -37,6 +38,7 @@ public class SimpleShopUI : MonoBehaviour
     public bool IsOpen { get; private set; }
 
     private bool built = false;
+    private IDisposable walletEventSubscription;
     private MiniShop miniShop; // 保留兼容（如果场景没有就为 null）
 
     void Awake()
@@ -57,6 +59,8 @@ public class SimpleShopUI : MonoBehaviour
     void OnEnable()
     {
         RuntimeRefs.RegisterSimpleShopUI(this);
+        SubscribeWalletChangedEvent();
+        UpdateWalletText();
 
         // 如果在编辑器场景里手动激活 root，我们也尝试构建（仅在播放时）
         if (Application.isPlaying)
@@ -73,6 +77,8 @@ public class SimpleShopUI : MonoBehaviour
     void OnDisable()
     {
         RuntimeRefs.UnregisterSimpleShopUI(this);
+        walletEventSubscription?.Dispose();
+        walletEventSubscription = null;
     }
 
     /// <summary> 打开商店（外部调用） </summary>
@@ -90,6 +96,7 @@ public class SimpleShopUI : MonoBehaviour
         if (root != null)
             root.SetActive(true);
         IsOpen = true;
+        UpdateWalletText();
 
         if (!built)
         {
@@ -237,6 +244,11 @@ public class SimpleShopUI : MonoBehaviour
                     btn.onClick.RemoveAllListeners();
                     btn.onClick.AddListener(() =>
                     {
+                        if (TryBuyThroughCommand(captured))
+                        {
+                            return;
+                        }
+
                         // 找钱包
                         var wallet = RuntimeRefs.PlayerWallet;
                         if (wallet == null)
@@ -296,6 +308,43 @@ public class SimpleShopUI : MonoBehaviour
 
         built = true;
         Debug.LogFormat("[Shop] BuildItems finished. Created {0} items (catalog: {1})", created, catalog != null ? catalog.name : "null");
+    }
+
+    private bool TryBuyThroughCommand(ShopCatalogSO.ShopEntrySO entry)
+    {
+        var bus = GameRuntimeContext.CommandBus;
+        if (bus == null || !bus.HasHandler<BuyShopItemCommand>())
+        {
+            return false;
+        }
+
+        CommandResult result = bus.Execute(new BuyShopItemCommand(catalog, entry.itemId, 1, RuntimeRefs.PlayerTransform));
+        Debug.Log("[Shop] " + result.Message);
+        UpdateWalletText();
+        return true;
+    }
+
+    private void SubscribeWalletChangedEvent()
+    {
+        walletEventSubscription?.Dispose();
+        walletEventSubscription = null;
+
+        var eventBus = GameRuntimeContext.EventBus;
+        if (eventBus != null)
+        {
+            walletEventSubscription = eventBus.Subscribe<WalletChangedEvent>(_ => UpdateWalletText());
+        }
+    }
+
+    private void UpdateWalletText()
+    {
+        if (coinsText == null)
+        {
+            return;
+        }
+
+        PlayerWallet wallet = RuntimeRefs.PlayerWallet;
+        coinsText.text = wallet != null ? $"金币：{wallet.coins}" : "金币：—";
     }
 
     // 提供给调试用：强制重新生成（运行时右键组件菜单或在编辑器 Inspector 的三点下调用）
